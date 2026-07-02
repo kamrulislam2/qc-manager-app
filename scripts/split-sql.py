@@ -10,18 +10,30 @@ def main():
         lines = f.readlines()
 
     lines_per_file = 3000
-    total_lines = len(lines)
     
-    print(f"Splitting {input_file} ({total_lines} lines) into parts of {lines_per_file} lines each...")
+    print(f"Splitting {input_file} smartly around {lines_per_file} lines each...")
 
     part_num = 1
-    for i in range(0, total_lines, lines_per_file):
-        chunk = lines[i:i + lines_per_file]
+    current_chunk = []
+    
+    for line in lines:
+        # If we reached the target size AND the current line is a safe boundary
+        if len(current_chunk) >= lines_per_file and line.startswith("INSERT INTO"):
+            part_file = f"migration_output_part{part_num}.sql"
+            with open(part_file, "w", encoding="utf-8") as f_out:
+                f_out.write("".join(current_chunk))
+            print(f" - Created: {part_file} ({len(current_chunk)} lines)")
+            part_num += 1
+            current_chunk = []
+            
+        current_chunk.append(line)
+        
+    # Write the last chunk
+    if current_chunk:
         part_file = f"migration_output_part{part_num}.sql"
         with open(part_file, "w", encoding="utf-8") as f_out:
-            f_out.write("".join(chunk))
-        print(f" - Created: {part_file} ({len(chunk)} lines)")
-        part_num += 1
+            f_out.write("".join(current_chunk))
+        print(f" - Created: {part_file} ({len(current_chunk)} lines)")
 
     print("\n[SUCCESS] Split completed! You can copy and run these files one by one in the SQL Editor.")
 
