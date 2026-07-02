@@ -93,8 +93,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
   }, [newRole, canManageRules, setCanManageRules]);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4 animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4 animate-modal-backdrop">
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto animate-modal-content">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-slate-455 hover:text-white transition-all cursor-pointer"
@@ -240,16 +240,16 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto pr-1">
-                    <label className={`flex items-center gap-1.5 px-2 py-0.5 rounded border cursor-pointer transition-all select-none text-[10px] ${
+                    <label className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border cursor-pointer transition-all select-none text-[10px] ${
                       supervisorIds.length === 0 
-                        ? 'border-orange-600 bg-orange-955/20 text-orange-400 font-semibold' 
-                        : 'border-slate-800 bg-slate-900 text-slate-400'
+                        ? 'border-orange-600 bg-orange-950/20 text-orange-400 font-semibold' 
+                        : 'border-slate-800 bg-slate-900 text-slate-405'
                     }`}>
                       <input
                         type="checkbox"
                         checked={supervisorIds.length === 0}
                         onChange={() => setSupervisorIds([])}
-                        className="sr-only"
+                        className="cursor-pointer shrink-0 scale-75"
                       />
                       <span>All</span>
                     </label>
@@ -258,10 +258,10 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                       return (
                         <label 
                           key={sup.id} 
-                          className={`flex items-center gap-1.5 px-2 py-0.5 rounded border cursor-pointer transition-all select-none text-[10px] ${
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border cursor-pointer transition-all select-none text-[10px] ${
                             isChecked 
-                              ? 'border-orange-600 bg-orange-955/20 text-orange-400 font-semibold' 
-                              : 'border-slate-800 bg-slate-900 text-slate-400'
+                              ? 'border-orange-600 bg-orange-950/20 text-orange-400 font-semibold' 
+                              : 'border-slate-800 bg-slate-900 text-slate-405'
                           }`}
                         >
                           <input
@@ -274,7 +274,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                                 setSupervisorIds([...supervisorIds, sup.id]);
                               }
                             }}
-                            className="sr-only"
+                            className="cursor-pointer shrink-0 scale-75"
                           />
                           <span>{sup.username}</span>
                         </label>

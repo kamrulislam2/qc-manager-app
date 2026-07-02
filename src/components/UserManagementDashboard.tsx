@@ -56,10 +56,10 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const [allowedTypes, setAllowedTypes] = useState<string[]>([]);
   const [canManageRules, setCanManageRules] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
-  const [newNeedsApproval, setNewNeedsApproval] = useState(true);
+  const [newNeedsApproval, setNewNeedsApproval] = useState(false);
   const [newSupervisorIds, setNewSupervisorIds] = useState<string[]>([]);
-  const [newEligibleGovtHoliday, setNewEligibleGovtHoliday] = useState(true);
-  const [newEligibleOfficeLeave, setNewEligibleOfficeLeave] = useState(true);
+  const [newEligibleGovtHoliday, setNewEligibleGovtHoliday] = useState(false);
+  const [newEligibleOfficeLeave, setNewEligibleOfficeLeave] = useState(false);
   const [newAllowOvertime, setNewAllowOvertime] = useState(false);
   const [newAllowReserve, setNewAllowReserve] = useState(false);
 
@@ -176,10 +176,10 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       setCanManageRules(false);
       setHasChutiAccess(true);
       setHasQuotesAccess(false);
-      setNewNeedsApproval(true);
+      setNewNeedsApproval(false);
       setNewSupervisorIds([]);
-      setNewEligibleGovtHoliday(true);
-      setNewEligibleOfficeLeave(true);
+      setNewEligibleGovtHoliday(false);
+      setNewEligibleOfficeLeave(false);
       setNewAllowOvertime(false);
       setNewAllowReserve(false);
       fetchProfiles();
@@ -279,6 +279,12 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                   setAllowedTypes([]);
                   setCanManageRules(false);
                   setGeneratedPassword(null);
+                  setNewNeedsApproval(false);
+                  setNewSupervisorIds([]);
+                  setNewEligibleGovtHoliday(false);
+                  setNewEligibleOfficeLeave(false);
+                  setNewAllowOvertime(false);
+                  setNewAllowReserve(false);
                   setIsAddUserModalOpen(true);
                 }}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-orange-950/20 active:scale-95 transition-all cursor-pointer"
@@ -470,10 +476,10 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                   setHasChutiAccess(true);
                   setHasQuotesAccess(false);
                   setAllowedTypes([]);
-                  setNewNeedsApproval(true);
+                  setNewNeedsApproval(false);
                   setNewSupervisorIds([]);
-                  setNewEligibleGovtHoliday(true);
-                  setNewEligibleOfficeLeave(true);
+                  setNewEligibleGovtHoliday(false);
+                  setNewEligibleOfficeLeave(false);
                   setNewAllowOvertime(false);
                   setNewAllowReserve(false);
                 }}
