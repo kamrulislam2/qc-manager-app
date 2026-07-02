@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 interface UnifiedSidebarProps {
-  activeSection: 'chuti' | 'quotes' | 'user_management' | 'todo';
+  activeSection: 'chuti' | 'quotes' | 'user_management' | 'todo' | 'analytics' | 'audit_logs';
   profile: Profile | null;
   activeQuotesTab?: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules';
   onQuotesTabChange?: (tab: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules') => void;
@@ -69,6 +69,18 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
   const handleTodoNav = () => {
     localStorage.setItem('last_active_dashboard', 'todo');
     window.dispatchEvent(new CustomEvent('workspace-change', { detail: 'todo' }));
+    router.push('/');
+  };
+
+  const handleAnalyticsNav = () => {
+    localStorage.setItem('last_active_dashboard', 'analytics');
+    window.dispatchEvent(new CustomEvent('workspace-change', { detail: 'analytics' }));
+    router.push('/');
+  };
+
+  const handleAuditLogsNav = () => {
+    localStorage.setItem('last_active_dashboard', 'audit_logs');
+    window.dispatchEvent(new CustomEvent('workspace-change', { detail: 'audit_logs' }));
     router.push('/');
   };
 
@@ -244,41 +256,6 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                   {!isSidebarCollapsed && <span className="whitespace-nowrap">Quote Rules</span>}
                 </button>
 
-                {/* 5. Analytics (Admin) */}
-                {isQuotesAdmin && (
-                  <button
-                    onClick={() => onQuotesTabChange('analytics')}
-                    title={isSidebarCollapsed ? 'Analytics' : undefined}
-                    className={`w-full flex items-center rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
-                      isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start px-3 py-2 gap-2.5'
-                    } ${
-                      activeQuotesTab === 'analytics'
-                        ? 'bg-blue-500/10 text-blue-400'
-                        : 'text-slate-400 hover:bg-slate-850/60 hover:text-white'
-                    }`}
-                  >
-                    <TrendingUp className="h-4 w-4 shrink-0" />
-                    {!isSidebarCollapsed && <span className="whitespace-nowrap">Analytics</span>}
-                  </button>
-                )}
-
-                {/* 6. Audit Logs (Admin) */}
-                {isQuotesAdmin && (
-                  <button
-                    onClick={() => onQuotesTabChange('audit_logs')}
-                    title={isSidebarCollapsed ? 'Audit Logs' : undefined}
-                    className={`w-full flex items-center rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
-                      isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start px-3 py-2 gap-2.5'
-                    } ${
-                      activeQuotesTab === 'audit_logs'
-                        ? 'bg-blue-500/10 text-blue-400'
-                        : 'text-slate-400 hover:bg-slate-850/60 hover:text-white'
-                    }`}
-                  >
-                    <ScrollText className="h-4 w-4 shrink-0" />
-                    {!isSidebarCollapsed && <span className="whitespace-nowrap">Audit Logs</span>}
-                  </button>
-                )}
               </div>
             )}
           </div>
@@ -300,6 +277,46 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
             >
               <ListTodo className="h-5 w-5 shrink-0" />
               {!isSidebarCollapsed && <span className="whitespace-nowrap">Todos</span>}
+            </button>
+          </div>
+        )}
+
+        {/* Workspace: Analytics (Admin & Supervisor Only) */}
+        {(profile.role === 'admin' || profile.role === 'supervisor') && (
+          <div className="space-y-1">
+            <button
+              onClick={handleAnalyticsNav}
+              title={isSidebarCollapsed ? 'Analytics' : undefined}
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                isSidebarCollapsed ? 'justify-center p-3' : 'justify-start px-4 py-3 gap-3'
+              } ${
+                activeSection === 'analytics'
+                  ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
+                  : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
+              }`}
+            >
+              <TrendingUp className="h-5 w-5 shrink-0" />
+              {!isSidebarCollapsed && <span className="whitespace-nowrap">Analytics</span>}
+            </button>
+          </div>
+        )}
+
+        {/* Workspace: Audit Logs (Admin & Supervisor Only) */}
+        {(profile.role === 'admin' || profile.role === 'supervisor') && (
+          <div className="space-y-1">
+            <button
+              onClick={handleAuditLogsNav}
+              title={isSidebarCollapsed ? 'Audit Logs' : undefined}
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                isSidebarCollapsed ? 'justify-center p-3' : 'justify-start px-4 py-3 gap-3'
+              } ${
+                activeSection === 'audit_logs'
+                  ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
+                  : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
+              }`}
+            >
+              <ScrollText className="h-5 w-5 shrink-0" />
+              {!isSidebarCollapsed && <span className="whitespace-nowrap">Audit Logs</span>}
             </button>
           </div>
         )}

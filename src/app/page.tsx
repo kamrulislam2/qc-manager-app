@@ -15,6 +15,8 @@ const ChutiDashboard = lazy(() => import('@/app/chuti/page'));
 const QuotesDashboard = lazy(() => import('@/app/quotes/page'));
 const UserManagementDashboard = lazy(() => import('@/components/UserManagementDashboard').then(m => ({ default: m.UserManagementDashboard })));
 const TodoPanel = lazy(() => import('@/components/TodoPanel').then(m => ({ default: m.TodoPanel })));
+const AnalyticsPanel = lazy(() => import('@/components/AnalyticsPanel').then(m => ({ default: m.AnalyticsPanel })));
+const AuditLogsPanel = lazy(() => import('@/components/AuditLogsPanel').then(m => ({ default: m.AuditLogsPanel })));
 
 export default function AppPortal() {
   const router = useRouter();
@@ -22,7 +24,7 @@ export default function AppPortal() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'chuti' | 'quotes' | 'user_management' | 'todo' | null>(null);
+  const [activeTab, setActiveTab] = useState<'chuti' | 'quotes' | 'user_management' | 'todo' | 'analytics' | 'audit_logs' | null>(null);
   const [logLines, setLogLines] = useState<string[]>([]);
   const fetchingRef = useRef<string | null>(null);
 
@@ -47,8 +49,15 @@ export default function AppPortal() {
   });
 
   const handleQuotesTabChange = (tab: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules') => {
-    setActiveQuotesTab(tab);
-    localStorage.setItem('quotes_sales_active_tab', tab);
+    if (tab === 'analytics' || tab === 'audit_logs') {
+      setActiveTab(tab);
+      localStorage.setItem('last_active_dashboard', tab);
+    } else {
+      setActiveTab('quotes');
+      localStorage.setItem('last_active_dashboard', 'quotes');
+      setActiveQuotesTab(tab);
+      localStorage.setItem('quotes_sales_active_tab', tab);
+    }
   };
 
   const handleChutiTabChange = (tab: 'staff_master' | 'govt_responses' | 'settlement') => {
@@ -449,7 +458,7 @@ export default function AppPortal() {
       {/* Main container with Sidebar and Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row gap-6 items-start">
         <UnifiedSidebar
-          activeSection={activeTab === 'user_management' ? 'user_management' : activeTab === 'todo' ? 'todo' : activeTab === 'quotes' ? 'quotes' : 'chuti'}
+          activeSection={activeTab === 'user_management' ? 'user_management' : activeTab === 'todo' ? 'todo' : activeTab === 'analytics' ? 'analytics' : activeTab === 'audit_logs' ? 'audit_logs' : activeTab === 'quotes' ? 'quotes' : 'chuti'}
           profile={profile}
           activeQuotesTab={activeQuotesTab}
           onQuotesTabChange={handleQuotesTabChange}
@@ -466,9 +475,9 @@ export default function AppPortal() {
               <p className="text-xs text-slate-400">Loading workspace...</p>
             </div>
           }>
-            <div className={activeTab === 'quotes' ? 'block' : 'hidden'}>
+            <div className={(activeTab === 'quotes' || activeTab === 'analytics' || activeTab === 'audit_logs') ? 'block' : 'hidden'}>
               <QuotesDashboard
-                activeTab={activeQuotesTab}
+                activeTab={activeTab === 'quotes' ? activeQuotesTab : (activeTab as any)}
                 onTabChange={handleQuotesTabChange}
               />
             </div>
