@@ -49,7 +49,7 @@ export const SaleStatusModal: React.FC<SaleStatusModalProps> = ({
           </button>
           <button
             onClick={() => onConfirm('SOLD')}
-            className="flex-1 py-2.5 px-3.5 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-950/20 cursor-pointer"
+            className="flex-1 py-2.5 px-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-900/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950"
           >
             <CheckCircle className="h-3.5 w-3.5 stroke-2 shrink-0" />
             <span>Sold</span>

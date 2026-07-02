@@ -370,7 +370,7 @@ export const LoginCodesModal: React.FC<LoginCodesModalProps> = ({
           {canEdit && (
             <button
               onClick={openAdd}
-              className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-xl text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-md shadow-blue-950/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer w-full sm:w-auto"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-955"
             >
               <Plus className="h-3.5 w-3.5" />
               Add Code
@@ -519,7 +519,7 @@ export const LoginCodesModal: React.FC<LoginCodesModalProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold cursor-pointer shadow-md shadow-blue-950/20 transition-all"
+                    className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-650 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold cursor-pointer shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-950"
                   >
                     {isEditing ? 'Save Changes' : 'Add Code'}
                   </button>

@@ -811,7 +811,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
           {canEdit && (
             <button
               onClick={() => handleOpenAddModal('company')}
-              className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-950/20 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
               <PlusCircle className="h-3.5 w-3.5" />
               Add Rule
@@ -1386,7 +1386,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-lg font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 text-white rounded-xl font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-purple-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                 >
                   Save Rule
                 </button>
@@ -1491,7 +1491,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2 bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-lg font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 text-white rounded-xl font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-1.5 shadow-md shadow-purple-900/20 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                 >
                   {submitting ? (
                     <>

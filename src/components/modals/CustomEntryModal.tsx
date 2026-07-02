@@ -355,7 +355,7 @@ export const CustomEntryModal: React.FC<CustomEntryModalProps> = ({
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-1.5 py-3 px-4 border border-transparent rounded-xl shadow-lg text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-50 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-blue-950/20 cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 px-4 border border-transparent rounded-xl shadow-lg text-xs font-semibold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 disabled:opacity-50 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-purple-900/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-950"
               >
                 {submitting ? (
                   <>

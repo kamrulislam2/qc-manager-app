@@ -477,7 +477,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
           onClick={() => setCurrentPage(i)}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
             currentPage === i
-              ? "bg-linear-to-r from-blue-600 to-violet-600 border-blue-500 text-white shadow-md shadow-blue-950/30"
+              ? "bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500 text-white shadow-md shadow-purple-900/30"
               : "border-slate-800 bg-slate-900/40 text-slate-400 hover:text-white hover:bg-slate-800"
           }`}
         >
