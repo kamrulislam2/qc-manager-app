@@ -1,6 +1,6 @@
 # 🌟 QC App — Unified Office Leave Tracker & Quotes Manager
 
-**Version 2.0.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 2.0.1** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -118,7 +118,13 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v2.0.0 — Major Release (Current)
+### 🔧 v2.0.1 — Patch Release (Current)
+*   **Critical Tauri Login Fix**: Users were unable to log in on the desktop app (macOS/Windows) while the web version worked. Root cause was the Supabase client using auth defaults incompatible with Tauri's static WebView (no server-side redirect). Fixed with `detectSessionInUrl: false`, `flowType: 'pkce'`, and explicit `localStorage` binding.
+*   **Auto-Updater Unified & Fixed**: Removed duplicate `QuotesAppUpdater`. The single `AppUpdater` now uses correct Tauri v2 detection (`__TAURI_INTERNALS__`), correct `check()` API, and `plugin-process relaunch()` (the old `custom_relaunch` Rust command didn't exist).
+*   **macOS DMG Build Fix**: Added `chmod +x bundle_dmg.sh` CI step to fix `failed to bundle project` error on `aarch64-apple-darwin`.
+*   **Password Reset RECOVERY Fix**: Changing a user password no longer falsely triggers the RECOVERY database restore system.
+
+### 🚀 v2.0.0 — Major Release
 *   **Employee 360° Profile Hub**: Clicking any staff in User Management now opens a full-featured hub with sub-tabs — Leave History, Quotes History, KPI & Performance, and Profile Settings — giving admins a complete employee overview in a single screen.
 *   **Switchable Admin/User Notification Panels**: Admins can toggle between a detailed Admin Approval Panel (full leave/profile/password request cards with one-click actions) and a personal User Notification Panel. The last-opened panel preference is persisted per session.
 *   **Newest-First Todo Ordering**: Newly added tasks always appear at the top of the todo list.

@@ -5,10 +5,41 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   if (typeof window !== 'undefined') {
-    console.error('CRITICAL: Supabase environment variables NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY are missing. Database requests will fail.');
+    console.error('CRITICAL: Supabase environment variables are missing. Database requests will fail.');
   } else {
-    console.warn('WARNING: Supabase environment variables are missing during build/server initialization.');
+    console.warn('WARNING: Supabase environment variables are missing during build.');
   }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+/**
+ * Detect if running inside a Tauri desktop app (production or dev).
+ * Tauri v2 exposes window.__TAURI_INTERNALS__ in both dev and production.
+ */
+function isTauri(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    (window as any).__TAURI_INTERNALS__ !== undefined ||
+    window.location.protocol === 'tauri:' ||
+    window.location.hostname === 'tauri.localhost'
+  );
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Use localStorage for session persistence (works in Tauri WebView + browser).
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+
+    // Prevent Supabase from trying to parse auth tokens from the URL hash/query.
+    // In Tauri, the URL is a static file path — there is no server-side redirect.
+    detectSessionInUrl: false,
+
+    // Use PKCE flow for security. This is compatible with both browser and Tauri WebView.
+    flowType: 'pkce',
+
+    // Persist session across app restarts (stored in localStorage).
+    persistSession: true,
+
+    // Auto-refresh the JWT token before it expires.
+    autoRefreshToken: true,
+  },
+});
