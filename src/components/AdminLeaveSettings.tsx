@@ -68,7 +68,7 @@ export function AdminLeaveSettings({
       office_leave_h1: Number(officeLeaveH1),
       office_leave_h2: Number(officeLeaveH2),
       office_leave_default: Number(officeLeaveH1) + Number(officeLeaveH2),
-    });
+    }, { silent: true });
     setSubmittingOffice(false);
     if (success) {
       toast.success('Office allocated leave settings updated successfully!');
@@ -83,7 +83,7 @@ export function AdminLeaveSettings({
       ...globalSettings,
       eid_fitr_leave: Number(eidFitrLeave),
       eid_adha_leave: Number(eidAdhaLeave),
-    });
+    }, { silent: true });
     setSubmittingEid(false);
     if (success) {
       toast.success('Eid leave settings updated successfully!');
@@ -135,7 +135,7 @@ export function AdminLeaveSettings({
       const success = await onSaveGlobalSettings({
         ...globalSettings,
         govt_holidays: govtHolidays,
-      });
+      }, { silent: true });
       if (success) {
         toast.success('Govt Holidays saved successfully!');
       }
