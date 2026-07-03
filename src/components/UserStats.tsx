@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Clock, Calendar, History, Info, Edit, RefreshCw, AlertTriangle } from 'lucide-react';
 import { StatCard } from './StatCard';
 import { formatDate, HalfYearlyOfficeLeaveStats, formatDaysAndHours } from '@/utils/dashboardHelpers';
@@ -100,6 +101,11 @@ export const UserStats: React.FC<UserStatsProps> = ({
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showOfficeDetailsModal, setShowOfficeDetailsModal] = useState(false);
   const [updatingHolidayDate, setUpdatingHolidayDate] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Edit preference modal states
   const [showEditPrefModal, setShowEditPrefModal] = useState(false);
@@ -342,7 +348,7 @@ export const UserStats: React.FC<UserStatsProps> = ({
       </div>
 
       {/* Govt Holiday History Modal */}
-      {showHistoryModal && (
+      {showHistoryModal && isMounted && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/80 backdrop-blur-md p-4">
           <div className="bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl w-full max-w-md p-6 relative overflow-hidden font-sans">
             <div className="absolute top-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-teal-900/10 blur-[80px] pointer-events-none" />
@@ -422,11 +428,12 @@ export const UserStats: React.FC<UserStatsProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Half-Yearly Office Leave Details Modal */}
-      {showOfficeDetailsModal && halfYearlyStats && (
+      {showOfficeDetailsModal && halfYearlyStats && isMounted && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/80 backdrop-blur-md p-4">
           <div className="bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl w-full max-w-md p-6 relative overflow-hidden font-sans">
             <div className="absolute top-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-blue-900/10 blur-[80px] pointer-events-none" />
@@ -528,11 +535,12 @@ export const UserStats: React.FC<UserStatsProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Holiday Preference Modal */}
-      {showEditPrefModal && editPrefHoliday && (
+      {showEditPrefModal && editPrefHoliday && isMounted && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-955/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
           <div className="bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl w-full max-w-md p-6 relative overflow-hidden font-sans">
             <div className="absolute top-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-teal-900/10 blur-[80px] pointer-events-none" />
@@ -578,7 +586,7 @@ export const UserStats: React.FC<UserStatsProps> = ({
                     type="button"
                     onClick={() => setSelectedPref('reserve')}
                     className={`flex items-start gap-3 p-3.5 rounded-xl border text-left cursor-pointer transition-all ${selectedPref === 'reserve'
-                      ? 'bg-teal-950/20 border-teal-500/80 shadow-[0_0_12px_rgba(20,184,166,0.15)]'
+                      ? 'bg-teal-955/20 border-teal-500/80 shadow-[0_0_12px_rgba(20,184,166,0.15)]'
                       : 'bg-slate-955/20 border-slate-850 hover:bg-slate-850/40 hover:border-slate-800'
                       }`}
                   >
@@ -599,7 +607,7 @@ export const UserStats: React.FC<UserStatsProps> = ({
                     type="button"
                     onClick={() => setSelectedPref('paid')}
                     className={`flex items-start gap-3 p-3.5 rounded-xl border text-left cursor-pointer transition-all ${selectedPref === 'paid'
-                      ? 'bg-emerald-950/20 border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                      ? 'bg-emerald-955/20 border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
                       : 'bg-slate-955/20 border-slate-850 hover:bg-slate-850/40 hover:border-slate-800'
                       }`}
                   >
@@ -656,7 +664,8 @@ export const UserStats: React.FC<UserStatsProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
