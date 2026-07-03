@@ -533,6 +533,15 @@ export default function AppPortal() {
       addLog(`onAuthStateChange event: ${event} (hasSession: ${!!session})`);
       if (!active) return;
 
+      // Skip full reload on USER_UPDATED (e.g. password change via supabase.auth.updateUser).
+      // The session remains valid — no re-fetch needed, and re-fetching can falsely trigger
+      // the quotes RECOVERY system while the new auth token is being applied.
+      if (event === 'USER_UPDATED') {
+        addLog('onAuthStateChange: USER_UPDATED skipped (password change, no reload needed)');
+        if (session) setSessionUser(session.user);
+        return;
+      }
+
       if (session) {
         setSessionUser(session.user);
         await loadUserProfile(session.user.id);

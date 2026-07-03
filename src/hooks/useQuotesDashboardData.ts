@@ -331,39 +331,53 @@ export const useQuotesDashboardData = () => {
       const cachedRecords = await getCacheData<RecordItem>('records_cache');
 
       // DANGER RECOVERY AUTO-RESTORE TRIGGER
+      // Only trigger if: admin/supervisor, has 100+ cached records, AND the server count is
+      // explicitly 0 (not null/undefined which can happen during auth token refresh after password change).
       if (profile && (profile.role === 'admin' || profile.role === 'supervisor') && cachedRecords.length > 100) {
         try {
           const { count, error: countErr } = await supabase
             .from('records')
             .select('id', { count: 'exact', head: true });
           
-          if (!countErr && count === 0) {
-            console.log(`RECOVERY: Server records count is 0. Starting automated restoration of ${cachedRecords.length} records...`);
-            showToast('success', `Restoring ${cachedRecords.length} records from local cache. Please do not close the app...`);
-            
-            // Upload in batches of 100
-            const batchSize = 100;
-            let successCount = 0;
-            for (let i = 0; i < cachedRecords.length; i += batchSize) {
-              const batch = cachedRecords.slice(i, i + batchSize).map(r => ({
-                user_id: r.user_id,
-                file_name: r.file_name,
-                branch_name: r.branch_name,
-                codename: r.codename,
-                file_type: r.file_type,
-                submitted_at: r.submitted_at,
-                created_at: r.created_at
-              }));
+          // count must be a real number (not null/undefined) and must be exactly 0.
+          // A null count typically means an RLS/auth error (e.g. during session refresh after password change).
+          if (!countErr && count !== null && count !== undefined && count === 0) {
+            // Double-confirm after a short delay to rule out transient auth token refresh states
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const { count: count2, error: countErr2 } = await supabase
+              .from('records')
+              .select('id', { count: 'exact', head: true });
+
+            if (!countErr2 && count2 !== null && count2 !== undefined && count2 === 0) {
+              console.log(`RECOVERY: Server records count is 0. Starting automated restoration of ${cachedRecords.length} records...`);
+              showToast('success', `Restoring ${cachedRecords.length} records from local cache. Please do not close the app...`);
               
-              const { error: insertError } = await supabase.from('records').insert(batch);
-              if (insertError) {
-                console.error(`RECOVERY: Error restoring batch ${i}:`, insertError);
-              } else {
-                successCount += batch.length;
-                console.log(`RECOVERY: Restored batch ${i} to ${i + batch.length}`);
+              // Upload in batches of 100
+              const batchSize = 100;
+              let successCount = 0;
+              for (let i = 0; i < cachedRecords.length; i += batchSize) {
+                const batch = cachedRecords.slice(i, i + batchSize).map(r => ({
+                  user_id: r.user_id,
+                  file_name: r.file_name,
+                  branch_name: r.branch_name,
+                  codename: r.codename,
+                  file_type: r.file_type,
+                  submitted_at: r.submitted_at,
+                  created_at: r.created_at
+                }));
+                
+                const { error: insertError } = await supabase.from('records').insert(batch);
+                if (insertError) {
+                  console.error(`RECOVERY: Error restoring batch ${i}:`, insertError);
+                } else {
+                  successCount += batch.length;
+                  console.log(`RECOVERY: Restored batch ${i} to ${i + batch.length}`);
+                }
               }
+              showToast('success', `Database successfully restored! ${successCount} records uploaded.`);
+            } else {
+              console.log('RECOVERY: Double-check count was non-zero or errored — skipping restore to avoid false trigger.');
             }
-            showToast('success', `Database successfully restored! ${successCount} records uploaded.`);
           }
         } catch (restoreErr) {
           console.error('RECOVERY: Automatic database restore failed:', restoreErr);
