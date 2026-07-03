@@ -428,6 +428,38 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 :root:not(.dark) .text-slate-300 {
   color: #334155 !important;
 }
+:root:not(.dark) .text-slate-400 {
+  color: #475569 !important;
+}
+
+/* Hover text color overrides for light mode to prevent text from becoming unreadably white */
+:root:not(.dark) .hover\:text-white:hover {
+  color: #0f172a !important;
+}
+:root:not(.dark) .hover\:text-slate-50:hover {
+  color: #020617 !important;
+}
+:root:not(.dark) .hover\:text-slate-100:hover {
+  color: #0f172a !important;
+}
+:root:not(.dark) .hover\:text-slate-200:hover {
+  color: #1e293b !important;
+}
+:root:not(.dark) .hover\:text-slate-300:hover {
+  color: #334155 !important;
+}
+:root:not(.dark) .hover\:text-slate-350:hover {
+  color: #475569 !important;
+}
+:root:not(.dark) .hover\:text-slate-400:hover {
+  color: #475569 !important;
+}
+:root:not(.dark) .hover\:text-slate-455:hover {
+  color: #334155 !important;
+}
+:root:not(.dark) .hover\:text-slate-450:hover {
+  color: #475569 !important;
+}
 
 /* Input text in light mode must be dark */
 :root:not(.dark) input,
