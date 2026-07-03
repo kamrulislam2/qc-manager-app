@@ -732,8 +732,14 @@ export default function AppPortal() {
       )}
 
       {/* Main container with Sidebar and Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row gap-6 items-start">
-        {!(activeTab === "chuti" && activeChutiTab === "leave_history") && (
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row items-start">
+        <div
+          className={`transition-all duration-300 ease-in-out shrink-0 ${
+            activeTab === "chuti" && activeChutiTab === "leave_history"
+              ? "w-0 h-0 opacity-0 pointer-events-none overflow-hidden mb-0 md:mb-0 md:mr-0"
+              : "w-full md:w-auto opacity-100 mb-6 md:mb-0 md:mr-6"
+          }`}
+        >
           <UnifiedSidebar
             activeSection={
               (typeof window !== "undefined" &&
@@ -759,7 +765,7 @@ export default function AppPortal() {
             isSidebarCollapsed={isSidebarCollapsed}
             onSidebarToggle={handleSidebarToggle}
           />
-        )}
+        </div>
 
         <section className="flex-1 min-w-0 w-full bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl min-h-125">
           <Suspense
