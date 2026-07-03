@@ -15,7 +15,7 @@ import {
   getSettlementLabel
 } from '@/utils/dashboardHelpers';
 import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/useLeaveQuotaStats';
-import { Calendar, RotateCcw, RefreshCw } from 'lucide-react';
+import { Calendar, RotateCcw, RefreshCw, ArrowLeft } from 'lucide-react';
 import { UserSettleModal } from './modals/UserSettleModal';
 
 interface UserDashboardViewProps {
@@ -55,6 +55,7 @@ interface UserDashboardViewProps {
   initialFetchDone: boolean;
   leaveSettlements: LeaveSettlement[];
   onSaveLeaveSettlementsBulk: (settlementsList: any[]) => Promise<boolean>;
+  onBackClick?: () => void;
 }
 
 export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
@@ -85,6 +86,7 @@ export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
   initialFetchDone,
   leaveSettlements,
   onSaveLeaveSettlementsBulk,
+  onBackClick,
 }) => {
   // Eligibility & Deduction
   const isOfficeLeaveEligible = profile?.eligible_office_leave !== false;
@@ -275,6 +277,14 @@ export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-in">
+      {onBackClick && (
+        <button
+          onClick={onBackClick}
+          className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-all cursor-pointer w-fit p-2 bg-slate-950/60 hover:bg-slate-900 border border-slate-800 rounded-xl shadow-md"
+        >
+          <ArrowLeft className="h-4 w-4 text-blue-400" /> Back to Add Leave
+        </button>
+      )}
       {/* Staff Leave Leave Settlement Alert Banner */}
       {showSettlementBanner && (
         <div className="bg-slate-900/40 backdrop-blur-xl border border-indigo-900/40 p-4 rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

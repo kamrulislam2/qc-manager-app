@@ -26,8 +26,8 @@ import { useModalHandlers } from '@/hooks/useModalHandlers';
 import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 
 interface DashboardProps {
-  activeChutiTab: 'add_leave' | 'staff_master' | 'govt_responses' | 'settlement' | 'leave_settings';
-  onChutiTabChange: (tab: 'add_leave' | 'staff_master' | 'govt_responses' | 'settlement' | 'leave_settings') => void;
+  activeChutiTab: 'add_leave' | 'staff_master' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings';
+  onChutiTabChange: (tab: 'add_leave' | 'staff_master' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings') => void;
 }
 
 export default function Dashboard({
@@ -113,7 +113,7 @@ export default function Dashboard({
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdminAddLeaveModal, setShowAdminAddLeaveModal] = useState(false);
 
-  const handleChutiTabChange = (tab: 'add_leave' | 'staff_master' | 'govt_responses' | 'settlement' | 'leave_settings') => {
+  const handleChutiTabChange = (tab: 'add_leave' | 'staff_master' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings') => {
     onChutiTabChange(tab);
     if (adminActiveTab !== 'admin' && tab !== 'add_leave' && tab !== 'leave_settings') {
       setAdminActiveTab('admin');
@@ -925,8 +925,8 @@ export default function Dashboard({
           />
         )}
 
-        {/* ================= USER'S OWN LEAVE VIEW (Everyone) ================= */}
-        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && activeChutiTab !== 'add_leave' && activeChutiTab !== 'leave_settings' && (
+        {/* ================= USER'S OWN LEAVE VIEW (Leave History) ================= */}
+        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && activeChutiTab === 'leave_history' && (
           <UserDashboardView
             profile={profile}
             userStats={userStats}
@@ -960,11 +960,12 @@ export default function Dashboard({
             initialFetchDone={initialFetchDone}
             leaveSettlements={leaveSettlements}
             onSaveLeaveSettlementsBulk={handleSaveLeaveSettlementsBulk}
+            onBackClick={() => onChutiTabChange('add_leave')}
           />
         )}
 
-        {/* ================= ADMIN STAFF VIEW (Below user's own view) ================= */}
-        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && profile?.role === 'admin' && activeChutiTab !== 'add_leave' && activeChutiTab !== 'leave_settings' && (
+        {/* ================= ADMIN STAFF VIEW (Leave Dashboard) ================= */}
+        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && profile?.role === 'admin' && activeChutiTab === 'staff_master' && (
           <AdminDashboardView
             activeTab={activeChutiTab}
             setActiveTab={handleChutiTabChange}

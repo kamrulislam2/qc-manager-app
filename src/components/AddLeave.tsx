@@ -468,32 +468,6 @@ export function AddLeave({
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      {/* 1. User Stats cards shown at the top */}
-      <UserStats
-        stats={{
-          ...stats,
-          shortHours: displayShortHours,
-          fullLeaves: displayFullLeaves
-        }}
-        workingHours={workingHours}
-        officeLeaveStats={officeLeaveStatsObj}
-        govtHolidayStats={adjustedGovtHolidayStats}
-        allowOvertime={targetProfile?.allow_overtime}
-        respondedHolidays={respondedHolidays}
-        convertedDays={convertedDays}
-        convertedHours={convertedHours}
-        onConvertToFullLeave={handleConvertToFullLeave}
-        hasConvertibleHours={hasConvertibleHours}
-        eligibleOfficeLeave={isOfficeLeaveEligible}
-        eligibleGovtHoliday={isGovtHolidayEligible}
-        halfYearlyStats={halfYearlyStats}
-        eidFitrRemaining={eidFitrRemaining}
-        eidFitrTotal={eidFitrTotal}
-        eidAdhaRemaining={eidAdhaRemaining}
-        eidAdhaTotal={eidAdhaTotal}
-        initialFetchDone={initialFetchDone}
-      />
-
       {/* 2. Main Add Leave entry form grid layout */}
       <div className="bg-slate-900/40 backdrop-blur-xl shadow-2xl rounded-2xl p-6 flex flex-col gap-6 animate-fade-in border border-slate-850">
         <div>

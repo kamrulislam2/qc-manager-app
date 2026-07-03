@@ -78,18 +78,19 @@ export default function AppPortal() {
   });
 
   const [activeChutiTab, setActiveChutiTab] = useState<
-    "add_leave" | "staff_master" | "govt_responses" | "settlement" | "leave_settings"
+    "add_leave" | "staff_master" | "leave_history" | "govt_responses" | "settlement" | "leave_settings"
   >(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem("adminActiveTab");
       if (
         saved === "add_leave" ||
         saved === "staff_master" ||
+        saved === "leave_history" ||
         saved === "govt_responses" ||
         saved === "settlement" ||
         saved === "leave_settings"
       ) {
-        return saved as "add_leave" | "staff_master" | "govt_responses" | "settlement" | "leave_settings";
+        return saved as "add_leave" | "staff_master" | "leave_history" | "govt_responses" | "settlement" | "leave_settings";
       }
     }
     return "add_leave";
@@ -110,7 +111,7 @@ export default function AppPortal() {
   };
 
   const handleChutiTabChange = (
-    tab: "add_leave" | "staff_master" | "govt_responses" | "settlement" | "leave_settings",
+    tab: "add_leave" | "staff_master" | "leave_history" | "govt_responses" | "settlement" | "leave_settings",
   ) => {
     setActiveChutiTab(tab);
     sessionStorage.setItem("adminActiveTab", tab);
@@ -278,6 +279,30 @@ export default function AppPortal() {
       );
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "chuti" || activeChutiTab !== "leave_history") return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl) {
+        const tag = activeEl.tagName.toUpperCase();
+        if (tag === "INPUT" || tag === "TEXTAREA" || activeEl.hasAttribute("contenteditable")) {
+          return;
+        }
+      }
+
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        handleChutiTabChange("add_leave");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeTab, activeChutiTab]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
@@ -708,31 +733,33 @@ export default function AppPortal() {
 
       {/* Main container with Sidebar and Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row gap-6 items-start">
-        <UnifiedSidebar
-          activeSection={
-            (typeof window !== "undefined" &&
-            sessionStorage.getItem("viewingStaffFromUserManagement") === "true")
-              ? "user_management"
-              : activeTab === "user_management"
+        {!(activeTab === "chuti" && activeChutiTab === "leave_history") && (
+          <UnifiedSidebar
+            activeSection={
+              (typeof window !== "undefined" &&
+              sessionStorage.getItem("viewingStaffFromUserManagement") === "true")
                 ? "user_management"
-                : activeTab === "todo"
-                  ? "todo"
-                  : activeTab === "analytics"
-                    ? "analytics"
-                    : activeTab === "audit_logs"
-                      ? "audit_logs"
-                      : activeTab === "quotes"
-                        ? "quotes"
-                        : "chuti"
-          }
-          profile={profile}
-          activeQuotesTab={activeQuotesTab}
-          onQuotesTabChange={handleQuotesTabChange}
-          activeChutiTab={activeChutiTab}
-          onChutiTabChange={handleChutiTabChange}
-          isSidebarCollapsed={isSidebarCollapsed}
-          onSidebarToggle={handleSidebarToggle}
-        />
+                : activeTab === "user_management"
+                  ? "user_management"
+                  : activeTab === "todo"
+                    ? "todo"
+                    : activeTab === "analytics"
+                      ? "analytics"
+                      : activeTab === "audit_logs"
+                        ? "audit_logs"
+                        : activeTab === "quotes"
+                          ? "quotes"
+                          : "chuti"
+            }
+            profile={profile}
+            activeQuotesTab={activeQuotesTab}
+            onQuotesTabChange={handleQuotesTabChange}
+            activeChutiTab={activeChutiTab}
+            onChutiTabChange={handleChutiTabChange}
+            isSidebarCollapsed={isSidebarCollapsed}
+            onSidebarToggle={handleSidebarToggle}
+          />
+        )}
 
         <section className="flex-1 min-w-0 w-full bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl min-h-125">
           <Suspense
