@@ -41,6 +41,15 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
 
   const [loading, setLoading] = useState(false);
   const [todos, setTodos] = useState<TodoItem[]>([]);
+
+  const sortedTodos = React.useMemo(() => {
+    return [...todos].sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [todos]);
+
   const [newTask, setNewTask] = useState('');
   const [isAllTime, setIsAllTime] = useState(false);
   const [todoToDelete, setTodoToDelete] = useState<string | null>(null);
@@ -98,7 +107,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
         .select('*')
         .eq('user_id', profile.id)
         .eq('todo_date', todayStr)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (todayErr) throw todayErr;
 
@@ -166,7 +175,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
               .select('*')
               .eq('user_id', profile.id)
               .eq('todo_date', lastActiveDate)
-              .order('created_at', { ascending: true });
+              .order('created_at', { ascending: false });
 
             if (lastErr) throw lastErr;
 
@@ -248,7 +257,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
         .lte('todo_date', endDate)
         .neq('status', 'Idle')
         .order('todo_date', { ascending: false })
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setArchiveTodos(data || []);
@@ -631,12 +640,12 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                 </button>
                 <input
                   type="checkbox"
-                  checked={todos.length > 0 && todos.every((t) => selectedTodoIds.includes(t.id))}
+                  checked={sortedTodos.length > 0 && sortedTodos.every((t) => selectedTodoIds.includes(t.id))}
                   onChange={() => {
-                    if (todos.every((t) => selectedTodoIds.includes(t.id))) {
+                    if (sortedTodos.every((t) => selectedTodoIds.includes(t.id))) {
                       setSelectedTodoIds([]);
                     } else {
-                      setSelectedTodoIds(todos.map((t) => t.id));
+                      setSelectedTodoIds(sortedTodos.map((t) => t.id));
                     }
                   }}
                   className="rounded-full border border-slate-700 bg-slate-955 text-indigo-500 focus:ring-indigo-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-indigo-500 checked:border-indigo-500 flex items-center justify-center checked:after:content-[''] checked:after:w-1.5 checked:after:h-1.5 checked:after:rounded-full checked:after:bg-white transition-all duration-300 shrink-0"
@@ -694,7 +703,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
             </div>
           ) : (
             <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1 custom-scrollbar">
-              {todos.map((todo) => {
+              {sortedTodos.map((todo) => {
                 const isSelected = selectedTodoIds.includes(todo.id);
                 return (
                   <div
