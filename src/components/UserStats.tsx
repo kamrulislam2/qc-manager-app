@@ -211,129 +211,135 @@ export const UserStats: React.FC<UserStatsProps> = ({
   }
 
   return (
-    <div className="flex flex-wrap justify-center gap-4 w-full">
-      {/* Office Leave */}
-      {showOfficeCard && officeLeaveStats && (
+    <div className="flex flex-col gap-4 w-full">
+      {/* Line 1: Primary Leaves (Allocated Office, Govt Holidays, and Eid Holidays) */}
+      <div className="flex flex-wrap justify-center gap-4 w-full">
+        {/* Office Leave */}
+        {showOfficeCard && officeLeaveStats && (
+          <StatCard
+            icon={Calendar}
+            iconBgClass="bg-blue-500/10"
+            iconColorClass="text-blue-400"
+            iconBorderClass="border-blue-500/20"
+            title={halfYearlyStats ? `Allocated Office Leave (Remaining - H${halfYearlyStats.currentHalf})` : "Allocated Office Leave (Remaining)"}
+            value={officeRemainingDisplay}
+            subtitle={officeSubtitle}
+            action={halfYearlyStats ? (
+              <button
+                type="button"
+                onClick={() => setShowOfficeDetailsModal(true)}
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 rounded-lg cursor-pointer transition-all shadow-sm flex items-center justify-center shrink-0"
+                title="Half-Yearly Leave Account"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            ) : undefined}
+            loading={!initialFetchDone}
+          />
+        )}
+
+        {/* Govt Holiday */}
+        {showGovtCard && govtHolidayStats && (
+          <StatCard
+            icon={Calendar}
+            iconBgClass="bg-teal-500/10"
+            iconColorClass="text-teal-400"
+            iconBorderClass="border-teal-500/20"
+            title="Govt Holiday (Reserve)"
+            value={`${govtHolidayStats.remaining} days`}
+            subtitle={`Total Govt Holiday: ${govtHolidayStats.total} days | Paid: ${govtHolidayStats.paid} days | Reserve: ${govtHolidayStats.reserved} days | Taken: ${govtHolidayStats.taken} days`}
+            action={respondedHolidays && respondedHolidays.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowHistoryModal(true)}
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-teal-400 border border-slate-700 rounded-lg cursor-pointer transition-all shadow-sm flex items-center justify-center shrink-0"
+                title="Govt Holiday Response History"
+              >
+                <History className="h-3.5 w-3.5" />
+              </button>
+            ) : undefined}
+            loading={!initialFetchDone}
+          />
+        )}
+
+        {/* Eid-ul-Fitr */}
+        {eidFitrRemaining > 0 && (
+          <StatCard
+            icon={Calendar}
+            iconBgClass="bg-purple-500/10"
+            iconColorClass="text-purple-400"
+            iconBorderClass="border-purple-500/20"
+            title="Eid-ul-Fitr Holiday (Remaining)"
+            value={`${eidFitrRemaining} days`}
+            subtitle={`Total Eid-ul-Fitr Holiday: ${eidFitrTotal} days`}
+            loading={!initialFetchDone}
+          />
+        )}
+
+        {/* Eid-ul-Adha */}
+        {eidAdhaRemaining > 0 && (
+          <StatCard
+            icon={Calendar}
+            iconBgClass="bg-purple-500/10"
+            iconColorClass="text-purple-400"
+            iconBorderClass="border-purple-500/20"
+            title="Eid-ul-Adha Holiday (Remaining)"
+            value={`${eidAdhaRemaining} days`}
+            subtitle={`Total Eid-ul-Adha Holiday: ${eidAdhaTotal} days`}
+            loading={!initialFetchDone}
+          />
+        )}
+      </div>
+
+      {/* Line 2: Totals/Tracker (Short Leave, Full Leave, Overtime) */}
+      <div className="flex flex-wrap justify-center gap-4 w-full">
+        {/* Short Leave */}
+        <StatCard
+          icon={Clock}
+          iconBgClass="bg-blue-500/10"
+          iconColorClass="text-blue-400"
+          iconBorderClass="border-blue-500/20"
+          title="Total Short Leave"
+          value={`${stats.shortHours} hrs`}
+          subtitle={convertedHours > 0 ? `Converted: ${convertedHours} hrs` : undefined}
+          action={onConvertToFullLeave && hasConvertibleHours ? (
+            <button
+              type="button"
+              onClick={onConvertToFullLeave}
+              className="px-2 py-1 bg-blue-600 hover:bg-blue-550 text-white rounded text-[10px] font-bold cursor-pointer transition-all border border-blue-700 shadow-sm flex items-center justify-center shrink-0"
+              title="Convert to Full Leave"
+            >
+              Add to Full Leave
+            </button>
+          ) : undefined}
+          loading={!initialFetchDone}
+        />
+
+        {/* Full Leave */}
         <StatCard
           icon={Calendar}
           iconBgClass="bg-blue-500/10"
           iconColorClass="text-blue-400"
           iconBorderClass="border-blue-500/20"
-          title={halfYearlyStats ? `Allocated Office Leave (Remaining - H${halfYearlyStats.currentHalf})` : "Allocated Office Leave (Remaining)"}
-          value={officeRemainingDisplay}
-          subtitle={officeSubtitle}
-          action={halfYearlyStats ? (
-            <button
-              type="button"
-              onClick={() => setShowOfficeDetailsModal(true)}
-              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 rounded-lg cursor-pointer transition-all shadow-sm flex items-center justify-center shrink-0"
-              title="Half-Yearly Leave Account"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </button>
-          ) : undefined}
+          title="Total Full Leave"
+          value={`${stats.fullLeaves} days`}
+          subtitle={convertedDays > 0 ? `Added from Short Leave: +${convertedDays} days` : undefined}
           loading={!initialFetchDone}
         />
-      )}
 
-      {/* Govt Holiday */}
-      {showGovtCard && govtHolidayStats && (
-        <StatCard
-          icon={Calendar}
-          iconBgClass="bg-teal-500/10"
-          iconColorClass="text-teal-400"
-          iconBorderClass="border-teal-500/20"
-          title="Govt Holiday (Reserve)"
-          value={`${govtHolidayStats.remaining} days`}
-          subtitle={`Total Govt Holiday: ${govtHolidayStats.total} days | Paid: ${govtHolidayStats.paid} days | Reserve: ${govtHolidayStats.reserved} days | Taken: ${govtHolidayStats.taken} days`}
-          action={respondedHolidays && respondedHolidays.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setShowHistoryModal(true)}
-              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-teal-400 border border-slate-700 rounded-lg cursor-pointer transition-all shadow-sm flex items-center justify-center shrink-0"
-              title="Govt Holiday Response History"
-            >
-              <History className="h-3.5 w-3.5" />
-            </button>
-          ) : undefined}
-          loading={!initialFetchDone}
-        />
-      )}
-
-      {/* Eid-ul-Fitr */}
-      {eidFitrRemaining > 0 && (
-        <StatCard
-          icon={Calendar}
-          iconBgClass="bg-purple-500/10"
-          iconColorClass="text-purple-400"
-          iconBorderClass="border-purple-500/20"
-          title="Eid-ul-Fitr Holiday (Remaining)"
-          value={`${eidFitrRemaining} days`}
-          subtitle={`Total Eid-ul-Fitr Holiday: ${eidFitrTotal} days`}
-          loading={!initialFetchDone}
-        />
-      )}
-
-      {/* Eid-ul-Adha */}
-      {eidAdhaRemaining > 0 && (
-        <StatCard
-          icon={Calendar}
-          iconBgClass="bg-purple-500/10"
-          iconColorClass="text-purple-400"
-          iconBorderClass="border-purple-500/20"
-          title="Eid-ul-Adha Holiday (Remaining)"
-          value={`${eidAdhaRemaining} days`}
-          subtitle={`Total Eid-ul-Adha Holiday: ${eidAdhaTotal} days`}
-          loading={!initialFetchDone}
-        />
-      )}
-
-      {/* Short Leave */}
-      <StatCard
-        icon={Clock}
-        iconBgClass="bg-blue-500/10"
-        iconColorClass="text-blue-400"
-        iconBorderClass="border-blue-500/20"
-        title="Total Short Leave"
-        value={`${stats.shortHours} hrs`}
-        subtitle={convertedHours > 0 ? `Converted: ${convertedHours} hrs` : undefined}
-        action={onConvertToFullLeave && hasConvertibleHours ? (
-          <button
-            type="button"
-            onClick={onConvertToFullLeave}
-            className="px-2 py-1 bg-blue-600 hover:bg-blue-550 text-white rounded text-[10px] font-bold cursor-pointer transition-all border border-blue-700 shadow-sm flex items-center justify-center shrink-0"
-            title="Convert to Full Leave"
-          >
-            Add to Full Leave
-          </button>
-        ) : undefined}
-        loading={!initialFetchDone}
-      />
-
-      {/* Full Leave */}
-      <StatCard
-        icon={Calendar}
-        iconBgClass="bg-blue-500/10"
-        iconColorClass="text-blue-400"
-        iconBorderClass="border-blue-500/20"
-        title="Total Full Leave"
-        value={`${stats.fullLeaves} days`}
-        subtitle={convertedDays > 0 ? `Added from Short Leave: +${convertedDays} days` : undefined}
-        loading={!initialFetchDone}
-      />
-
-      {/* Overtime */}
-      {allowOvertime && (
-        <StatCard
-          icon={Clock}
-          iconBgClass="bg-emerald-500/10"
-          iconColorClass="text-emerald-400"
-          iconBorderClass="border-emerald-500/20"
-          title="Overtime"
-          value={`${stats.overtimeHours} hrs`}
-          loading={!initialFetchDone}
-        />
-      )}
+        {/* Overtime */}
+        {allowOvertime && (
+          <StatCard
+            icon={Clock}
+            iconBgClass="bg-emerald-500/10"
+            iconColorClass="text-emerald-400"
+            iconBorderClass="border-emerald-500/20"
+            title="Overtime"
+            value={`${stats.overtimeHours} hrs`}
+            loading={!initialFetchDone}
+          />
+        )}
+      </div>
 
       {/* Govt Holiday History Modal */}
       {showHistoryModal && (
