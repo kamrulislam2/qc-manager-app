@@ -11,6 +11,8 @@ import { UnifiedSidebar } from "@/components/UnifiedSidebar";
 import { Navbar } from "@/components/Navbar";
 import { calculateTopPerformerBadges } from "@/utils/leaderboardHelper";
 import { Toaster } from 'react-hot-toast';
+import { useGlobalNotifications } from "@/hooks/useGlobalNotifications";
+import { UserNotificationsModal } from "@/components/modals/UserNotificationsModal";
 
 
 const ChutiDashboard = lazy(() => import("@/app/chuti/page"));
@@ -226,6 +228,14 @@ export default function AppPortal() {
 
   const [chutiNotificationCount, setChutiNotificationCount] = useState(0);
   const [chutiOfflineCount, setChutiOfflineCount] = useState(0);
+
+  const {
+    unreadCount: globalUnreadCount,
+    notificationsList: globalNotificationsList,
+    showNotificationsModal,
+    setShowNotificationsModal,
+    handleSaveHolidayResponse,
+  } = useGlobalNotifications(sessionUser, profile, profilesList);
 
   useEffect(() => {
     const handleCountChange = (e: Event) => {
@@ -640,17 +650,35 @@ export default function AppPortal() {
           window.dispatchEvent(new CustomEvent("open-profile-settings"))
         }
         onNotificationClick={() =>
-          window.dispatchEvent(new CustomEvent("open-notifications"))
+          setShowNotificationsModal(true)
         }
         onManualSync={() =>
           window.dispatchEvent(new CustomEvent("trigger-manual-sync"))
         }
-        notificationCount={chutiNotificationCount}
+        notificationCount={chutiNotificationCount > 0 ? chutiNotificationCount : globalUnreadCount}
         offlineCount={chutiOfflineCount}
       />
 
       {/* Portal Target for Modals */}
       <div id="root-modals-portal" className="relative z-50" />
+
+      {/* Global User Notifications Modal */}
+      {sessionUser && profile && (
+        <UserNotificationsModal
+          showUserNotificationsModal={showNotificationsModal}
+          setShowUserNotificationsModal={setShowNotificationsModal}
+          userNotificationsList={globalNotificationsList}
+          adminActiveTab={(typeof window !== 'undefined' ? sessionStorage.getItem('adminActiveTab') : 'admin') as any || 'admin'}
+          profile={profile}
+          onSaveHolidayResponse={handleSaveHolidayResponse}
+          onRevisionClick={(record) => {
+            window.dispatchEvent(new CustomEvent('open-revision-modal', { detail: record }));
+          }}
+          onGoToApprovalPanel={() => {
+            window.dispatchEvent(new CustomEvent('open-approval-panel'));
+          }}
+        />
+      )}
 
       {/* Main container with Sidebar and Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row gap-6 items-start">

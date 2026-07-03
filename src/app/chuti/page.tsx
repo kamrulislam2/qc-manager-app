@@ -667,28 +667,65 @@ export default function Dashboard({
     window.dispatchEvent(new CustomEvent('chuti-offline-count-change', { detail: offlineCount }));
   }, [offlineCount]);
 
-  // Handle events from unified root Navbar
+  // Handle events from unified root Navbar and global modals
   useEffect(() => {
-    const handleOpenNotificationsEvent = () => {
-      modalHandlers.handleOpenNotifications();
-    };
     const handleOpenProfileSettings = () => {
       handleOpenProfileSettingsForSelf();
     };
     const handleTriggerSync = () => {
       handleManualSync();
     };
+    const handleOpenRevisionModal = (e: Event) => {
+      const r = (e as CustomEvent).detail;
+      setRevisionRecord(r);
+      setRevisionDate(r.date);
+      setRevisionLeaveType(r.leave_type);
+      setRevisionAdjustment(r.adjustment);
+      setRevisionAdjustShortLeave(r.adjust_short_leave === true);
+      setRevisionSignInTime(r.sign_in_time ? r.sign_in_time.substring(0, 5) : '13:00');
+      setRevisionSignOutTime(r.sign_out_time ? r.sign_out_time.substring(0, 5) : '22:30');
+      setRevisionLeaveHour(r.leave_hour ? r.leave_hour.toString().split('.')[0].substring(0, 5) : '00:00');
+      setRevisionComment('');
+      setShowUserRevisionModal(true);
+    };
+    const handleOpenApprovalPanel = () => {
+      if (profile?.role === 'admin') {
+        setAdminActiveTab('admin');
+        setShowLeaveApprovalModal(true);
+      } else if (profile?.role === 'supervisor') {
+        setShowSupervisorApprovalModal(true);
+      }
+    };
 
-    window.addEventListener('open-notifications', handleOpenNotificationsEvent);
     window.addEventListener('open-profile-settings', handleOpenProfileSettings);
     window.addEventListener('trigger-manual-sync', handleTriggerSync);
+    window.addEventListener('open-revision-modal', handleOpenRevisionModal);
+    window.addEventListener('open-approval-panel', handleOpenApprovalPanel);
 
     return () => {
-      window.removeEventListener('open-notifications', handleOpenNotificationsEvent);
       window.removeEventListener('open-profile-settings', handleOpenProfileSettings);
       window.removeEventListener('trigger-manual-sync', handleTriggerSync);
+      window.removeEventListener('open-revision-modal', handleOpenRevisionModal);
+      window.removeEventListener('open-approval-panel', handleOpenApprovalPanel);
     };
-  }, [handleOpenProfileSettingsForSelf, setShowUserNotificationsModal, handleManualSync]);
+  }, [
+    handleOpenProfileSettingsForSelf,
+    handleManualSync,
+    profile,
+    setRevisionRecord,
+    setRevisionDate,
+    setRevisionLeaveType,
+    setRevisionAdjustment,
+    setRevisionAdjustShortLeave,
+    setRevisionSignInTime,
+    setRevisionSignOutTime,
+    setRevisionLeaveHour,
+    setRevisionComment,
+    setShowUserRevisionModal,
+    setAdminActiveTab,
+    setShowLeaveApprovalModal,
+    setShowSupervisorApprovalModal
+  ]);
 
   if (!sessionUser && !loading) {
     return (

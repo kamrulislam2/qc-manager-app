@@ -9,20 +9,10 @@ interface UserNotificationsModalProps {
   setShowUserNotificationsModal: (val: boolean) => void;
   userNotificationsList: any[];
   adminActiveTab: 'user' | 'admin';
-  setShowLeaveApprovalModal: (val: boolean) => void;
-  setShowSupervisorApprovalModal: (val: boolean) => void;
   profile: Profile | null;
-  setRevisionRecord: (val: ChutiRecord | null) => void;
-  setRevisionDate: (val: string) => void;
-  setRevisionLeaveType: (val: string) => void;
-  setRevisionAdjustment: (val: boolean) => void;
-  setRevisionAdjustShortLeave: (val: boolean) => void;
-  setRevisionSignInTime: (val: string) => void;
-  setRevisionSignOutTime: (val: string) => void;
-  setRevisionLeaveHour: (val: string) => void;
-  setRevisionComment: (val: string) => void;
-  setShowUserRevisionModal: (val: boolean) => void;
   onSaveHolidayResponse: (holidayDate: string, holidayName: string, response: 'paid' | 'reserve') => Promise<boolean>;
+  onRevisionClick?: (record: ChutiRecord) => void;
+  onGoToApprovalPanel?: () => void;
 }
 
 export function UserNotificationsModal({
@@ -30,20 +20,10 @@ export function UserNotificationsModal({
   setShowUserNotificationsModal,
   userNotificationsList,
   adminActiveTab,
-  setShowLeaveApprovalModal,
-  setShowSupervisorApprovalModal,
   profile,
-  setRevisionRecord,
-  setRevisionDate,
-  setRevisionLeaveType,
-  setRevisionAdjustment,
-  setRevisionAdjustShortLeave,
-  setRevisionSignInTime,
-  setRevisionSignOutTime,
-  setRevisionLeaveHour,
-  setRevisionComment,
-  setShowUserRevisionModal,
   onSaveHolidayResponse,
+  onRevisionClick,
+  onGoToApprovalPanel,
 }: UserNotificationsModalProps) {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
 
@@ -123,18 +103,10 @@ export function UserNotificationsModal({
                 {n.type === 'revision' && n.record && (
                   <button
                     onClick={() => {
-                      const r = n.record!;
-                      setRevisionRecord(r);
-                      setRevisionDate(r.date);
-                      setRevisionLeaveType(r.leave_type);
-                      setRevisionAdjustment(r.adjustment);
-                      setRevisionAdjustShortLeave(r.adjust_short_leave === true);
-                      setRevisionSignInTime(r.sign_in_time ? r.sign_in_time.substring(0, 5) : '13:00');
-                      setRevisionSignOutTime(r.sign_out_time ? r.sign_out_time.substring(0, 5) : '22:30');
-                      setRevisionLeaveHour(r.leave_hour ? r.leave_hour.toString().split('.')[0].substring(0, 5) : '00:00');
-                      setRevisionComment('');
                       setShowUserNotificationsModal(false);
-                      setShowUserRevisionModal(true);
+                      if (onRevisionClick && n.record) {
+                        onRevisionClick(n.record);
+                      }
                     }}
                     className="flex items-center gap-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold cursor-pointer transition-all border border-amber-700 shadow-md shrink-0 font-sans"
                   >
@@ -178,10 +150,8 @@ export function UserNotificationsModal({
           <button
             onClick={() => {
               setShowUserNotificationsModal(false);
-              if (profile.role === 'admin') {
-                setShowLeaveApprovalModal(true);
-              } else {
-                setShowSupervisorApprovalModal(true);
+              if (onGoToApprovalPanel) {
+                onGoToApprovalPanel();
               }
             }}
             className="px-4 py-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-lg text-xs font-semibold text-slate-350 hover:text-white cursor-pointer transition-all flex items-center gap-1.5"

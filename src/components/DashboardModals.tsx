@@ -6,7 +6,6 @@ import { WelcomeModals } from '@/components/modals/WelcomeModals';
 import { AdminAddLeaveModal } from '@/components/modals/AdminAddLeaveModal';
 import { AddLeaveModal } from '@/components/modals/AddLeaveModal';
 import { UserRevisionModal } from '@/components/modals/UserRevisionModal';
-import { UserNotificationsModal } from '@/components/modals/UserNotificationsModal';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { AdjustmentModal } from '@/components/modals/AdjustmentModal';
 import { SupervisorApprovalModal } from '@/components/modals/SupervisorApprovalModal';
@@ -47,8 +46,6 @@ export const DashboardModals = () => {
     setShowLeaveApprovalModal,
     showSupervisorApprovalModal,
     setShowSupervisorApprovalModal,
-    showUserNotificationsModal,
-    setShowUserNotificationsModal,
     approvingIds,
     reviewingIds,
     approvedIds,
@@ -420,31 +417,7 @@ export const DashboardModals = () => {
         submitting={submitting}
       />
 
-      <UserNotificationsModal
-        showUserNotificationsModal={showUserNotificationsModal}
-        setShowUserNotificationsModal={(val) => {
-          if (!val && handleDismissNotifications) {
-            handleDismissNotifications('user');
-          }
-          setShowUserNotificationsModal(val);
-        }}
-        userNotificationsList={userNotificationsList}
-        adminActiveTab={adminActiveTab}
-        setShowLeaveApprovalModal={setShowLeaveApprovalModal}
-        setShowSupervisorApprovalModal={setShowSupervisorApprovalModal}
-        profile={profile}
-        setRevisionRecord={setRevisionRecord}
-        setRevisionDate={setRevisionDate}
-        setRevisionLeaveType={setRevisionLeaveType}
-        setRevisionAdjustment={setRevisionAdjustment}
-        setRevisionAdjustShortLeave={setRevisionAdjustShortLeave}
-        setRevisionSignInTime={setRevisionSignInTime}
-        setRevisionSignOutTime={setRevisionSignOutTime}
-        setRevisionLeaveHour={setRevisionLeaveHour}
-        setRevisionComment={setRevisionComment}
-        setShowUserRevisionModal={setShowUserRevisionModal}
-        onSaveHolidayResponse={handleSaveHolidayResponse}
-      />
+
 
       <DeleteConfirmModal
         showDeleteModal={showDeleteModal}
