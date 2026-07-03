@@ -23,7 +23,7 @@ import { AddLeaveFormFields } from './AddLeaveFormFields';
 import { LeaveUsageSummary } from './LeaveUsageSummary';
 import { UserStats } from './UserStats';
 
-interface AddLeaveInlineProps {
+interface AddLeaveProps {
   profile: Profile | null;
   profilesList: Profile[];
   records: ChutiRecord[];
@@ -35,7 +35,7 @@ interface AddLeaveInlineProps {
   initialFetchDone: boolean;
 }
 
-export function AddLeaveInline({
+export function AddLeave({
   profile,
   profilesList = [],
   records = [],
@@ -45,7 +45,7 @@ export function AddLeaveInline({
   onConvertShortLeaveToFullLeave,
   holidayResponses = [],
   initialFetchDone = true,
-}: AddLeaveInlineProps) {
+}: AddLeaveProps) {
   // Target profile is always the logged in user themselves
   const targetProfile = profile;
 
@@ -403,7 +403,7 @@ export function AddLeaveInline({
 
     try {
       const { data, error } = await supabase
-        .from('records')
+        .from('chuti')
         .insert(insertData)
         .select();
 

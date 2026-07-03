@@ -4,7 +4,6 @@ import { useDashboardContext } from '@/contexts/DashboardContext';
 
 import { WelcomeModals } from '@/components/modals/WelcomeModals';
 import { AdminAddLeaveModal } from '@/components/modals/AdminAddLeaveModal';
-import { AddLeaveModal } from '@/components/modals/AddLeaveModal';
 import { UserRevisionModal } from '@/components/modals/UserRevisionModal';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { AdjustmentModal } from '@/components/modals/AdjustmentModal';
@@ -349,44 +348,6 @@ export const DashboardModals = () => {
         staffProfile={staffProfile}
         onSuccess={fetchRecords}
         records={viewingStaffId ? adminRecords.filter((r: any) => r.user_id === viewingStaffId) : []}
-        globalSettings={globalSettings}
-        leaveSettlements={leaveSettlements}
-      />
-
-      <AddLeaveModal
-        showAddLeaveModal={showAddLeaveModal}
-        setShowAddLeaveModal={setShowAddLeaveModal}
-        date={date}
-        setDate={setDate}
-        leaveType={leaveType}
-        setLeaveType={setLeaveType}
-        adjustment={adjustment}
-        setAdjustment={setAdjustment}
-        adjustmentCategory={adjustmentCategory}
-        setAdjustmentCategory={setAdjustmentCategory}
-        adjustShortLeave={adjustShortLeave}
-        setAdjustShortLeave={setAdjustShortLeave}
-        signInTime={signInTime}
-        setSignInTime={setSignInTime}
-        signOutTime={signOutTime}
-        setSignOutTime={setSignOutTime}
-        leaveHour={leaveHour}
-        setLeaveHour={setLeaveHour}
-        comment={comment}
-        setComment={setComment}
-        bulkDates={bulkDates}
-        bulkAdjustments={bulkAdjustments}
-        handleAddBulkDate={handleAddBulkDate}
-        handleUpdateBulkDate={handleUpdateBulkDate}
-        handleUpdateBulkAdjustment={handleUpdateBulkAdjustment}
-        handleRemoveBulkDate={handleRemoveBulkDate}
-        profile={profile}
-        submitting={submitting}
-        handleSubmit={handleSubmit}
-        records={userRecords}
-        profilesList={profilesList}
-        selectedSupervisors={selectedSupervisors}
-        setSelectedSupervisors={setSelectedSupervisors}
         globalSettings={globalSettings}
         leaveSettlements={leaveSettlements}
       />

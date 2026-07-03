@@ -8,7 +8,7 @@ import { Navbar } from '@/components/Navbar';
 import { UnifiedSidebar } from '@/components/UnifiedSidebar';
 import { UserDashboardView } from '@/components/UserDashboardView';
 import { AdminDashboardView } from '@/components/AdminDashboardView';
-import { AddLeaveInline } from '@/components/AddLeaveInline';
+import { AddLeave } from '@/components/AddLeave';
 import { AdminLeaveSettings } from '@/components/AdminLeaveSettings';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import { DashboardProvider } from '@/contexts/DashboardContext';
@@ -903,7 +903,7 @@ export default function Dashboard({
         
         {/* ================= ADD LEAVE INLINE VIEW ================= */}
         {profile?.has_changed_password !== false && !!profile?.is_setup_completed && activeChutiTab === 'add_leave' && (
-          <AddLeaveInline
+          <AddLeave
             profile={profile}
             profilesList={profilesList}
             records={profile?.role === 'admin' ? adminRecords : userRecords}
