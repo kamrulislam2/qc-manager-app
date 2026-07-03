@@ -669,8 +669,8 @@ export default function Dashboard({
 
   // Handle events from unified root Navbar
   useEffect(() => {
-    const handleOpenNotifications = () => {
-      setShowUserNotificationsModal(true);
+    const handleOpenNotificationsEvent = () => {
+      modalHandlers.handleOpenNotifications();
     };
     const handleOpenProfileSettings = () => {
       handleOpenProfileSettingsForSelf();
@@ -679,12 +679,12 @@ export default function Dashboard({
       handleManualSync();
     };
 
-    window.addEventListener('open-notifications', handleOpenNotifications);
+    window.addEventListener('open-notifications', handleOpenNotificationsEvent);
     window.addEventListener('open-profile-settings', handleOpenProfileSettings);
     window.addEventListener('trigger-manual-sync', handleTriggerSync);
 
     return () => {
-      window.removeEventListener('open-notifications', handleOpenNotifications);
+      window.removeEventListener('open-notifications', handleOpenNotificationsEvent);
       window.removeEventListener('open-profile-settings', handleOpenProfileSettings);
       window.removeEventListener('trigger-manual-sync', handleTriggerSync);
     };

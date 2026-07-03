@@ -198,6 +198,8 @@ export function useDerivedState({
 
 
   // --- User Notifications ---
+  const currentSessionTime = useMemo(() => new Date().toISOString(), []);
+
   const userNotificationsList = useMemo(() => {
     if (!sessionUser || !profile) return [];
 
@@ -217,7 +219,7 @@ export function useDerivedState({
             list.push({
               id: `govt-holiday-choice-${holiday.date}`,
               type: 'govt_holiday_choice',
-              timestamp: response.created_at || new Date(holiday.date).toISOString(),
+              timestamp: response.created_at || currentSessionTime,
               title: 'Govt Holiday Payment Notification 💸',
               body: `${holiday.name} (${formatDate(holiday.date)}) government holiday payment will be added to your salary.`
             });
@@ -226,7 +228,7 @@ export function useDerivedState({
             list.push({
               id: `govt-holiday-admin-update-${holiday.date}`,
               type: 'govt_holiday_choice',
-              timestamp: response.created_at || new Date(holiday.date).toISOString(),
+              timestamp: response.created_at || currentSessionTime,
               title: 'Govt Holiday Choice Updated By Admin 💸',
               body: `Admin has updated your preference for ${holiday.name} (${formatDate(holiday.date)}) to ${response.response === 'reserve' ? 'Reserve' : 'Get Paid'}.`
             });
@@ -237,7 +239,7 @@ export function useDerivedState({
           list.push({
             id: `govt-holiday-prompt-${holiday.date}`,
             type: 'govt_holiday_prompt',
-            timestamp: new Date(holiday.date).toISOString(),
+            timestamp: currentSessionTime,
             title: 'Select Govt Holiday Preference 🔔',
             body: `What would you like to do for this government holiday: ${holiday.name} (${formatDate(holiday.date)})?`,
             holidayDate: holiday.date,
@@ -263,7 +265,7 @@ export function useDerivedState({
             list.push({
               id: `sup-req-${r.id}`,
               type: 'pending_supervisor_request',
-              timestamp: r.created_at || r.date || new Date().toISOString(),
+              timestamp: r.created_at || r.date || currentSessionTime,
               title: 'Leave Verification Needed 🔔',
               body: `${staffName} (${staffCode}) applied for ${r.leave_type} (Date: ${datesLabel}).`,
               record: r
@@ -287,7 +289,7 @@ export function useDerivedState({
               list.push({
                 id: `admin-holiday-resp-${r.id}`,
                 type: 'admin_holiday_response',
-                timestamp: r.created_at || new Date().toISOString(),
+                timestamp: r.created_at || currentSessionTime,
                 title,
                 body
               });
@@ -330,7 +332,7 @@ export function useDerivedState({
               list.push({
                 id: `admin-settlement-resp-${s.id}`,
                 type: 'admin_settlement_response',
-                timestamp: s.created_at || new Date().toISOString(),
+                timestamp: s.created_at || currentSessionTime,
                 title: 'Leave Preference Responded 📥',
                 body: `${staffName} (${staffCode}) responded for ${s.leave_category} (${periodLabel}): ${choiceLabel}.`
               });
@@ -346,7 +348,7 @@ export function useDerivedState({
             list.push({
               id: `admin-leave-req-${r.id}`,
               type: 'pending_admin_chuti_request',
-              timestamp: r.created_at || r.date || new Date().toISOString(),
+              timestamp: r.created_at || r.date || currentSessionTime,
               title: 'Leave Approval Required 🔔',
               body: `${staffName} (${staffCode}) leave request for ${r.leave_type} (Date: ${datesLabel}) is pending final approval.`,
               record: r
@@ -363,7 +365,7 @@ export function useDerivedState({
             list.push({
               id: `admin-reserve-req-${r.id}`,
               type: 'pending_admin_reserve_request',
-              timestamp: r.created_at || r.date || new Date().toISOString(),
+              timestamp: r.created_at || r.date || currentSessionTime,
               title: `${label} Pending 🔄`,
               body: `${staffName} (${staffCode}) requested ${r.leave_type} ${label.toLowerCase()} (Date: ${formatDate(r.date)}).`,
               record: r
@@ -375,7 +377,7 @@ export function useDerivedState({
             list.push({
               id: `admin-profile-req-${p.id}`,
               type: 'pending_admin_profile_request',
-              timestamp: (p as any).created_at || new Date().toISOString(),
+              timestamp: (p as any).created_at || currentSessionTime,
               title: 'Profile Change Request 👤',
               body: `${p.full_name || p.username} (@${p.username?.toUpperCase()}) requested profile details update.`,
               profileRecord: p
@@ -387,7 +389,7 @@ export function useDerivedState({
             list.push({
               id: `admin-password-req-${p.id}`,
               type: 'pending_admin_password_request',
-              timestamp: (p as any).created_at || new Date().toISOString(),
+              timestamp: (p as any).created_at || currentSessionTime,
               title: 'Password Reset Request 🔑',
               body: `${p.full_name || p.username} (@${p.username?.toUpperCase()}) requested password reset.`,
               profileRecord: p
@@ -420,7 +422,7 @@ export function useDerivedState({
             chutiId: r.id,
             record: r,
             type: 'revision',
-            timestamp: r.created_at || new Date().toISOString(),
+            timestamp: r.created_at || currentSessionTime,
             title: 'Leave Revision Request ⚠️',
             body: `Your ${r.leave_type} application has been sent back for revision.`
           });
@@ -465,7 +467,7 @@ export function useDerivedState({
         list.push({
           id: `settlement-processed-${s.id}`,
           type: 'settlement_processed',
-          timestamp: s.processed_at || new Date().toISOString(),
+          timestamp: s.processed_at || currentSessionTime,
           title: 'Leave Settlement Processed 💸',
           body: bodyText
         });
@@ -475,21 +477,22 @@ export function useDerivedState({
     const filtered = list.filter(n => !dismissedNotificationIds?.has(n.id));
     return filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [
-    sessionUser,
-    profile,
-    userRecords,
-    holidayResponses,
-    globalSettings.govt_holidays,
-    initialFetchDone,
-    adminActiveTab,
-    profilesList,
-    dismissedNotificationIds,
-    leaveSettlements,
-    groupedSupervisorRequests,
-    groupedChutiRequests,
-    pendingReserveRequests,
-    pendingProfileRequests,
-    pendingPasswordResetRequests
+      currentSessionTime,
+      sessionUser,
+      profile,
+      userRecords,
+      holidayResponses,
+      globalSettings.govt_holidays,
+      initialFetchDone,
+      adminActiveTab,
+      profilesList,
+      dismissedNotificationIds,
+      leaveSettlements,
+      groupedSupervisorRequests,
+      groupedChutiRequests,
+      pendingReserveRequests,
+      pendingProfileRequests,
+      pendingPasswordResetRequests
   ]);
 
   // --- Admin/Supervisor Holiday Notifications ---
@@ -516,7 +519,7 @@ export function useDerivedState({
         list.push({
           id: `admin-holiday-resp-${r.id}`,
           type: 'admin_holiday_response',
-          timestamp: r.created_at || new Date().toISOString(),
+          timestamp: r.created_at || currentSessionTime,
           title,
           body
         });
