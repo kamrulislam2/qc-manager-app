@@ -10,7 +10,7 @@ import { ChutiRecord, SyncConflict, getOfflineRecords, syncOfflineData, getCache
 import { checkSubscriptionStatus, sendPushNotification } from '@/utils/webPushHelper';
 import { getGlobalSettingsFromProfile, defaultGlobalSettings, GlobalSettings, formatDate, parseHolidayItem } from '@/utils/dashboardHelpers';
 
-export const useDashboardData = () => {
+export const useDashboardData = (activeChutiTab?: string) => {
   const router = useRouter();
   const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -77,6 +77,8 @@ export const useDashboardData = () => {
   const fetchRecords = useCallback(async () => {
     if (!sessionUser || !profile) return;
 
+    const isAddLeaveMode = activeChutiTab === 'add_leave';
+
     // Check if offline
     if (typeof window !== 'undefined' && !navigator.onLine) {
       try {
@@ -84,7 +86,11 @@ export const useDashboardData = () => {
         // Load profiles cache
         const cachedProfiles = await getCacheData('profiles_cache');
         if (cachedProfiles.length > 0) {
-          setProfilesList(cachedProfiles);
+          if (isAddLeaveMode) {
+            setProfilesList(cachedProfiles.filter(p => p.role === 'supervisor'));
+          } else {
+            setProfilesList(cachedProfiles);
+          }
         }
 
         // Load chuti records cache
@@ -117,7 +123,7 @@ export const useDashboardData = () => {
         const pendingInserts = unsyncedRecords.filter(r => r.action === 'insert' || !r.action);
         const finalChuti = [...pendingInserts, ...mergedChuti];
 
-        if (profile.role === 'admin' || profile.role === 'supervisor') {
+        if ((profile.role === 'admin' || profile.role === 'supervisor') && !isAddLeaveMode) {
           setAdminRecords(finalChuti as ChutiRecordWithProfile[]);
         }
 
@@ -158,7 +164,7 @@ export const useDashboardData = () => {
       let settlementsData: LeaveSettlement[] = [];
 
       // 1. Fetch profiles and admin chuti list if admin/supervisor
-      if (profile.role === 'admin' || profile.role === 'supervisor') {
+      if ((profile.role === 'admin' || profile.role === 'supervisor') && !isAddLeaveMode) {
         const { data: profiles, error: profilesErr } = await supabase
           .from('profiles')
           .select('*')
@@ -224,7 +230,7 @@ export const useDashboardData = () => {
           }
         }
       } else {
-        // For normal users, fetch only supervisor list
+        // For normal users or add_leave mode, fetch only supervisor list
         const { data: supervisors, error: profilesErr } = await supabase
           .from('profiles')
           .select('id, username, role, full_name')
@@ -297,7 +303,7 @@ export const useDashboardData = () => {
       }
 
       // 3. Fetch Govt Holiday Responses and settlements
-      if (profile.role === 'admin' || profile.role === 'supervisor') {
+      if ((profile.role === 'admin' || profile.role === 'supervisor') && !isAddLeaveMode) {
         const { data: responses, error: respError } = await supabase
           .from('govt_holiday_responses')
           .select(`
@@ -350,7 +356,7 @@ export const useDashboardData = () => {
         }
 
         // Cache chuti records (merge-based since we use delta sync)
-        const recordsToCache = (profile.role === 'admin' || profile.role === 'supervisor')
+        const recordsToCache = (profile.role === 'admin' || profile.role === 'supervisor') && !isAddLeaveMode
           ? adminRecordsData
           : userRecordsData;
         if (recordsToCache.length > 0) {
@@ -358,7 +364,7 @@ export const useDashboardData = () => {
         }
 
         if (profile.role === 'admin' || profile.role === 'supervisor') {
-          if (adminRecordsData.length > 0) {
+          if (adminRecordsData.length > 0 && !isAddLeaveMode) {
             await setSyncTimestamp('chuti', syncStartedAt);
           }
         }
@@ -367,11 +373,19 @@ export const useDashboardData = () => {
         }
 
         if (responsesData.length > 0) {
-          await setCacheData('holiday_responses_cache', responsesData);
+          if (isAddLeaveMode) {
+            await mergeCacheData('holiday_responses_cache', responsesData);
+          } else {
+            await setCacheData('holiday_responses_cache', responsesData);
+          }
           await setSyncTimestamp('govt_holiday_responses', syncStartedAt);
         }
         if (settlementsData.length > 0) {
-          await setCacheData('settlements_cache', settlementsData);
+          if (isAddLeaveMode) {
+            await mergeCacheData('settlements_cache', settlementsData);
+          } else {
+            await setCacheData('settlements_cache', settlementsData);
+          }
           await setSyncTimestamp('leave_settlements', syncStartedAt);
         }
 
@@ -401,7 +415,7 @@ export const useDashboardData = () => {
     } finally {
       setInitialFetchDone(true);
     }
-  }, [sessionUser, profile]);
+  }, [sessionUser, profile, activeChutiTab]);
 
   const handleSaveGlobalSettings = useCallback(async (newSettings: GlobalSettings, options?: { silent?: boolean }) => {
     if (!profile) return false;
@@ -911,7 +925,7 @@ export const useDashboardData = () => {
     if (!loading && sessionUser && profile) {
       fetchRecords();
     }
-  }, [loading, sessionUser, profile, fetchRecords]);
+  }, [loading, sessionUser, profile, activeChutiTab, fetchRecords]);
 
   // Load last viewed notification timestamp
   useEffect(() => {
