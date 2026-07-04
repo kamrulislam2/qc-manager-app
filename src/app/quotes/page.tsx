@@ -1049,15 +1049,11 @@ export default function Dashboard({
   // Loading Screen
   if (loading) {
     return (
-      <div className="flex-1 min-h-screen flex flex-col bg-slate-955 items-center justify-center relative overflow-hidden">
-        <div className="absolute top-[-20%] right-[-20%] w-[50%] h-[50%] rounded-full bg-blue-900/10 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-20%] left-[-20%] w-[50%] h-[50%] rounded-full bg-violet-900/10 blur-[120px] pointer-events-none" />
-        <div className="flex flex-col items-center gap-3 z-10">
-          <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
-          <span className="text-slate-400 text-xs font-semibold tracking-wider">
-            Loading, please wait...
-          </span>
-        </div>
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
+        <span className="text-slate-400 text-xs font-semibold tracking-wider">
+          Loading, please wait...
+        </span>
       </div>
     );
   }
