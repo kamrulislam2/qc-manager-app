@@ -18,11 +18,12 @@ import {
   RotateCcw,
   Plus,
   Settings,
-  History
+  History,
+  BarChart2
 } from 'lucide-react';
 
 interface UnifiedSidebarProps {
-  activeSection: 'chuti' | 'quotes' | 'user_management' | 'todo' | 'analytics' | 'audit_logs';
+  activeSection: 'chuti' | 'quotes' | 'user_management' | 'todo' | 'analytics' | 'audit_logs' | 'kpi';
   profile: Profile | null;
   activeQuotesTab?: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules';
   onQuotesTabChange?: (tab: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules') => void;
@@ -60,6 +61,12 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
   const handleQuotesNav = () => {
     localStorage.setItem('last_active_dashboard', 'quotes');
     window.dispatchEvent(new CustomEvent('workspace-change', { detail: 'quotes' }));
+    router.push('/');
+  };
+
+  const handleKpiNav = () => {
+    localStorage.setItem('last_active_dashboard', 'kpi');
+    window.dispatchEvent(new CustomEvent('workspace-change', { detail: 'kpi' }));
     router.push('/');
   };
 
@@ -300,6 +307,26 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
 
               </div>
             )}
+          </div>
+        )}
+
+        {/* Workspace: KPI & Performance */}
+        {hasQuotesAccess && (
+          <div className="space-y-1">
+            <button
+              onClick={handleKpiNav}
+              title={isSidebarCollapsed ? 'KPI & Performance' : undefined}
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                isSidebarCollapsed ? 'justify-center p-3' : 'justify-start px-4 py-3 gap-3'
+              } ${
+                activeSection === 'kpi'
+                  ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
+                  : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
+              }`}
+            >
+              <BarChart2 className="h-5 w-5 shrink-0" />
+              {!isSidebarCollapsed && <span className="whitespace-nowrap">KPI & Performance</span>}
+            </button>
           </div>
         )}
 

@@ -35,6 +35,11 @@ const AuditLogsPanel = lazy(() =>
     default: m.AuditLogsPanel,
   })),
 );
+const UserKpiPerformancePanel = lazy(() =>
+  import("@/components/user-management/UserKpiPerformancePanel").then((m) => ({
+    default: m.UserKpiPerformancePanel,
+  })),
+);
 
 export default function AppPortal() {
   const router = useRouter();
@@ -49,6 +54,7 @@ export default function AppPortal() {
     | "todo"
     | "analytics"
     | "audit_logs"
+    | "kpi"
     | null
   >(null);
   const [logLines, setLogLines] = useState<string[]>([]);
@@ -396,14 +402,16 @@ export default function AppPortal() {
       const showTodo =
         cachedProfile.username?.toUpperCase() === "KAMRUL" ||
         cachedProfile.full_name === "Kamrul Islam";
-      let lastActive = localStorage.getItem("last_active_dashboard") as
+       let lastActive = localStorage.getItem("last_active_dashboard") as
         | "chuti"
         | "quotes"
         | "user_management"
         | "todo"
+        | "kpi"
         | null;
       if (lastActive === "chuti" && !hasChuti) lastActive = null;
       if (lastActive === "quotes" && !hasQuotes) lastActive = null;
+      if (lastActive === "kpi" && !hasQuotes) lastActive = null;
       if (
         lastActive === "user_management" &&
         !(cachedProfile.role === "admin" || cachedProfile.role === "supervisor")
@@ -573,7 +581,8 @@ export default function AppPortal() {
         | "chuti"
         | "quotes"
         | "user_management"
-        | "todo";
+        | "todo"
+        | "kpi";
       addLog(`custom workspace-change event detected: ${targetWorkspace}`);
 
       // Clear flag when navigating to any workspace from the sidebar
@@ -587,6 +596,7 @@ export default function AppPortal() {
       if (profile) {
         if (targetWorkspace === "chuti" && !profile.has_chuti_access) return;
         if (targetWorkspace === "quotes" && !profile.has_quotes_access) return;
+        if (targetWorkspace === "kpi" && !profile.has_quotes_access) return;
         if (
           targetWorkspace === "user_management" &&
           !(profile.role === "admin" || profile.role === "supervisor")
@@ -796,7 +806,9 @@ export default function AppPortal() {
                         ? "audit_logs"
                         : activeTab === "quotes"
                           ? "quotes"
-                          : "chuti"
+                          : activeTab === "kpi"
+                            ? "kpi"
+                            : "chuti"
             }
             profile={profile}
             activeQuotesTab={activeQuotesTab}
@@ -856,6 +868,9 @@ export default function AppPortal() {
             </div>
             <div className={activeTab === "todo" ? "block" : "hidden"}>
               <TodoPanel profile={profile} />
+            </div>
+            <div className={activeTab === "kpi" ? "block" : "hidden"}>
+              {profile && <UserKpiPerformancePanel viewingStaff={profile} />}
             </div>
           </Suspense>
         </section>
