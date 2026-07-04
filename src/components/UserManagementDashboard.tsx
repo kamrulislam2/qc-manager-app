@@ -47,7 +47,7 @@ import { UserKpiPerformancePanel } from '@/components/user-management/UserKpiPer
 import { AddLeave } from '@/components/AddLeave';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { LeaveSettlement, GovtHolidayResponse } from '@/types';
-import { GlobalSettings } from '@/utils/dashboardHelpers';
+import { GlobalSettings, getGlobalSettingsFromProfile, defaultGlobalSettings } from '@/utils/dashboardHelpers';
 
 interface UserManagementDashboardProps {
   sessionUser: { id: string } | null;
@@ -218,8 +218,21 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
 
   // Fallback if viewingStaff has no quotes access and active tab is quotes/kpi
   useEffect(() => {
-    if (viewingStaff && !viewingStaff.has_quotes_access && (activeSubTab === 'quotes' || activeSubTab === 'kpi')) {
-      setActiveSubTab('leave');
+    if (viewingStaff) {
+      const isSupervisedByMe = profile?.role === 'admin' || (profile?.role === 'supervisor' && Array.isArray(viewingStaff.supervisor_ids) && viewingStaff.supervisor_ids.includes(profile.id));
+      if (!viewingStaff.has_quotes_access && (activeSubTab === 'quotes' || activeSubTab === 'kpi')) {
+        setActiveSubTab(isSupervisedByMe ? 'leave' : 'profile');
+      }
+    }
+  }, [viewingStaff, activeSubTab, profile]);
+
+  // Enforce access control for Leave History tab: redirect if active tab is leave but supervisor doesn't supervise user
+  useEffect(() => {
+    if (viewingStaff && profile?.role === 'supervisor') {
+      const isSupervisedByMe = Array.isArray(viewingStaff.supervisor_ids) && viewingStaff.supervisor_ids.includes(profile.id);
+      if (activeSubTab === 'leave' && !isSupervisedByMe) {
+        setActiveSubTab(viewingStaff.has_quotes_access ? 'quotes' : 'profile');
+      }
     }
   }, [viewingStaff, activeSubTab, profile]);
 
@@ -249,36 +262,27 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const fetchStaffLeaveData = useCallback(async (staffId: string) => {
     setLoadingLeaveData(true);
     try {
-      // 1. Fetch chuti records
-      const { data: chutiData, error: chutiError } = await supabase
-        .from('chuti')
-        .select('*')
-        .eq('user_id', staffId)
-        .is('deleted_at', null)
-        .order('date', { ascending: false });
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/supervisor/staff-leave-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+        body: JSON.stringify({ staffId }),
+      });
 
-      if (chutiError) throw chutiError;
-      setViewingStaffRecords(chutiData || []);
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Server API request failed');
+      }
 
-      // 2. Fetch leave settlements
-      const { data: sData, error: sError } = await supabase
-        .from('leave_settlements')
-        .select('*')
-        .eq('user_id', staffId);
+      const resData = await response.json();
+      setViewingStaffRecords(resData.chutiData || []);
+      setViewingStaffSettlements(resData.settlementsData || []);
+      setViewingStaffHolidayResponses(resData.holidayResponsesData || []);
 
-      if (sError) throw sError;
-      setViewingStaffSettlements(sData || []);
-
-      // 3. Fetch holiday responses
-      const { data: hrData, error: hrError } = await supabase
-        .from('govt_holiday_responses')
-        .select('*')
-        .eq('user_id', staffId);
-
-      if (hrError) throw hrError;
-      setViewingStaffHolidayResponses(hrData || []);
-
-      // 4. Fetch global settings from admin profile
+      // Fetch global settings from admin profile
       const { data: adminProfile, error: apError } = await supabase
         .from('profiles')
         .select('global_settings')
@@ -286,16 +290,18 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
         .limit(1)
         .single();
 
-      if (!apError && adminProfile) {
+      if (!apError && adminProfile && adminProfile.global_settings) {
         setGlobalSettings(adminProfile.global_settings);
+      } else {
+        setGlobalSettings(getGlobalSettingsFromProfile(profile));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load staff leave data:', e);
-      toast.error('Failed to load leave history.');
+      toast.error(e.message || 'Failed to load leave history.');
     } finally {
       setLoadingLeaveData(false);
     }
-  }, []);
+  }, [profile]);
 
   // Fetch leave data on mount/change of selected staff member
   useEffect(() => {
@@ -427,13 +433,25 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const fetchProfiles = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('username', { ascending: true });
-      if (error) throw error;
-      if (data) setProfiles(data);
-    } catch (e) {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/supervisor/profiles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Server profiles request failed');
+      }
+
+      const resData = await response.json();
+      if (resData.profiles) {
+        setProfiles(resData.profiles);
+      }
+    } catch (e: any) {
       console.error('Failed to load profiles:', e);
       toast.error('Failed to load user accounts.');
     } finally {
@@ -560,8 +578,9 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const visibleProfiles = profiles
     .filter((u) => {
       if (profile?.role === 'supervisor') {
-        // Supervisor only sees users who are assigned to them (supervisor_ids includes their own id)
-        return Array.isArray(u.supervisor_ids) && u.supervisor_ids.includes(profile.id);
+        // Supervisor sees users they supervise OR users who have quotes access
+        const isSupervisedByMe = Array.isArray(u.supervisor_ids) && u.supervisor_ids.includes(profile.id);
+        return isSupervisedByMe || !!u.has_quotes_access;
       }
       return true;
     })
@@ -633,20 +652,22 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
             {/* Employee 360 Hub Subtabs (Horizontal Top Tabs) */}
             {!isCreatingNewUser && viewingStaff && (
               <div className="flex border-b border-slate-800 gap-1 mt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveSubTab('leave');
-                    localStorage.setItem('user_management_active_subtab', 'leave');
-                  }}
-                  className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeSubTab === 'leave'
-                      ? 'border-blue-500 text-blue-400 font-bold'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Calendar className="h-3.5 w-3.5" /> Leave History
-                </button>
+                {(profile?.role === 'admin' || (profile?.role === 'supervisor' && viewingStaff && Array.isArray(viewingStaff.supervisor_ids) && viewingStaff.supervisor_ids.includes(profile.id))) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSubTab('leave');
+                      localStorage.setItem('user_management_active_subtab', 'leave');
+                    }}
+                    className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeSubTab === 'leave'
+                        ? 'border-blue-500 text-blue-400 font-bold'
+                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Calendar className="h-3.5 w-3.5" /> Leave History
+                  </button>
+                )}
                 {viewingStaff.has_quotes_access && (
                   <button
                     type="button"
@@ -986,7 +1007,12 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                       <tr 
                         key={u.id} 
                         onDoubleClick={() => {
-                          setActiveSubTab('leave');
+                          const isSupervisedByMe = profile?.role === 'admin' || (profile?.role === 'supervisor' && Array.isArray(u.supervisor_ids) && u.supervisor_ids.includes(profile.id));
+                          if (isSupervisedByMe) {
+                            setActiveSubTab('leave');
+                          } else {
+                            setActiveSubTab(u.has_quotes_access ? 'quotes' : 'profile');
+                          }
                           setViewingStaff(u);
                         }}
                         className="hover:bg-slate-900/25 transition-colors cursor-pointer select-none"

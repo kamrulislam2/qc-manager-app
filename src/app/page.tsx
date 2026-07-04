@@ -257,6 +257,11 @@ export default function AppPortal() {
       const pageSize = 1000;
       let hasMore = true;
 
+      // Filter to fetch records only from January 1st of the previous year to optimize performance
+      const today = new Date();
+      const prevYear = today.getFullYear() - 1;
+      const filterDateStr = `${prevYear}-01-01T00:00:00Z`;
+
       try {
         while (hasMore) {
           const from = page * pageSize;
@@ -264,6 +269,7 @@ export default function AppPortal() {
           const { data, error } = await supabase
             .from("records")
             .select("user_id, submitted_at")
+            .gte("submitted_at", filterDateStr)
             .range(from, to);
 
           if (error) throw error;
@@ -1001,31 +1007,21 @@ export default function AppPortal() {
               </div>
             }
           >
-            <div
-              className={
-                activeTab === "quotes" ||
-                activeTab === "analytics" ||
-                activeTab === "audit_logs"
-                  ? "block"
-                  : "hidden"
-              }
-            >
+            {(activeTab === "quotes" || activeTab === "analytics" || activeTab === "audit_logs") && (
               <QuotesDashboard
                 activeTab={
                   activeTab === "quotes" ? activeQuotesTab : (activeTab as any)
                 }
                 onTabChange={handleQuotesTabChange}
               />
-            </div>
-            <div className={activeTab === "chuti" ? "block" : "hidden"}>
+            )}
+            {activeTab === "chuti" && (
               <ChutiDashboard
                 activeChutiTab={activeChutiTab}
                 onChutiTabChange={handleChutiTabChange}
               />
-            </div>
-            <div
-              className={activeTab === "user_management" ? "block" : "hidden"}
-            >
+            )}
+            {activeTab === "user_management" && (
               <UserManagementDashboard
                 sessionUser={sessionUser}
                 profile={profile}
@@ -1037,13 +1033,13 @@ export default function AppPortal() {
                 topPerformerBadges={topPerformerBadges}
                 onViewStateChange={setIsUserManagementFullView}
               />
-            </div>
-            <div className={activeTab === "todo" ? "block" : "hidden"}>
+            )}
+            {activeTab === "todo" && (
               <TodoPanel profile={profile} />
-            </div>
-            <div className={activeTab === "kpi" ? "block" : "hidden"}>
-              {profile && <UserKpiPerformancePanel viewingStaff={profile} />}
-            </div>
+            )}
+            {activeTab === "kpi" && profile && (
+              <UserKpiPerformancePanel viewingStaff={profile} />
+            )}
           </Suspense>
         </section>
       </main>
