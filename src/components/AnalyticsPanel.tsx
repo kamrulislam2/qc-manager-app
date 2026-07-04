@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RecordItem, Profile } from '@/types';
 import { VerifiedBadge } from './VerifiedBadge';
 import { calculateTopPerformerBadges } from '@/utils/leaderboardHelper';
+import { AnalyticsSkeleton } from './skeleton/AnalyticsSkeleton';
 import {
   FileText,
   TrendingUp,
@@ -466,119 +467,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
 
 
   if (recordsLoading || isLoading) {
-    return (
-      <div className="space-y-6">
-        {/* Skeleton Upper Filter Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-slate-900/20 p-4 border border-slate-800/40 rounded-2xl backdrop-blur-md animate-pulse">
-          <div className="space-y-2">
-            <div className="h-5 w-48 bg-slate-800 rounded-lg"></div>
-            <div className="h-3.5 w-64 bg-slate-800/60 rounded-md"></div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <div className="h-8 w-28 bg-slate-800 rounded-xl"></div>
-            <div className="h-8 w-32 bg-slate-800 rounded-xl"></div>
-            <div className="h-8 w-24 bg-slate-800 rounded-xl"></div>
-          </div>
-        </div>
-
-        {/* Skeleton Grid: 4 Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-slate-955 border border-slate-850/40 p-5 rounded-2xl h-32 flex flex-col justify-between">
-              <div className="flex justify-between items-start">
-                <div className="space-y-2 w-full">
-                  <div className="h-3 w-16 bg-slate-800 rounded-md"></div>
-                  <div className="h-7 w-20 bg-slate-800 rounded-lg"></div>
-                </div>
-                <div className="w-10 h-10 bg-slate-800 rounded-xl"></div>
-              </div>
-              <div className="h-3 w-32 bg-slate-800/60 rounded-md"></div>
-            </div>
-          ))}
-        </div>
-
-        {/* Skeleton Grid: Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
-          {/* Grouped Bar Chart Placeholder */}
-          <div className="lg:col-span-2 bg-slate-955 border border-slate-850/40 p-5 rounded-2xl h-96 flex flex-col justify-between">
-            <div className="h-4 w-40 bg-slate-800 rounded-md mb-6"></div>
-            <div className="flex-1 flex items-end gap-3 h-52 w-full px-4">
-              {Array.from({ length: 12 }).map((_, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full bg-slate-800 rounded-t-lg" style={{ height: `${20 + (idx % 3) * 20}%` }}></div>
-                  <div className="h-3 w-8 bg-slate-800/60 rounded-md"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Branch Contribution Placeholder */}
-          <div className="bg-slate-955 border border-slate-850/40 p-5 rounded-2xl h-96 flex flex-col gap-4">
-            <div className="h-4 w-32 bg-slate-800 rounded-md"></div>
-            <div className="space-y-4 mt-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="flex justify-between">
-                    <div className="h-3.5 w-16 bg-slate-800 rounded-md"></div>
-                    <div className="h-3.5 w-24 bg-slate-800/80 rounded-md"></div>
-                  </div>
-                  <div className="h-2 w-full bg-slate-850 rounded-full"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Skeleton Bottom Leaderboard Placeholder */}
-        <div className="bg-slate-955 border border-slate-850/40 p-5 rounded-2xl h-80 flex flex-col gap-6 animate-pulse">
-          <div className="h-4 w-48 bg-slate-800 rounded-md"></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="bg-slate-950/40 border border-slate-850/40 p-4 rounded-xl flex flex-col items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-800"></div>
-                <div className="h-3.5 w-16 bg-slate-800 rounded-md"></div>
-                <div className="h-3 w-10 bg-slate-800/60 rounded-md"></div>
-                <div className="w-full border-t border-slate-850/30 my-1"></div>
-                <div className="h-5 w-8 bg-slate-800 rounded-md"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Skeleton Category Distribution Breakdown Placeholder */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
-          <div className="lg:col-span-2 bg-slate-955 border border-slate-850/40 p-5 rounded-2xl h-96 flex flex-col gap-4">
-            <div className="h-4 w-48 bg-slate-800 rounded-md"></div>
-            <div className="h-3 w-64 bg-slate-800/60 rounded-md mb-2"></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="space-y-2 p-2 bg-slate-900/10 border border-slate-850/20 rounded-xl">
-                  <div className="flex justify-between">
-                    <div className="h-3.5 w-16 bg-slate-800 rounded-md"></div>
-                    <div className="h-3.5 w-12 bg-slate-800/85 rounded-md"></div>
-                  </div>
-                  <div className="h-2 w-full bg-slate-850 rounded-full"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-slate-955 border border-slate-850/40 p-5 rounded-2xl h-96 flex flex-col justify-between">
-            <div className="space-y-6">
-              <div className="h-4 w-32 bg-slate-800 rounded-md"></div>
-              <div className="space-y-3">
-                <div className="bg-slate-900/30 border border-slate-850/30 p-4 rounded-xl h-16 w-full"></div>
-                <div className="bg-slate-900/30 border border-slate-850/30 p-4 rounded-xl h-16 w-full"></div>
-              </div>
-            </div>
-            <div className="border-t border-slate-850/30 pt-4 space-y-2">
-              <div className="h-3 w-28 bg-slate-800 rounded-md"></div>
-              <div className="h-3 w-full bg-slate-800/60 rounded-md"></div>
-              <div className="h-3 w-4/5 bg-slate-800/60 rounded-md"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AnalyticsSkeleton />;
   }
 
   return (

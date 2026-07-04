@@ -10,9 +10,11 @@ import { SettlementsTableSkeleton } from './skeleton/SettlementsTableSkeleton';
 import { ChutiFormSkeleton } from './skeleton/ChutiFormSkeleton';
 import { LeaveHistorySkeleton } from './skeleton/LeaveHistorySkeleton';
 import { LeaveSettingsSkeleton } from './skeleton/LeaveSettingsSkeleton';
+import { TodoSkeleton } from './skeleton/TodoSkeleton';
+import { AnalyticsSkeleton } from './skeleton/AnalyticsSkeleton';
 
 interface SkeletonLoaderProps {
-  variant?: 'table' | 'stats' | 'list' | 'profile-header' | 'leaves-table' | 'staff-table' | 'responses-table' | 'settlements-table' | 'chuti-form' | 'leave-history' | 'leave-settings';
+  variant?: 'table' | 'stats' | 'list' | 'profile-header' | 'leaves-table' | 'staff-table' | 'responses-table' | 'settlements-table' | 'chuti-form' | 'leave-history' | 'leave-settings' | 'todo' | 'analytics';
   rows?: number;
   cards?: number;
   className?: string;
@@ -47,6 +49,10 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
       return <LeaveHistorySkeleton allowOvertime={allowOvertime} className={className} />;
     case 'leave-settings':
       return <LeaveSettingsSkeleton className={className} />;
+    case 'todo':
+      return <TodoSkeleton className={className} />;
+    case 'analytics':
+      return <AnalyticsSkeleton className={className} />;
     case 'table':
     default:
       return <TableSkeleton rows={rows} className={className} />;

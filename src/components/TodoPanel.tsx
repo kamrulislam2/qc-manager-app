@@ -19,6 +19,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { ConfirmModal } from '@/components/modals/ConfirmModal';
 import { createPortal } from 'react-dom';
+import { TodoSkeleton } from './skeleton/TodoSkeleton';
 
 interface TodoPanelProps {
   profile: Profile | null;
@@ -581,6 +582,10 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
       {/* SUBTAB 1: DAILY VIEW */}
       {subTab === 'daily' && (
         <div className="space-y-6">
+          {loading ? (
+            <TodoSkeleton />
+          ) : (
+            <>
           {/* Add task form and copy options */}
           <div className="flex flex-col md:flex-row items-center gap-4 bg-slate-950/40 p-4 border border-slate-800/60 rounded-xl">
             <form onSubmit={handleAddTodo} className="flex-1 w-full flex items-center gap-2.5">
@@ -677,21 +682,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
           </div>
 
           {/* List display */}
-          {loading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="p-4 bg-slate-950/20 border border-slate-800/60 rounded-xl animate-pulse flex items-center justify-between gap-4 h-[72px]">
-                  <div className="flex-1 flex gap-3">
-                    <div className="w-5 h-5 bg-slate-800 rounded-md shrink-0" />
-                    <div className="space-y-2 flex-1">
-                      <div className="h-3.5 bg-slate-800/80 rounded w-1/3" />
-                      <div className="h-3 bg-slate-800/40 rounded w-2/3" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : todos.length === 0 ? (
+          {todos.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center space-y-3 bg-slate-950/15 border border-slate-850 rounded-2xl">
               <ListTodo className="w-12 h-12 text-slate-600 animate-pulse" />
               <div>
@@ -830,6 +821,8 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                 );
               })}
             </div>
+          )}
+            </>
           )}
         </div>
       )}

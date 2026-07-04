@@ -3,6 +3,7 @@
 import { DailyEntrySkeleton } from "./skeleton/DailyEntrySkeleton";
 import { MonthlyListSkeleton } from "./skeleton/MonthlyListSkeleton";
 import { QuoteRulesSkeleton } from "./skeleton/QuoteRulesSkeleton";
+import { AnalyticsSkeleton } from "./skeleton/AnalyticsSkeleton";
 
 interface SkeletonLoaderProps {
   type?:
@@ -178,44 +179,7 @@ export function SkeletonLoader({ type = "generic", rows = 4 }: SkeletonLoaderPro
   }
 
   if (type === "analytics") {
-    return (
-      <div className="space-y-6 w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-850/80 pb-4 animate-pulse">
-          <div className="space-y-1.5">
-            <div className={`h-6 w-44 ${innerBg}`} />
-            <div className={`h-3 w-72 ${innerBg}`} />
-          </div>
-          <div className="flex gap-2">
-            <div className={`h-9 w-24 ${innerBg}`} />
-            <div className={`h-9 w-24 ${innerBg}`} />
-          </div>
-        </div>
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className={`${cardBg} h-[320px] flex flex-col justify-between`}>
-              <div className="flex justify-between items-center">
-                <div className={`h-4.5 w-36 ${innerBg}`} />
-                <div className={`h-6 w-16 ${innerBg}`} />
-              </div>
-              <div className="flex items-end justify-between h-48 px-4">
-                {[...Array(8)].map((_, j) => (
-                  <div
-                    key={j}
-                    className={`w-8 rounded-t bg-slate-800/30`}
-                    style={{ height: `${20 + Math.random() * 70}%` }}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between">
-                <div className={`h-3 w-16 ${innerBg}`} />
-                <div className={`h-3 w-16 ${innerBg}`} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <AnalyticsSkeleton />;
   }
 
   if (type === "audit-logs") {
