@@ -1445,7 +1445,7 @@ export default function Dashboard({
           )}
 
           {/* TAB 2: MONTHLY LIST */}
-          {activeTab === "monthly" && (
+          {activeTab === "monthly" && (recordsLoading ? <SkeletonLoader type="table" /> : (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                 <div>
@@ -1650,6 +1650,7 @@ export default function Dashboard({
                 />
               </Suspense>
             </div>
+            )
           )}
 
           {/* TAB 4: PERFORMANCE ANALYTICS */}
