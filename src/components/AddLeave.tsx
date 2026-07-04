@@ -350,9 +350,13 @@ export function AddLeave({
 
     // Prepare records list to insert
     const insertData: any[] = [];
-    // Supervisor adding on behalf bypasses supervisor step — goes straight to admin
     const bypassSupervisor = addedBySupervisor || profile?.role === 'admin' || targetProfile.needs_supervisor_approval === false;
-    const finalStatus = bypassSupervisor ? 'approved_by_supervisor' : 'pending_supervisor';
+    let finalStatus = 'pending_supervisor';
+    if (profile?.role === 'admin') {
+      finalStatus = 'approved';
+    } else if (addedBySupervisor || targetProfile.needs_supervisor_approval === false) {
+      finalStatus = 'approved_by_supervisor';
+    }
 
     let finalAdjustment = false;
     let finalAdjustedHour: string | null = null;
@@ -393,7 +397,13 @@ export function AddLeave({
 
     datesWithAdjustment.forEach(item => {
       let commentWithCategory = comment.trim();
-      if (leaveType === 'Full Leave') {
+      if (profile?.role === 'admin') {
+        const adminUsername = profile?.username || 'Admin';
+        const updatedCommentPrefix = `${adminUsername} Approved`;
+        commentWithCategory = commentWithCategory 
+          ? `${updatedCommentPrefix} | ${commentWithCategory}` 
+          : updatedCommentPrefix;
+      } else if (leaveType === 'Full Leave') {
         commentWithCategory = (item.adjustment && adjustmentCategory !== 'None')
           ? `Adjusted: ${adjustmentCategory} | ${comment.trim()}`
           : comment.trim();
@@ -405,6 +415,23 @@ export function AddLeave({
         commentWithCategory = `Adjusted with Short Leave | ${comment.trim()}`;
       } else if (leaveType === 'Overtime' && finalAdjustedHour) {
         commentWithCategory = `Partially Adjusted with Short Leave (${finalAdjustedHour.substring(0, 5)}) | ${comment.trim()}`;
+      }
+
+      let adminEditRequest: any = null;
+      if (profile?.role === 'admin') {
+        adminEditRequest = {
+          notifications: [
+            {
+              id: generateUUID(),
+              type: 'approved',
+              timestamp: new Date().toISOString(),
+              title: 'Leave Added by Admin ✅',
+              body: `Admin has added a ${leaveType} for you on ${formatDate(item.date)}.`
+            }
+          ]
+        };
+      } else if (!bypassSupervisor && targetProfile?.supervisor_ids && targetProfile.supervisor_ids.length > 0) {
+        adminEditRequest = { supervisor_ids: targetProfile.supervisor_ids };
       }
 
       insertData.push({
@@ -422,9 +449,7 @@ export function AddLeave({
         bulk_id: bulkId,
         reserve_holiday: leaveType === 'Short Leave' && finalAdjustment ? adjustmentCategory : (leaveType === 'Full Leave' && item.adjustment && adjustmentCategory !== 'None' ? adjustmentCategory : null),
         reserve_adjustment_status: 'none',
-        admin_edit_request: (!bypassSupervisor && targetProfile?.supervisor_ids && targetProfile.supervisor_ids.length > 0)
-          ? { supervisor_ids: targetProfile.supervisor_ids }
-          : null
+        admin_edit_request: adminEditRequest
       });
     });
 
@@ -463,7 +488,28 @@ export function AddLeave({
 
       toast.success(allDates.length > 1 ? `Successfully added ${allDates.length} bulk leaves!` : 'Leave added successfully!');
       
-      // Send notifications to supervisors if pending approval
+      // Notify Admin(s) if added by Supervisor
+      if (profile?.role === 'supervisor') {
+        const adminIds = profilesList.filter(p => p.role === 'admin').map(p => p.id);
+        if (adminIds.length > 0) {
+          sendPushNotification({
+            userIds: adminIds,
+            title: 'New Leave Request (Approved by Supervisor)',
+            body: `Supervisor ${profile.full_name || profile.username} approved a ${leaveType} for ${targetProfile.full_name || targetProfile.username} on ${formatDate(date)}.`
+          }).catch(err => console.error('Error sending push:', err));
+        }
+      }
+
+      // Notify User if added directly by Admin
+      if (profile?.role === 'admin') {
+        sendPushNotification({
+          userIds: [targetProfile.id],
+          title: 'Leave Added by Admin ✅',
+          body: `Admin has added a ${leaveType} for you on ${formatDate(date)}.`
+        }).catch(err => console.error('Error sending push:', err));
+      }
+
+      // Send notifications to supervisors if pending approval (normal user request)
       if (finalStatus === 'pending_supervisor' && selectedSupervisors.length > 0 && data && data.length > 0) {
         const notifInsert = selectedSupervisors.map(supId => ({
           user_id: supId,
@@ -473,7 +519,11 @@ export function AddLeave({
           target_chuti_id: data[0].id,
           status: 'unread'
         }));
-        await supabase.from('notifications').insert(notifInsert);
+        try {
+          await supabase.from('notifications').insert(notifInsert);
+        } catch (notifErr) {
+          console.error('Failed to insert fallback notifications:', notifErr);
+        }
 
         // Send web pushes
         sendPushNotification({
