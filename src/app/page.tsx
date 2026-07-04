@@ -915,6 +915,7 @@ export default function AppPortal() {
                     activeChutiTab === "leave_history" ? "leave-history" : 
                     activeChutiTab === "govt_responses" ? "responses-table" : 
                     activeChutiTab === "settlement" ? "settlements-table" : 
+                    activeChutiTab === "leave_settings" ? "leave-settings" : 
                     "leaves-table"
                   } />
                 ) : activeTab === "quotes" ? (
