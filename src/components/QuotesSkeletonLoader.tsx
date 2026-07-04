@@ -1,5 +1,7 @@
 "use client";
 
+import { DailyEntrySkeleton } from "./skeleton/DailyEntrySkeleton";
+import { MonthlyListSkeleton } from "./skeleton/MonthlyListSkeleton";
 
 interface SkeletonLoaderProps {
   type?:
@@ -37,66 +39,11 @@ export function SkeletonLoader({ type = "generic", rows = 4 }: SkeletonLoaderPro
   }
 
   if (type === "table") {
-    return (
-      <div className="space-y-4 w-full">
-        {/* Search filter skeleton */}
-        <div className="flex gap-2">
-          <div className={`h-8 flex-1 ${innerBg} animate-pulse`} />
-        </div>
-        {/* Table skeleton */}
-        <div className="bg-slate-900/20 border border-slate-850/80 rounded-2xl overflow-hidden animate-pulse">
-          {/* Header Row */}
-          <div className="grid grid-cols-5 bg-slate-900/40 p-4 border-b border-slate-850/60">
-            <div className={`h-3.5 w-20 ${innerBg}`} />
-            <div className={`h-3.5 w-16 ${innerBg}`} />
-            <div className={`h-3.5 w-24 ${innerBg}`} />
-            <div className={`h-3.5 w-16 ${innerBg}`} />
-            <div className={`h-3.5 w-16 ${innerBg}`} />
-          </div>
-          {/* Rows */}
-          {[...Array(rows)].map((_, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-5 p-4 border-b border-slate-850/40 items-center"
-            >
-              <div className={`h-3 w-28 ${innerBg}`} />
-              <div className={`h-3 w-12 ${innerBg}`} />
-              <div className={`h-3 w-32 ${innerBg}`} />
-              <div className={`h-3 w-14 ${innerBg}`} />
-              <div className="flex gap-2 justify-end">
-                <div className={`h-6 w-12 ${innerBg}`} />
-                <div className={`h-6 w-6 rounded-lg ${innerBg}`} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <MonthlyListSkeleton rows={rows} />;
   }
 
   if (type === "form") {
-    return (
-      <div className={`${cardBg} space-y-5 p-6`}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="space-y-2">
-            <div className={`h-3 w-24 ${innerBg}`} />
-            <div className={`h-10 w-full ${innerBg}`} />
-          </div>
-          <div className="space-y-2">
-            <div className={`h-3 w-24 ${innerBg}`} />
-            <div className={`h-10 w-full ${innerBg}`} />
-          </div>
-          <div className="space-y-2">
-            <div className={`h-3 w-24 ${innerBg}`} />
-            <div className={`h-10 w-full ${innerBg}`} />
-          </div>
-        </div>
-        <div className="flex justify-between items-center pt-2">
-          <div className={`h-4 w-32 ${innerBg}`} />
-          <div className={`h-10 w-32 bg-blue-600/30 rounded-xl`} />
-        </div>
-      </div>
-    );
+    return <DailyEntrySkeleton />;
   }
 
   if (type === "copy-helper") {

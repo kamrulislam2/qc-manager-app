@@ -14,6 +14,7 @@ import { Toaster } from 'react-hot-toast';
 import { useGlobalNotifications } from "@/hooks/useGlobalNotifications";
 import { UserNotificationsModal } from "@/components/modals/UserNotificationsModal";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
+import { SkeletonLoader as QuotesSkeletonLoader } from "@/components/QuotesSkeletonLoader";
 
 
 const ChutiDashboard = lazy(() => import("@/app/chuti/page"));
@@ -97,9 +98,25 @@ function getInitialState() {
 export default function AppPortal() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [sessionUser, setSessionUser] = useState<any>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [sessionUser, setSessionUser] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      return getInitialState().sessionUser;
+    }
+    return null;
+  });
+  const [profile, setProfile] = useState<Profile | null>(() => {
+    if (typeof window !== "undefined") {
+      return getInitialState().profile;
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      const state = getInitialState();
+      return !state.sessionUser || !state.profile;
+    }
+    return true;
+  });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     | "chuti"
@@ -110,7 +127,13 @@ export default function AppPortal() {
     | "audit_logs"
     | "kpi"
     | null
-  >(null);
+  >(() => {
+    if (typeof window !== "undefined") {
+      const state = getInitialState();
+      return state.initialTab as any;
+    }
+    return "chuti";
+  });
   const [logLines, setLogLines] = useState<string[]>([]);
   const fetchingRef = useRef<string | null>(null);
 
@@ -762,6 +785,28 @@ export default function AppPortal() {
     return <LoginPage />;
   }
 
+  // Session exists but Profile is loading -> Show splash screen
+  if (!profile) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-radial from-slate-900 via-slate-950 to-black text-white p-4">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-pulse delay-700" />
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <div className="relative flex items-center justify-center">
+            <div className="h-20 w-20 border-2 border-purple-500/20 rounded-full absolute" />
+            <Loader2 className="h-12 w-12 text-purple-400 animate-spin" />
+          </div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-purple-300 bg-clip-text text-transparent">
+            QC Manager
+          </h1>
+          <p className="text-sm text-slate-400 tracking-wide animate-pulse">
+            Configuring your workspaces...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   // Authenticated -> Render single layout shell wrapping active workspace component
   return (
     <div className="flex-1 min-h-screen flex flex-col bg-slate-955 relative overflow-hidden pb-12 text-white selection:bg-purple-650 selection:text-white">
@@ -919,7 +964,14 @@ export default function AppPortal() {
                     "leaves-table"
                   } />
                 ) : activeTab === "quotes" ? (
-                  <SkeletonLoader variant="table" />
+                  <QuotesSkeletonLoader type={
+                    activeQuotesTab === "entry" ? "form" : 
+                    activeQuotesTab === "monthly" ? "table" : 
+                    activeQuotesTab === "rules" ? "rules" : 
+                    activeQuotesTab === "analytics" ? "analytics" : 
+                    activeQuotesTab === "audit_logs" ? "audit-logs" : 
+                    "generic"
+                  } />
                 ) : activeTab === "user_management" ? (
                   <SkeletonLoader variant="staff-table" />
                 ) : (
