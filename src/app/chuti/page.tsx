@@ -778,7 +778,11 @@ export default function Dashboard({
   if (sessionUser && !profile) {
     return (
       <div className="w-full">
-        <SkeletonLoader variant={activeChutiTab === 'add_leave' ? 'chuti-form' : 'leaves-table'} />
+        <SkeletonLoader variant={
+          activeChutiTab === 'add_leave' ? 'chuti-form' : 
+          activeChutiTab === 'leave_history' ? 'leave-history' : 
+          'leaves-table'
+        } />
       </div>
     );
   }
@@ -798,9 +802,9 @@ export default function Dashboard({
   }
 
   if (loading && !initialFetchDone) {
-    let loaderVariant: 'chuti-form' | 'leaves-table' | 'responses-table' | 'settlements-table' = 'leaves-table';
+    let loaderVariant: 'chuti-form' | 'leaves-table' | 'responses-table' | 'settlements-table' | 'leave-history' = 'leaves-table';
     if (activeChutiTab === 'add_leave') loaderVariant = 'chuti-form';
-    else if (activeChutiTab === 'leave_history') loaderVariant = 'leaves-table';
+    else if (activeChutiTab === 'leave_history') loaderVariant = 'leave-history';
     else if (activeChutiTab === 'govt_responses') loaderVariant = 'responses-table';
     else if (activeChutiTab === 'settlement') loaderVariant = 'settlements-table';
 

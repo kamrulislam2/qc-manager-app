@@ -910,7 +910,11 @@ export default function AppPortal() {
             fallback={
               <div className="w-full">
                 {activeTab === "chuti" ? (
-                  <SkeletonLoader variant={activeChutiTab === "add_leave" ? "chuti-form" : "leaves-table"} />
+                  <SkeletonLoader variant={
+                    activeChutiTab === "add_leave" ? "chuti-form" : 
+                    activeChutiTab === "leave_history" ? "leave-history" : 
+                    "leaves-table"
+                  } />
                 ) : activeTab === "quotes" ? (
                   <SkeletonLoader variant="table" />
                 ) : activeTab === "user_management" ? (
