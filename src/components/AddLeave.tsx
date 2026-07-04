@@ -429,12 +429,37 @@ export function AddLeave({
     });
 
     try {
-      const { data, error } = await supabase
-        .from('chuti')
-        .insert(insertData)
-        .select();
+      let data: any = null;
+      const isAddingOnBehalf = profile && targetProfile && targetProfile.id !== profile.id;
+      const isPrivilegedRole = profile?.role === 'supervisor' || profile?.role === 'admin';
 
-      if (error) throw error;
+      if (isAddingOnBehalf && isPrivilegedRole) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch('/api/supervisor/add-leave', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || ''}`,
+          },
+          body: JSON.stringify({ insertData }),
+        });
+
+        if (!response.ok) {
+          const errJson = await response.json().catch(() => ({}));
+          throw new Error(errJson.error || 'Server failed to add leave');
+        }
+
+        const resJson = await response.json();
+        data = resJson.data;
+      } else {
+        const { data: directData, error: directError } = await supabase
+          .from('chuti')
+          .insert(insertData)
+          .select();
+
+        if (directError) throw directError;
+        data = directData;
+      }
 
       toast.success(allDates.length > 1 ? `Successfully added ${allDates.length} bulk leaves!` : 'Leave added successfully!');
       
