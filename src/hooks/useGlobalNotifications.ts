@@ -381,7 +381,28 @@ export function useGlobalNotifications(
 
   const handleCloseNotifications = useCallback(() => {
     setShowNotificationsModal(false);
-    // Dismiss all currently visible notifications
+  }, []);
+
+  const handleDismissNotification = useCallback((id: string) => {
+    try {
+      const stored = localStorage.getItem('dismissed_notifications');
+      const current = stored ? JSON.parse(stored) as Record<string, number> : {};
+      const now = Date.now();
+      
+      current[id] = now;
+      
+      localStorage.setItem('dismissed_notifications', JSON.stringify(current));
+      setDismissedNotificationIds(prev => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    } catch (e) {
+      console.error('Failed to dismiss notification:', e);
+    }
+  }, []);
+
+  const handleDismissAllNotifications = useCallback(() => {
     if (notificationsList.length === 0) return;
     try {
       const stored = localStorage.getItem('dismissed_notifications');
@@ -397,7 +418,7 @@ export function useGlobalNotifications(
       localStorage.setItem('dismissed_notifications', JSON.stringify(current));
       setDismissedNotificationIds(newIds);
     } catch (e) {
-      console.error('Failed to dismiss notifications:', e);
+      console.error('Failed to dismiss all notifications:', e);
     }
   }, [notificationsList, dismissedNotificationIds]);
 
@@ -439,6 +460,8 @@ export function useGlobalNotifications(
     showNotificationsModal,
     setShowNotificationsModal: setOpenModal,
     handleSaveHolidayResponse,
+    handleDismissNotification,
+    handleDismissAllNotifications,
     fetchNotificationsData
   };
 }

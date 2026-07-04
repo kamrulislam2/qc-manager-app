@@ -22,6 +22,8 @@ interface UserNotificationsModalProps {
   reviewingIds?: Set<string>;
   approvedIds?: Set<string>;
   onSwitchToAdminPanel?: () => void;
+  onDismiss: (id: string) => void;
+  onDismissAll: () => void;
 }
 
 export function UserNotificationsModal({
@@ -40,6 +42,8 @@ export function UserNotificationsModal({
   reviewingIds = new Set(),
   approvedIds = new Set(),
   onSwitchToAdminPanel,
+  onDismiss,
+  onDismissAll,
 }: UserNotificationsModalProps) {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
 
@@ -132,19 +136,28 @@ export function UserNotificationsModal({
                   </span>
                 </div>
                 
-                {n.type === 'revision' && n.record && (
+                <div className="flex items-center gap-2">
+                  {n.type === 'revision' && n.record && (
+                    <button
+                      onClick={() => {
+                        setShowUserNotificationsModal(false);
+                        if (onRevisionClick && n.record) {
+                          onRevisionClick(n.record);
+                        }
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold cursor-pointer transition-all border border-purple-700 shadow-md shrink-0 font-sans"
+                    >
+                      <Edit className="h-3.5 w-3.5" /> Modify
+                    </button>
+                  )}
                   <button
-                    onClick={() => {
-                      setShowUserNotificationsModal(false);
-                      if (onRevisionClick && n.record) {
-                        onRevisionClick(n.record);
-                      }
-                    }}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold cursor-pointer transition-all border border-purple-700 shadow-md shrink-0 font-sans"
+                    onClick={() => onDismiss(n.id)}
+                    className="p-1 hover:bg-slate-800 text-slate-500 hover:text-slate-300 rounded-lg transition-colors cursor-pointer"
+                    title="Dismiss notification"
                   >
-                    <Edit className="h-3.5 w-3.5" /> Modify
+                    <XCircle className="h-4 w-4" />
                   </button>
-                )}
+                </div>
               </div>
 
               <div className="p-3 bg-slate-900/60 border border-slate-800/80 text-slate-300 rounded-lg text-xs leading-relaxed font-sans whitespace-pre-wrap">
@@ -318,7 +331,15 @@ export function UserNotificationsModal({
         )}
       </div>
       
-      <div className="flex justify-end items-center pt-4 border-t border-slate-800/80 mt-5">
+      <div className="flex justify-between items-center pt-4 border-t border-slate-800/80 mt-5">
+        {userNotificationsList.length > 0 ? (
+          <button
+            onClick={onDismissAll}
+            className="px-4 py-2 border border-red-950 text-red-400 hover:text-red-300 hover:border-red-900 rounded-lg text-xs font-semibold bg-red-950/20 hover:bg-red-900/10 cursor-pointer transition-all font-sans"
+          >
+            Dismiss All
+          </button>
+        ) : <div />}
         <button
           onClick={() => setShowUserNotificationsModal(false)}
           className="px-4 py-2 border border-slate-800 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-350 bg-slate-955 hover:bg-slate-900 cursor-pointer transition-all"

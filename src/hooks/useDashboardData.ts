@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,7 @@ import { getGlobalSettingsFromProfile, defaultGlobalSettings, GlobalSettings, fo
 
 export const useDashboardData = () => {
   const router = useRouter();
+  const fetchingRef = useRef<boolean>(false);
   const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
@@ -76,6 +77,8 @@ export const useDashboardData = () => {
   // Fetch Chuti Records based on Role
   const fetchRecords = useCallback(async () => {
     if (!sessionUser || !profile) return;
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
 
     // Check if offline
     if (typeof window !== 'undefined' && !navigator.onLine) {
@@ -399,6 +402,7 @@ export const useDashboardData = () => {
     } catch (err) {
       console.error('Error fetching online records:', err);
     } finally {
+      fetchingRef.current = false;
       setInitialFetchDone(true);
     }
   }, [sessionUser, profile]);

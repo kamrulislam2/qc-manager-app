@@ -40,6 +40,7 @@ import { Toggle } from '@/components/Toggle';
 import { StaffSettingsForm } from '@/components/StaffSettingsForm';
 
 // Extracted Subtabs Panels
+import { CreateUserPanel } from '@/components/user-management/CreateUserPanel';
 import { UserProfileSettingsPanel } from '@/components/user-management/UserProfileSettingsPanel';
 import { UserLeaveHistoryPanel } from '@/components/user-management/UserLeaveHistoryPanel';
 import { UserQuotesHistoryPanel } from '@/components/user-management/UserQuotesHistoryPanel';
@@ -88,20 +89,6 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
 
   // Add User State
   const [isCreatingNewUser, setIsCreatingNewUser] = useState(false);
-  const [newCodename, setNewCodename] = useState('');
-  const [newFullName, setNewFullName] = useState('');
-  const [newRole, setNewRole] = useState<'admin' | 'supervisor' | 'user'>('user');
-  const [hasChutiAccess, setHasChutiAccess] = useState(true);
-  const [hasQuotesAccess, setHasQuotesAccess] = useState(false);
-  const [allowedTypes, setAllowedTypes] = useState<string[]>([]);
-  const [canManageRules, setCanManageRules] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
-  const [newNeedsApproval, setNewNeedsApproval] = useState(false);
-  const [newSupervisorIds, setNewSupervisorIds] = useState<string[]>([]);
-  const [newEligibleGovtHoliday, setNewEligibleGovtHoliday] = useState(false);
-  const [newEligibleOfficeLeave, setNewEligibleOfficeLeave] = useState(false);
-  const [newAllowOvertime, setNewAllowOvertime] = useState(false);
-  const [newAllowReserve, setNewAllowReserve] = useState(false);
 
   // Edit User State
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
@@ -519,59 +506,24 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     fetchProfiles();
   }, [fetchProfiles]);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCodename.trim() || newCodename.trim().length < 3) {
-      toast.error('Codename must be at least 3 characters long.');
-      return;
-    }
-    if (!/^[a-zA-Z0-9_-]+$/.test(newCodename.trim())) {
-      toast.error('Codename can only contain letters, numbers, - and _.');
-      return;
-    }
-    if (hasQuotesAccess && allowedTypes.length === 0) {
-      toast.error('Please select at least one permitted file type for Quotes.');
-      return;
-    }
-    if (!hasChutiAccess && !hasQuotesAccess) {
-      toast.error('Please select at least one workspace access (Leave or Quotes Tracker).');
-      return;
-    }
-
+  const handleCreateUserWrapper = async (params: any) => {
     const pw = await createUser(
-      newCodename.trim(),
-      newRole,
-      newFullName,
-      hasQuotesAccess ? allowedTypes : [],
-      canManageRules,
-      hasChutiAccess,
-      hasQuotesAccess,
-      '1234',
-      newNeedsApproval,
-      newNeedsApproval ? newSupervisorIds : [],
-      newEligibleGovtHoliday,
-      newEligibleOfficeLeave,
-      newAllowOvertime,
-      newAllowReserve
+      params.codename,
+      params.role,
+      params.fullName,
+      params.allowedTypes,
+      params.canManageRules,
+      params.hasChutiAccess,
+      params.hasQuotesAccess,
+      params.password,
+      params.needsApproval,
+      params.supervisorIds,
+      params.eligibleGovtHoliday,
+      params.eligibleOfficeLeave,
+      params.allowOvertime,
+      params.allowReserve
     );
-
-    if (pw) {
-      setNewCodename('');
-      setNewFullName('');
-      setNewRole('user');
-      setAllowedTypes([]);
-      setCanManageRules(false);
-      setHasChutiAccess(true);
-      setHasQuotesAccess(false);
-      setNewNeedsApproval(false);
-      setNewSupervisorIds([]);
-      setNewEligibleGovtHoliday(false);
-      setNewEligibleOfficeLeave(false);
-      setNewAllowOvertime(false);
-      setNewAllowReserve(false);
-      setIsCreatingNewUser(false);
-      fetchProfiles();
-    }
+    return pw;
   };
 
   const handleUpdateUser = async () => {
@@ -776,76 +728,17 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
 
           {/* Form / Tab contents */}
           {isCreatingNewUser ? (
-            <>
-              <StaffSettingsForm
-                isNewUser={true}
-                codename={newCodename}
-                setCodename={setNewCodename}
-                fullName={newFullName}
-                setFullName={setNewFullName}
-                role={newRole}
-                setRole={setNewRole}
-                hasChutiAccess={hasChutiAccess}
-                setHasChutiAccess={setHasChutiAccess}
-                needsApproval={newNeedsApproval}
-                setNeedsApproval={setNewNeedsApproval}
-                supervisors={profiles.filter(p => p.role === 'supervisor')}
-                supervisorIds={newSupervisorIds}
-                setSupervisorIds={setNewSupervisorIds}
-                eligibleOfficeLeave={newEligibleOfficeLeave}
-                setEligibleOfficeLeave={setNewEligibleOfficeLeave}
-                eligibleGovtHoliday={newEligibleGovtHoliday}
-                setEligibleGovtHoliday={setNewEligibleGovtHoliday}
-                allowOvertime={newAllowOvertime}
-                setAllowOvertime={setNewAllowOvertime}
-                allowReserve={newAllowReserve}
-                setAllowReserve={setNewAllowReserve}
-                hasQuotesAccess={hasQuotesAccess}
-                setHasQuotesAccess={setHasQuotesAccess}
-                allowedTypes={allowedTypes}
-                setAllowedTypes={setAllowedTypes}
-                canManageRules={canManageRules}
-                setCanManageRules={setCanManageRules}
-                isAdmin={isAdmin}
-              />
-              <div className="bg-slate-900/20 border border-slate-850/60 p-5 rounded-2xl flex flex-wrap justify-between items-center gap-4 mt-6">
-                <div className="flex flex-wrap gap-2.5 font-sans">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCreatingNewUser(false);
-                      setNewCodename('');
-                      setNewFullName('');
-                      setNewRole('user');
-                      setAllowedTypes([]);
-                      setCanManageRules(false);
-                      setHasChutiAccess(true);
-                      setHasQuotesAccess(false);
-                      setNewNeedsApproval(false);
-                      setNewSupervisorIds([]);
-                      setNewEligibleGovtHoliday(false);
-                      setNewEligibleOfficeLeave(false);
-                      setNewAllowOvertime(false);
-                      setNewAllowReserve(false);
-                    }}
-                    className="px-4 py-2 bg-slate-850 hover:bg-slate-750 border border-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center gap-1.5"
-                  >
-                    <X className="h-3.5 w-3.5 text-red-400" /> Cancel
-                  </button>
-                </div>
-                <div className="font-sans">
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={handleCreateUser}
-                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-lg shadow-blue-950/20 border border-blue-700/30 flex items-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
-                  >
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                    {submitting ? 'Creating...' : 'Create User'}
-                  </button>
-                </div>
-              </div>
-            </>
+            <CreateUserPanel
+              isAdmin={isAdmin}
+              profiles={profiles}
+              submitting={submitting}
+              onCancel={() => setIsCreatingNewUser(false)}
+              onCreateUser={handleCreateUserWrapper}
+              onSuccess={() => {
+                setIsCreatingNewUser(false);
+                fetchProfiles();
+              }}
+            />
           ) : (
             <>
               {activeSubTab === 'profile' && viewingStaff && (
@@ -984,20 +877,6 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
               {isAdmin && (
                 <button
                   onClick={() => {
-                    setNewCodename('');
-                    setNewFullName('');
-                    setNewRole('user');
-                    setHasChutiAccess(true);
-                    setHasQuotesAccess(false);
-                    setAllowedTypes([]);
-                    setCanManageRules(false);
-                    setGeneratedPassword(null);
-                    setNewNeedsApproval(false);
-                    setNewSupervisorIds([]);
-                    setNewEligibleGovtHoliday(false);
-                    setNewEligibleOfficeLeave(false);
-                    setNewAllowOvertime(false);
-                    setNewAllowReserve(false);
                     setIsCreatingNewUser(true);
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-950/20 active:scale-95 transition-all cursor-pointer"

@@ -360,6 +360,8 @@ export default function AppPortal() {
     showNotificationsModal,
     setShowNotificationsModal,
     handleSaveHolidayResponse,
+    handleDismissNotification,
+    handleDismissAllNotifications,
   } = useGlobalNotifications(sessionUser, profile, profilesList);
 
   const [chutiNotificationsList, setChutiNotificationsList] = useState<any[] | null>(null);
@@ -929,6 +931,8 @@ export default function AppPortal() {
           userNotificationsList={globalNotificationsList}
           profile={profile}
           onSaveHolidayResponse={handleSaveHolidayResponse}
+          onDismiss={handleDismissNotification}
+          onDismissAll={handleDismissAllNotifications}
           onRevisionClick={(record) => {
             window.dispatchEvent(new CustomEvent('open-revision-modal', { detail: record }));
           }}
