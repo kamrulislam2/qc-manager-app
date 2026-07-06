@@ -122,9 +122,9 @@ pub fn run() {
                 window.show().unwrap();
                 let _ = window.set_focus();
                 
-                // Update menu text to "Close Chuti"
+                // Update menu text to "Close QC App"
                 let state: State<TrayMenuState> = _app_handle.state();
-                let _ = state.open_item.set_text("Close Chuti");
+                let _ = state.open_item.set_text("Close QC App");
             }
         }
         _ => {}
