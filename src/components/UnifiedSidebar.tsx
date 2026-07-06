@@ -29,8 +29,8 @@ interface UnifiedSidebarProps {
   profile: Profile | null;
   activeQuotesTab?: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules' | 'ip_checker' | 'login_codes';
   onQuotesTabChange?: (tab: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules' | 'ip_checker' | 'login_codes') => void;
-  activeChutiTab?: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings';
-  onChutiTabChange?: (tab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings') => void;
+  activeChutiTab?: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings' | 'team_leaves';
+  onChutiTabChange?: (tab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings' | 'team_leaves') => void;
   isSidebarCollapsed: boolean;
   onSidebarToggle: () => void;
 }
@@ -206,6 +206,24 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                   <History className="h-4 w-4 shrink-0" />
                   {!isSidebarCollapsed && <span className="whitespace-nowrap">Leave History</span>}
                 </button>
+
+                {/* Team Leave Records (Admin and Supervisor Only) */}
+                {(profile?.role === 'admin' || profile?.role === 'supervisor') && (
+                  <button
+                    onClick={() => onChutiTabChange('team_leaves')}
+                    title={isSidebarCollapsed ? 'Team Leave Records' : undefined}
+                    className={`w-full flex items-center rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                      isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start px-3 py-2 gap-2.5'
+                    } ${
+                      activeChutiTab === 'team_leaves'
+                        ? 'bg-blue-500/10 text-blue-400'
+                        : 'text-slate-400 hover:bg-slate-850/60 hover:text-white'
+                    }`}
+                  >
+                    <Users className="h-4 w-4 shrink-0" />
+                    {!isSidebarCollapsed && <span className="whitespace-nowrap">Team Leave Records</span>}
+                  </button>
+                )}
 
                 {/* 3. Govt Holiday Response (Admin Only) */}
                 {profile?.role === 'admin' && (

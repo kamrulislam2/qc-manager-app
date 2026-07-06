@@ -40,6 +40,9 @@ interface LeavesRecordsTableProps {
   hideDelete?: boolean;
   /** When false, hides Add Leave button (normal user view) */
   showAddLeave?: boolean;
+  showNameColumn?: boolean;
+  hideAdjustmentAndOvertime?: boolean;
+  hideYearSelect?: boolean;
 }
 
 export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
@@ -70,6 +73,9 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
   initialFetchDone = true,
   hideDelete = false,
   showAddLeave = true,
+  showNameColumn = false,
+  hideAdjustmentAndOvertime = false,
+  hideYearSelect = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isMounted, setIsMounted] = useState(false);
@@ -314,12 +320,14 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
                 <Plus className="h-3.5 w-3.5" /> Add Leave
               </button>
             )}
-            <CustomSelect
-              value={selectedYear}
-              onChange={setSelectedYear}
-              options={yearOptions}
-              className="min-w-[80px]"
-            />
+            {!hideYearSelect && (
+              <CustomSelect
+                value={selectedYear}
+                onChange={setSelectedYear}
+                options={yearOptions}
+                className="min-w-[80px]"
+              />
+            )}
           </div>
         </div>
 
@@ -336,12 +344,18 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
             <table className="min-w-full divide-y divide-slate-800 text-left text-sm">
               <thead className="bg-slate-955/60">
                 <tr>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</th>
+                  <th className={`px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider ${showNameColumn ? 'text-left' : 'text-center'}`}>
+                    {showNameColumn ? "Name" : "Date"}
+                  </th>
                   <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Adjustment</th>
+                  {!hideAdjustmentAndOvertime && (
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Adjustment</th>
+                  )}
                   <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Sign In/Out</th>
                   <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Leave Hours</th>
-                  {allowOvertime && <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Overtime</th>}
+                  {allowOvertime && !hideAdjustmentAndOvertime && (
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Overtime</th>
+                  )}
                   <th className="px-6 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Comment</th>
                   <th
                     className="p-0 text-center overflow-hidden border-0"
@@ -393,14 +407,31 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
                   return (
                     <tr
                       key={r.id}
-                      onContextMenu={(e) => handleRowContextMenu(e, r)}
-                      onClick={() => handleRowClick(r)}
+                      onContextMenu={(e) => {
+                        if (showNameColumn) return;
+                        handleRowContextMenu(e, r);
+                      }}
+                      onClick={() => {
+                        if (showNameColumn) return;
+                        handleRowClick(r);
+                      }}
                       className={`hover:bg-slate-900/30 transition-all ${
-                        isSelectionMode ? "cursor-pointer select-none" : ""
+                        isSelectionMode && !showNameColumn ? "cursor-pointer select-none" : ""
                       }`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white flex items-center justify-center gap-2">
-                        {formatDate(r.date)}
+                        {showNameColumn ? (
+                          (() => {
+                            const rp = r as any;
+                            if (rp.profiles) {
+                              const namePart = rp.profiles.full_name || rp.profiles.username;
+                              return `${namePart} (${rp.profiles.username})`;
+                            }
+                            return r.username || r.user_id;
+                          })()
+                        ) : (
+                          formatDate(r.date)
+                        )}
                         {showPendingBadge && isTemp && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-955/80 border border-purple-800 text-purple-400 animate-pulse">
                             Pending
@@ -418,47 +449,49 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
                           {r.leave_type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-355 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              if (isSelectionMode) return;
-                              e.stopPropagation();
-                              onToggleAdjustment(r);
-                            }}
-                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                              (r.adjustment || r.adjusted_hour || r.reserve_adjustment_status === 'pending') ? 'bg-blue-600' : 'bg-slate-800'
-                            }`}
-                          >
-                            <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                (r.adjustment || r.adjusted_hour || r.reserve_adjustment_status === 'pending') ? 'translate-x-4' : 'translate-x-0'
+                      {!hideAdjustmentAndOvertime && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-355 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                if (isSelectionMode) return;
+                                e.stopPropagation();
+                                onToggleAdjustment(r);
+                              }}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                (r.adjustment || r.adjusted_hour || r.reserve_adjustment_status === 'pending') ? 'bg-blue-600' : 'bg-slate-800'
                               }`}
-                            />
-                          </button>
-                          <span className="text-xs font-semibold">
-                            {r.reserve_adjustment_status === 'pending' ? (
-                              <span className="text-purple-400 animate-pulse font-semibold">Pending</span>
-                            ) : r.adjustment ? (
-                              <span className="text-blue-400">Yes</span>
-                            ) : r.adjusted_hour ? (
-                              <span className="text-cyan-400 font-mono">Partial ({r.adjusted_hour.toString().split('.')[0].substring(0, 5)})</span>
-                            ) : r.reserve_adjustment_status === 'rejected' ? (
-                              <span className="text-slate-500">No (Rejected)</span>
-                            ) : (
-                              <span className="text-slate-500">No</span>
-                            )}
-                          </span>
-                        </div>
-                      </td>
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  (r.adjustment || r.adjusted_hour || r.reserve_adjustment_status === 'pending') ? 'translate-x-4' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                            <span className="text-xs font-semibold">
+                              {r.reserve_adjustment_status === 'pending' ? (
+                                <span className="text-purple-400 animate-pulse font-semibold">Pending</span>
+                              ) : r.adjustment ? (
+                                <span className="text-blue-400">Yes</span>
+                              ) : r.adjusted_hour ? (
+                                <span className="text-cyan-400 font-mono">Partial ({r.adjusted_hour.toString().split('.')[0].substring(0, 5)})</span>
+                              ) : r.reserve_adjustment_status === 'rejected' ? (
+                                <span className="text-slate-500">No (Rejected)</span>
+                              ) : (
+                                <span className="text-slate-500">No</span>
+                              )}
+                            </span>
+                          </div>
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-355 font-mono text-center">
                         {r.leave_type === 'Full Leave' ? '-' : `${formatTimeToAMPM(r.sign_in_time)} / ${formatTimeToAMPM(r.sign_out_time)}`}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300 font-mono font-bold text-center">
                         {r.leave_type === 'Full Leave' || r.leave_type === 'Overtime' ? '-' : (r.leave_hour ? r.leave_hour.toString().split('.')[0].substring(0, 5) : '-')}
                       </td>
-                      {allowOvertime && (
+                      {allowOvertime && !hideAdjustmentAndOvertime && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300 font-mono font-bold text-center">
                           {r.leave_type === 'Overtime' ? (r.leave_hour ? r.leave_hour.toString().split('.')[0].substring(0, 5) : '-') : '-'}
                         </td>

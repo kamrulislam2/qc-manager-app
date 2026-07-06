@@ -181,7 +181,7 @@ export const useDashboardData = () => {
             .from('chuti')
             .select(`
               *,
-              profiles (username)
+              profiles (username, full_name, role, supervisor_ids)
             `)
             .gte('updated_at', lastChutiSync)
             .order('date', { ascending: false });
@@ -206,7 +206,7 @@ export const useDashboardData = () => {
             console.error('Delta fetch failed, falling back to full fetch:', error);
             const { data: records, error: fullErr } = await supabase
               .from('chuti')
-              .select(`*, profiles (username)`)
+              .select(`*, profiles (username, full_name, role, supervisor_ids)`)
               .is('deleted_at', null)
               .order('date', { ascending: false });
             if (!fullErr && records) {
@@ -219,7 +219,7 @@ export const useDashboardData = () => {
             .from('chuti')
             .select(`
               *,
-              profiles (username)
+              profiles (username, full_name, role, supervisor_ids)
             `)
             .is('deleted_at', null)
             .order('date', { ascending: false });

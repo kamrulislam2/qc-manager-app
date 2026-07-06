@@ -138,7 +138,7 @@ export default function AppPortal() {
   });
 
   const [activeChutiTab, setActiveChutiTab] = useState<
-    "add_leave" | "leave_history" | "govt_responses" | "settlement" | "leave_settings"
+    "add_leave" | "leave_history" | "govt_responses" | "settlement" | "leave_settings" | "team_leaves"
   >(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem("adminActiveTab");
@@ -147,9 +147,10 @@ export default function AppPortal() {
         saved === "leave_history" ||
         saved === "govt_responses" ||
         saved === "settlement" ||
-        saved === "leave_settings"
+        saved === "leave_settings" ||
+        saved === "team_leaves"
       ) {
-        return saved as "add_leave" | "leave_history" | "govt_responses" | "settlement" | "leave_settings";
+        return saved as "add_leave" | "leave_history" | "govt_responses" | "settlement" | "leave_settings" | "team_leaves";
       }
     }
     return "add_leave";
@@ -170,7 +171,7 @@ export default function AppPortal() {
   };
 
   const handleChutiTabChange = (
-    tab: "add_leave" | "leave_history" | "govt_responses" | "settlement" | "leave_settings",
+    tab: "add_leave" | "leave_history" | "govt_responses" | "settlement" | "leave_settings" | "team_leaves",
   ) => {
     setActiveChutiTab(tab);
     sessionStorage.setItem("adminActiveTab", tab);
@@ -430,7 +431,7 @@ export default function AppPortal() {
   }, [setShowNotificationsModal]);
 
   useEffect(() => {
-    if (activeTab !== "chuti" || (activeChutiTab !== "leave_history" && activeChutiTab !== "govt_responses" && activeChutiTab !== "settlement")) return;
+    if (activeTab !== "chuti" || (activeChutiTab !== "leave_history" && activeChutiTab !== "govt_responses" && activeChutiTab !== "settlement" && activeChutiTab !== "team_leaves")) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
@@ -1023,7 +1024,7 @@ export default function AppPortal() {
         <div
           className={`shrink-0 ${
             (activeTab === "user_management" && isUserManagementFullView) || 
-            (activeTab === "chuti" && (activeChutiTab === "leave_history" || activeChutiTab === "govt_responses" || activeChutiTab === "settlement"))
+            (activeTab === "chuti" && (activeChutiTab === "leave_history" || activeChutiTab === "govt_responses" || activeChutiTab === "settlement" || activeChutiTab === "team_leaves"))
               ? "w-0 h-0 opacity-0 pointer-events-none overflow-hidden mb-0 md:mb-0 md:mr-0"
               : "w-full md:w-auto opacity-100 mb-6 md:mb-0 md:mr-6"
           }`}
@@ -1068,6 +1069,7 @@ export default function AppPortal() {
                     activeChutiTab === "govt_responses" ? "responses-table" : 
                     activeChutiTab === "settlement" ? "settlements-table" : 
                     activeChutiTab === "leave_settings" ? "leave-settings" : 
+                    activeChutiTab === "team_leaves" ? "leaves-table" :
                     "leaves-table"
                   } />
                 ) : activeTab === "quotes" ? (

@@ -48,6 +48,9 @@ export interface ChutiRecordWithProfile extends ChutiRecord {
   id: string;
   profiles?: {
     username: string;
+    full_name?: string | null;
+    role?: string | null;
+    supervisor_ids?: string[] | null;
   } | null;
 }
 

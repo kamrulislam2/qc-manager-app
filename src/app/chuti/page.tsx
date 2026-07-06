@@ -10,6 +10,7 @@ import { AdminLeaveSettings } from '@/components/AdminLeaveSettings';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import { DashboardProvider } from '@/contexts/DashboardContext';
 import { DashboardModals } from '@/components/DashboardModals';
+import { TeamLeaveRecords } from '@/components/TeamLeaveRecords';
 
 
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -22,8 +23,8 @@ import { useModalHandlers } from '@/hooks/useModalHandlers';
 
 
 interface DashboardProps {
-  activeChutiTab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings';
-  onChutiTabChange: (tab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings') => void;
+  activeChutiTab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings' | 'team_leaves';
+  onChutiTabChange: (tab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings' | 'team_leaves') => void;
 }
 
 export default function Dashboard({
@@ -757,6 +758,16 @@ export default function Dashboard({
             onDeleteSettlement={handleDeleteLeaveSettlement}
             adminRecords={adminRecords}
             currentUserProfile={profile}
+            initialFetchDone={initialFetchDone}
+          />
+        )}
+
+        {/* ================= TEAM LEAVE RECORDS ================= */}
+        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && activeChutiTab === 'team_leaves' && profile && (
+          <TeamLeaveRecords
+            profile={profile}
+            profilesList={profilesList}
+            adminRecords={adminRecords}
             initialFetchDone={initialFetchDone}
           />
         )}
