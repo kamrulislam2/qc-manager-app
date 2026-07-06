@@ -42,7 +42,14 @@ export default function AppUpdater() {
  
       try {
         const { check } = await import('@tauri-apps/plugin-updater');
-        const update = await check();
+        // Bypass GitHub CDN caching by sending cache-control headers
+        const update = await check({
+          headers: {
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'expires': '0'
+          }
+        });
  
         if (update) {
           setUpdateRef(update);
@@ -94,7 +101,7 @@ export default function AppUpdater() {
       }
     };
  
-    const startupTimer = setTimeout(() => checkUpdates(true), 5000);
+    const startupTimer = setTimeout(() => checkUpdates(true), 1500);
     const interval = setInterval(() => checkUpdates(false), 30 * 60 * 1000);
  
     return () => {
