@@ -43,6 +43,7 @@ next-env.d.ts
 
 # tauri keys
 tauri-private.*
+test.txt.sig
 
 # scratch files
 /scratch

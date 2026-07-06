@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
-import { Navbar } from '@/components/Navbar';
-import { UnifiedSidebar } from '@/components/UnifiedSidebar';
 import { UserDashboardView } from '@/components/UserDashboardView';
 import { AdminDashboardView } from '@/components/AdminDashboardView';
 import { AddLeave } from '@/components/AddLeave';
@@ -13,7 +10,6 @@ import { AdminLeaveSettings } from '@/components/AdminLeaveSettings';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import { DashboardProvider } from '@/contexts/DashboardContext';
 import { DashboardModals } from '@/components/DashboardModals';
-import LoginPage from '@/app/login/page';
 
 
 import { useDashboardData } from '@/hooks/useDashboardData';

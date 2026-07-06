@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from "react";
 import { supabase } from "@/utils/supabase";
 import { Profile } from "@/types";
 import { Loader2 } from "lucide-react";
 import LoginPage from "@/app/login/page";
-import { lazy, Suspense, useMemo } from "react";
 import { UnifiedSidebar } from "@/components/UnifiedSidebar";
 import { Navbar } from "@/components/Navbar";
 import { calculateTopPerformerBadges } from "@/utils/leaderboardHelper";
@@ -29,16 +27,7 @@ const UserManagementDashboard = lazy(() =>
 const TodoPanel = lazy(() =>
   import("@/components/TodoPanel").then((m) => ({ default: m.TodoPanel })),
 );
-const AnalyticsPanel = lazy(() =>
-  import("@/components/AnalyticsPanel").then((m) => ({
-    default: m.AnalyticsPanel,
-  })),
-);
-const AuditLogsPanel = lazy(() =>
-  import("@/components/AuditLogsPanel").then((m) => ({
-    default: m.AuditLogsPanel,
-  })),
-);
+
 const UserKpiPerformancePanel = lazy(() =>
   import("@/components/user-management/UserKpiPerformancePanel").then((m) => ({
     default: m.UserKpiPerformancePanel,
@@ -97,28 +86,14 @@ function getInitialState() {
   }
 }
 
+// Cache the initial state so we don't parse localStorage JSON 5 times during mount
+const _cachedInitialState = typeof window !== "undefined" ? getInitialState() : null;
+
 export default function AppPortal() {
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [sessionUser, setSessionUser] = useState<any>(() => {
-    if (typeof window !== "undefined") {
-      return getInitialState().sessionUser;
-    }
-    return null;
-  });
-  const [profile, setProfile] = useState<Profile | null>(() => {
-    if (typeof window !== "undefined") {
-      return getInitialState().profile;
-    }
-    return null;
-  });
-  const [loading, setLoading] = useState(() => {
-    if (typeof window !== "undefined") {
-      const state = getInitialState();
-      return !state.sessionUser || !state.profile;
-    }
-    return true;
-  });
+  const [sessionUser, setSessionUser] = useState<any>(() => _cachedInitialState?.sessionUser ?? null);
+  const [profile, setProfile] = useState<Profile | null>(() => _cachedInitialState?.profile ?? null);
+  const [loading, setLoading] = useState(() => !_cachedInitialState?.sessionUser || !_cachedInitialState?.profile);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     | "chuti"
@@ -129,32 +104,13 @@ export default function AppPortal() {
     | "audit_logs"
     | "kpi"
     | null
-  >(() => {
-    if (typeof window !== "undefined") {
-      const state = getInitialState();
-      return state.initialTab as any;
-    }
-    return "chuti";
-  });
-  const [logLines, setLogLines] = useState<string[]>([]);
+  >(() => (_cachedInitialState?.initialTab as any) ?? "chuti");
   const fetchingRef = useRef<string | null>(null);
   // Always-current ref for activeTab — used inside async callbacks to avoid stale closures
   const activeTabRef = useRef<string>(activeTab);
 
   useEffect(() => {
     setMounted(true);
-    const state = getInitialState();
-    if (state.sessionUser) {
-      setSessionUser(state.sessionUser);
-    }
-    if (state.profile) {
-      setProfile(state.profile);
-      setLoading(false);
-    }
-    if (state.initialTab) {
-      setActiveTab(state.initialTab);
-      activeTabRef.current = state.initialTab;
-    }
   }, []);
 
   const [activeQuotesTab, setActiveQuotesTab] = useState<
@@ -257,6 +213,7 @@ export default function AppPortal() {
       let allRecords: any[] = [];
       let page = 0;
       const pageSize = 1000;
+      const maxPages = 5; // Safety limit: max 5000 records for badge calculation
       let hasMore = true;
 
       // Filter to fetch records only from January 1st of the previous year to optimize performance
@@ -265,7 +222,7 @@ export default function AppPortal() {
       const filterDateStr = `${prevYear}-01-01T00:00:00Z`;
 
       try {
-        while (hasMore) {
+        while (hasMore && page < maxPages) {
           const from = page * pageSize;
           const to = from + pageSize - 1;
           const { data, error } = await supabase
@@ -276,7 +233,7 @@ export default function AppPortal() {
 
           if (error) throw error;
           if (data && data.length > 0) {
-            allRecords = [...allRecords, ...data];
+            allRecords.push(...data);
             if (data.length < pageSize) {
               hasMore = false;
             } else {
@@ -400,7 +357,6 @@ export default function AppPortal() {
     }
   }, [quotesRecords, profilesList, profile]);
 
-  const [chutiNotificationCount, setChutiNotificationCount] = useState(0);
   const [chutiOfflineCount, setChutiOfflineCount] = useState(0);
 
   const {
@@ -412,8 +368,6 @@ export default function AppPortal() {
     handleDismissNotification,
     handleDismissAllNotifications,
   } = useGlobalNotifications(sessionUser, profile, profilesList);
-
-  const [chutiNotificationsList, setChutiNotificationsList] = useState<any[] | null>(null);
 
   // Global Tauri Desktop Notification Listener (active on all tabs)
   useDesktopNotifications(profile?.id);
@@ -444,29 +398,15 @@ export default function AppPortal() {
   }, [sessionUser, profile]);
 
   useEffect(() => {
-    const handleCountChange = (e: Event) => {
-      setChutiNotificationCount((e as CustomEvent).detail || 0);
-    };
     const handleOfflineCountChange = (e: Event) => {
       setChutiOfflineCount((e as CustomEvent).detail || 0);
-    };
-    const handleListSync = (e: Event) => {
-      setChutiNotificationsList((e as CustomEvent).detail || []);
     };
     const handleOpenUserNotif = () => {
       setShowNotificationsModal(true);
     };
     window.addEventListener(
-      "chuti-notification-count-change",
-      handleCountChange,
-    );
-    window.addEventListener(
       "chuti-offline-count-change",
       handleOfflineCountChange,
-    );
-    window.addEventListener(
-      "chuti-notification-list-sync",
-      handleListSync,
     );
     window.addEventListener(
       "open-user-notifications-modal",
@@ -474,16 +414,8 @@ export default function AppPortal() {
     );
     return () => {
       window.removeEventListener(
-        "chuti-notification-count-change",
-        handleCountChange,
-      );
-      window.removeEventListener(
         "chuti-offline-count-change",
         handleOfflineCountChange,
-      );
-      window.removeEventListener(
-        "chuti-notification-list-sync",
-        handleListSync,
       );
       window.removeEventListener(
         "open-user-notifications-modal",
@@ -563,7 +495,6 @@ export default function AppPortal() {
 
   const addLog = (msg: string) => {
     console.log(`[AppPortal] ${msg}`);
-    setLogLines((prev) => [...prev, msg]);
   };
 
   const loadUserProfile = useCallback(async (userId: string) => {

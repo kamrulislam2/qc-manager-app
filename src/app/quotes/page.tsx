@@ -6,16 +6,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { useQuotesDashboardData } from "@/hooks/useQuotesDashboardData";
 import { useSaveFileHelper } from "@/hooks/useSaveFileHelper";
 import { useCopyHelper } from "@/hooks/useCopyHelper";
-import { Navbar } from "@/components/Navbar";
-import { UnifiedSidebar } from "@/components/UnifiedSidebar";
 import { getCacheData } from "@/utils/quotesOfflineSync";
 import { calculateTopPerformerBadges } from "@/utils/leaderboardHelper";
 const StatsGrid = lazy(() => import("@/components/StatsGrid").then(m => ({ default: m.StatsGrid })));
 const RecordsTable = lazy(() => import("@/components/RecordsTable").then(m => ({ default: m.RecordsTable })));
 const DailyEntryForm = lazy(() => import("@/components/DailyEntryForm").then(m => ({ default: m.DailyEntryForm })));
 import { EditRecordModal } from "@/components/modals/EditRecordModal";
-import { EditProfileModal } from "@/components/modals/EditProfileModal";
-import { AddUserModal } from "@/components/modals/AddUserModal";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
 import { SaleStatusModal } from "@/components/modals/SaleStatusModal";
@@ -34,23 +30,17 @@ import {
 } from "@/utils/quotesDashboardHelpers";
 import { FileType, RecordItem, Profile } from "@/types";
 import {
-  FileText,
   Loader2,
   Calendar,
-  Users,
   Clock,
   Eye,
   EyeOff,
   Info,
   UserCheck,
   X,
-  XCircle,
-  CheckCircle,
   Plus,
   RefreshCw,
   Search,
-  PanelLeftClose,
-  PanelLeftOpen,
   FileSpreadsheet,
   TrendingUp,
   ScrollText,
