@@ -1,6 +1,6 @@
 # 🌟 QC App — Unified Office Leave Tracker & Quotes Manager
 
-**Version 3.0.2** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 3.0.3** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -116,7 +116,11 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v3.0.2 — Patch Release (Current)
+### 🚀 v3.0.3 — Patch Release (Current)
+*   **Vercel Analytics Integration**: Switched `@vercel/analytics/react` to `@vercel/analytics/next` in the App Router root layout to utilize Next.js-specific optimizations.
+*   **Permanent Spellcheck Fix**: Configured workspace settings to disable VS Code CSpell alerts, resolving formatting underline warnings globally.
+
+### 🚀 v3.0.2 — Patch Release
 *   **Project-wide Codebase Review & Cleanup**: Cleaned up over 260 compiler and linting warnings. Removed unused states, imports, and variables across `chuti/page.tsx`, `quotes/page.tsx`, and `DashboardModals.tsx`.
 *   **Strongly Typed IP Checker**: Defined safe, typed interfaces for 6 external geolocation databases in `IPCheckerModal.tsx`, eliminating all explicit `any` types and improving code robustness.
 *   **Production Build Optimization**: Confirmed TypeScript compilation matches 0 error status and compiles without warnings.

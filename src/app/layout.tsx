@@ -3,7 +3,7 @@ import "./globals.css";
 import PWARegister from "./pwa-register";
 import AppUpdater from "@/components/AppUpdater";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/react";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "QC App",

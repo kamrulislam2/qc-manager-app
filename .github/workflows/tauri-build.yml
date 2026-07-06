@@ -111,13 +111,12 @@ jobs:
           releaseBody: |
             ### QC App v__VERSION__ 🚀
 
-            **v3.0.2** provides a major codebase review, resolving compiler/lint warnings, unused variables, and improving type-safety.
+            **v3.0.3** completes Vercel Analytics integration and resolves spelling warnings.
 
-            #### 🛠 What's Fixed in v3.0.2:
+            #### 🛠 What's Fixed in v3.0.3:
 
-            - **TypeScript Warning Resolution** — Cleaned up over 260 compiler and linting warnings across `chuti/page.tsx`, `quotes/page.tsx`, and `DashboardModals.tsx` by removing unused states, imports, and hooks.
-            - **Strict API Types in IP Checker** — Strongly typed all 6 third-party geolocation databases (IPLocation, IPWhoIs, IP-API, IP2Location, CriminalIP, IPInfo) in `IPCheckerModal.tsx`, completely removing unsafe `any` types.
-            - **Clean Build Compilation** — Run typechecks and production builds successfully with 0 warnings or errors.
+            - **Vercel Analytics Next.js Update** — Configured Vercel Analytics to use the official Next.js-specific entry point (`@vercel/analytics/next`) in the root layout.
+            - **Disabled Spellcheck Warnings** — Added custom configuration to `.vscode/settings.json` to disable Code Spell Checker warnings for the workspace.
 
             #### 📦 Installation Instructions:
             - **Windows (64-bit)**: Download the `x86_64` `.exe` or `.msi` installer.
