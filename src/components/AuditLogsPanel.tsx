@@ -47,7 +47,7 @@ export const AuditLogsPanel: React.FC<AuditLogsPanelProps> = ({
           return type === 'CREATE_RECORD' || type === 'UPDATE_RECORD' || type === 'DELETE_RECORD';
         }
         if (selectedActionGroup === 'users') {
-          return type === 'CREATE_USER' || type === 'UPDATE_USER' || type === 'DELETE_USER';
+          return type === 'CREATE_USER' || type === 'UPDATE_USER' || type === 'DELETE_USER' || type === 'UPDATE_PROFILE' || type === 'SUBMIT_PROFILE_REQUEST' || type === 'APPROVE_PROFILE_REQUEST' || type === 'REJECT_PROFILE_REQUEST';
         }
         if (selectedActionGroup === 'security') {
           return type === 'RESET_PASSWORD' || type === 'ONBOARD_USER';

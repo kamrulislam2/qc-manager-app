@@ -411,12 +411,20 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const logActivity = async (actionType: string, targetId: string | null, details: string) => {
     try {
       await supabase.from('audit_logs').insert({
-        user_id: sessionUser?.id,
+        actor_id: sessionUser?.id,
+        actor_codename: profile?.username || 'SYSTEM',
         action_type: actionType,
         target_id: targetId,
         details,
-        ip_address: 'System',
       });
+
+      // Auto cleanup logs older than 90 days
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      await supabase
+        .from('audit_logs')
+        .delete()
+        .lt('created_at', ninetyDaysAgo.toISOString());
     } catch (e) {
       console.error('Audit logging failed:', e);
     }
