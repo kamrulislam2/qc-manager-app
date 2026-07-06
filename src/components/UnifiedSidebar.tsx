@@ -20,14 +20,15 @@ import {
   Settings,
   History,
   BarChart2,
-  Globe
+  Globe,
+  Key
 } from 'lucide-react';
 
 interface UnifiedSidebarProps {
   activeSection: 'chuti' | 'quotes' | 'user_management' | 'todo' | 'analytics' | 'audit_logs' | 'kpi';
   profile: Profile | null;
-  activeQuotesTab?: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules' | 'ip_checker';
-  onQuotesTabChange?: (tab: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules' | 'ip_checker') => void;
+  activeQuotesTab?: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules' | 'ip_checker' | 'login_codes';
+  onQuotesTabChange?: (tab: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules' | 'ip_checker' | 'login_codes') => void;
   activeChutiTab?: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings';
   onChutiTabChange?: (tab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings') => void;
   isSidebarCollapsed: boolean;
@@ -322,6 +323,21 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                   {!isSidebarCollapsed && <span className="whitespace-nowrap">IP Checker</span>}
                 </button>
 
+                {/* 6. Login Codes */}
+                <button
+                  onClick={() => onQuotesTabChange('login_codes')}
+                  title={isSidebarCollapsed ? 'Login Codes' : undefined}
+                  className={`w-full flex items-center rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                    isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start px-3 py-2 gap-2.5'
+                  } ${
+                    activeQuotesTab === 'login_codes'
+                      ? 'bg-blue-500/10 text-blue-400'
+                      : 'text-slate-400 hover:bg-slate-850/60 hover:text-white'
+                  }`}
+                >
+                  <Key className="h-4 w-4 shrink-0" />
+                  {!isSidebarCollapsed && <span className="whitespace-nowrap">Login Codes</span>}
+                </button>
               </div>
             )}
           </div>

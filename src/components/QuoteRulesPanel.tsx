@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import { supabase } from '@/utils/supabase';
 import { Profile, ComplianceRule, RuleHistory } from '@/types';
 import { sendPushNotification } from '@/utils/webPushHelper';
-import { LoginCodesModal } from './LoginCodesModal';
 import { INSURANCE_DATABASE } from '@/utils/initialRulesData';
 import { 
   Search, 
@@ -165,9 +164,6 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Login Code State
-  const [isLoginCodesModalOpen, setIsLoginCodesModalOpen] = useState(false);
-
   // Close all open modals on Escape key press
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -176,13 +172,12 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
         if (isEditModalOpen) setIsEditModalOpen(false);
         if (ruleToDelete) setRuleToDelete(null);
         if (isHistoryModalOpen) setIsHistoryModalOpen(false);
-        if (isLoginCodesModalOpen) setIsLoginCodesModalOpen(false);
       }
     };
     
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isAddModalOpen, isEditModalOpen, ruleToDelete, isHistoryModalOpen, isLoginCodesModalOpen]);
+  }, [isAddModalOpen, isEditModalOpen, ruleToDelete, isHistoryModalOpen]);
 
   // Form States for Add/Edit
   const [formCategory, setFormCategory] = useState<'announcement' | 'fine' | 'universal' | 'company'>('company');
@@ -819,14 +814,6 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
             </button>
           )}
 
-          <button
-            onClick={() => setIsLoginCodesModalOpen(true)}
-            className="flex items-center gap-1.5 py-2 px-3.5 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200"
-            title="View User Login Codes"
-          >
-            <Key className="h-3.5 w-3.5 text-blue-500" />
-            Login Code
-          </button>
 
 
           {canEdit && (
@@ -1687,15 +1674,6 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
         document.body
       )}
 
-      {mounted && (
-        <LoginCodesModal 
-          isOpen={isLoginCodesModalOpen} 
-          onClose={() => setIsLoginCodesModalOpen(false)} 
-          canEdit={canEdit} 
-          isOnline={isOnline} 
-          showToast={showToast} 
-        />
-      )}
 
 
       {/* ─── CLEAR HISTORY CONFIRM MODAL ─── */}

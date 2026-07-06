@@ -22,6 +22,7 @@ const QuoteRulesPanel = lazy(() => import("@/components/QuoteRulesPanel").then(m
 const CopyHelperPanel = lazy(() => import("@/components/CopyHelperPanel").then(m => ({ default: m.CopyHelperPanel })));
 const SaveFileHelperPanel = lazy(() => import("@/components/SaveFileHelperPanel").then(m => ({ default: m.SaveFileHelperPanel })));
 import { IPChecker } from "@/components/IPChecker";
+import { LoginCodesPanel } from "@/components/LoginCodesPanel";
 import { validator } from "@/utils/quotesValidator";
 import {
   calculateSummaryStats,
@@ -60,8 +61,8 @@ const ALL_10_FILE_TYPES = [
 ];
 
 interface DashboardProps {
-  activeTab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker";
-  onTabChange: (tab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker") => void;
+  activeTab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes";
+  onTabChange: (tab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes") => void;
 }
 
 export default function Dashboard({
@@ -91,7 +92,8 @@ export default function Dashboard({
         targetTab === "analytics" ||
         targetTab === "audit_logs" ||
         targetTab === "rules" ||
-        targetTab === "ip_checker"
+        targetTab === "ip_checker" ||
+        targetTab === "login_codes"
       ) {
         onTabChange(targetTab);
       }
@@ -1623,6 +1625,15 @@ export default function Dashboard({
           {/* TAB 7: IP CHECKER */}
           {activeTab === "ip_checker" && (
             <IPChecker showToast={showToast} />
+          )}
+
+          {/* TAB 8: LOGIN CODES */}
+          {activeTab === "login_codes" && (
+            <LoginCodesPanel
+              canEdit={profile?.role === 'admin' || profile?.role === 'supervisor'}
+              isOnline={isOnline}
+              showToast={showToast}
+            />
           )}
 
 
