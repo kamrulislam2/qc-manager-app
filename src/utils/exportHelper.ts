@@ -137,6 +137,112 @@ const escapeHtml = (unsafeStr: unknown): string => {
     .replace(/'/g, '&#039;');
 };
 
+const buildTeamWiseTablesHtml = (
+  recordsToExport: ChutiRecord[],
+  profilesList: Profile[],
+  profile: Profile | null,
+  isExcel: boolean
+): string => {
+  const headersHtml = `
+    <tr>
+      <th>Name</th>
+      <th>Codename</th>
+      <th>Leave Type</th>
+      <th>Sign In/Out</th>
+      <th>Leave Hour</th>
+      <th>Comment</th>
+      <th>Status</th>
+    </tr>
+  `;
+
+  const getTableRowsHtml = (records: ChutiRecord[]) => {
+    let rowsHtml = '';
+    records.forEach(r => {
+      const staffProfile = profilesList.find(p => p.id === r.user_id);
+      const fullName = staffProfile?.full_name || staffProfile?.username || r.username || '';
+      const codename = staffProfile?.username || r.username || '';
+      const signInStr = r.leave_type === 'Full Leave' ? '-' : formatTimeToAMPM(r.sign_in_time);
+      const signOutStr = r.leave_type === 'Full Leave' ? '-' : formatTimeToAMPM(r.sign_out_time);
+      const leaveHourStr = r.leave_type === 'Full Leave' || r.leave_type === 'Overtime' ? '-' : (r.leave_hour ? r.leave_hour.toString().split('.')[0].substring(0, 5) : '-');
+
+      rowsHtml += `
+        <tr>
+          <td>${escapeHtml(fullName)}</td>
+          <td>${escapeHtml(codename)}</td>
+          <td>${escapeHtml(r.leave_type)}</td>
+          <td>${r.leave_type === 'Full Leave' ? '-' : escapeHtml(`${signInStr} / ${signOutStr}`)}</td>
+          <td>${escapeHtml(leaveHourStr)}</td>
+          <td>${escapeHtml(getCleanComment(r.comment))}</td>
+          <td>${escapeHtml(r.status || 'pending')}</td>
+        </tr>
+      `;
+    });
+    return rowsHtml;
+  };
+
+  // If the exporter is not an admin, we just output a single table with their team name
+  if (profile?.role !== 'admin') {
+    const supervisorName = (profile?.username || 'Supervisor').toUpperCase();
+    const rows = getTableRowsHtml(recordsToExport);
+    return `
+      <h3 style="margin-top: 25px; color: #1e293b;">${escapeHtml(supervisorName)} Team Leave Records</h3>
+      <table>
+        <thead>${headersHtml}</thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  // Admin logic: group by supervisor, and gather unassigned records
+  const supervisors = profilesList.filter(
+    (p) => p.role === 'supervisor' || p.role === 'admin'
+  );
+
+  // Sort supervisors by username/codename
+  const sortedSupervisors = [...supervisors].sort((a, b) => 
+    (a.username || '').localeCompare(b.username || '')
+  );
+
+  let outputHtml = '';
+  const assignedRecordIds = new Set<string>();
+
+  sortedSupervisors.forEach(sup => {
+    const teamRecords = recordsToExport.filter(r => {
+      const staff = profilesList.find(p => p.id === r.user_id);
+      return staff?.supervisor_ids?.includes(sup.id);
+    });
+
+    if (teamRecords.length > 0) {
+      teamRecords.forEach(r => {
+        if (r.id) assignedRecordIds.add(r.id);
+      });
+      const supName = (sup.username || 'Supervisor').toUpperCase();
+      const rows = getTableRowsHtml(teamRecords);
+      outputHtml += `
+        <h3 style="margin-top: 25px; color: #1e293b;">${escapeHtml(supName)} Team Leave Records</h3>
+        <table>
+          <thead>${headersHtml}</thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+  });
+
+  const unassignedRecords = recordsToExport.filter(r => !r.id || !assignedRecordIds.has(r.id));
+  if (unassignedRecords.length > 0) {
+    const rows = getTableRowsHtml(unassignedRecords);
+    outputHtml += `
+      <h3 style="margin-top: 25px; color: #1e293b;">Direct Staff Leave Records</h3>
+      <table>
+        <thead>${headersHtml}</thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  return outputHtml;
+};
+
 export const exportHelper = {
 
   // Export individual staff report as Excel (HTML format)
@@ -990,51 +1096,20 @@ export const exportHelper = {
       return;
     }
 
-    const headersHtml = `
-      <th>Name</th>
-      <th>Codename</th>
-      <th>Leave Type</th>
-      <th>Sign In/Out</th>
-      <th>Leave Hour</th>
-      <th>Comment</th>
-      <th>Status</th>
-    `;
-
-    let rowsHtml = '';
-    recordsToExport.forEach(r => {
-      const staffProfile = profilesList.find(p => p.id === r.user_id);
-      const fullName = staffProfile?.full_name || staffProfile?.username || r.username || '';
-      const codename = staffProfile?.username || r.username || '';
-      const signInStr = r.leave_type === 'Full Leave' ? '-' : formatTimeToAMPM(r.sign_in_time);
-      const signOutStr = r.leave_type === 'Full Leave' ? '-' : formatTimeToAMPM(r.sign_out_time);
-      const leaveHourStr = r.leave_type === 'Full Leave' || r.leave_type === 'Overtime' ? '-' : (r.leave_hour ? r.leave_hour.toString().split('.')[0].substring(0, 5) : '-');
-
-      rowsHtml += `
-        <tr>
-          <td>${escapeHtml(fullName)}</td>
-          <td>${escapeHtml(codename)}</td>
-          <td>${escapeHtml(r.leave_type)}</td>
-          <td>${r.leave_type === 'Full Leave' ? '-' : escapeHtml(`${signInStr} / ${signOutStr}`)}</td>
-          <td>${escapeHtml(leaveHourStr)}</td>
-          <td>${escapeHtml(getCleanComment(r.comment))}</td>
-          <td>${escapeHtml(r.status || 'pending')}</td>
-        </tr>
-      `;
-    });
+    const tablesHtml = buildTeamWiseTablesHtml(recordsToExport, profilesList, profile, true);
 
     const html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head><meta charset="utf-8"/><style>td { border: 0.5pt solid #ccc; }</style></head>
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          td { border: 0.5pt solid #ccc; }
+          th { background-color: #f1f5f9; font-weight: bold; }
+        </style>
+      </head>
       <body>
         <h2>Team Daily Leave Records - ${formatDate(selectedDate)}</h2>
-        <table>
-          <thead>
-            <tr>${headersHtml}</tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
+        ${tablesHtml}
       </body>
       </html>
     `;
@@ -1069,27 +1144,7 @@ export const exportHelper = {
       return;
     }
 
-    let rowsHtml = '';
-    recordsToExport.forEach(r => {
-      const staffProfile = profilesList.find(p => p.id === r.user_id);
-      const fullName = staffProfile?.full_name || staffProfile?.username || r.username || '';
-      const codename = staffProfile?.username || r.username || '';
-      const signInStr = r.leave_type === 'Full Leave' ? '-' : formatTimeToAMPM(r.sign_in_time);
-      const signOutStr = r.leave_type === 'Full Leave' ? '-' : formatTimeToAMPM(r.sign_out_time);
-      const leaveHourStr = r.leave_type === 'Full Leave' || r.leave_type === 'Overtime' ? '-' : (r.leave_hour ? r.leave_hour.toString().split('.')[0].substring(0, 5) : '-');
-
-      rowsHtml += `
-        <tr>
-          <td>${escapeHtml(fullName)}</td>
-          <td>${escapeHtml(codename)}</td>
-          <td>${escapeHtml(r.leave_type)}</td>
-          <td>${r.leave_type === 'Full Leave' ? '-' : escapeHtml(`${signInStr} / ${signOutStr}`)}</td>
-          <td>${escapeHtml(leaveHourStr)}</td>
-          <td>${escapeHtml(getCleanComment(r.comment))}</td>
-          <td>${escapeHtml(r.status || 'pending')}</td>
-        </tr>
-      `;
-    });
+    const tablesHtml = buildTeamWiseTablesHtml(recordsToExport, profilesList, profile, false);
 
     const supervisorName = profile?.full_name || profile?.username || 'Supervisor';
     const documentTitle = `${selectedDate}-${supervisorName}'s Team Leave record`;
@@ -1105,7 +1160,7 @@ export const exportHelper = {
           .header { text-align: center; margin-bottom: 25px; }
           .header h1 { margin: 0; font-size: 22px; color: #1e293b; }
           .header p { margin: 5px 0 0 0; font-size: 14px; color: #64748b; }
-          table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; margin-bottom: 25px; }
           th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
           th { background-color: #f1f5f9; font-weight: bold; color: #334155; }
           tr:nth-child(even) { background-color: #f8fafc; }
@@ -1119,22 +1174,7 @@ export const exportHelper = {
           <h1>Team Daily Leave Records</h1>
           <p>Date: ${escapeHtml(formatDate(selectedDate))}</p>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Codename</th>
-              <th>Leave Type</th>
-              <th>Sign In/Out</th>
-              <th>Leave Hour</th>
-              <th>Comment</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
+        ${tablesHtml}
         <script>
           window.onload = function() {
             setTimeout(function() {
