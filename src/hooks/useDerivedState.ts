@@ -249,28 +249,7 @@ export function useDerivedState({
       });
     }
 
-    // For Supervisor: inject relevant pending staff requests into notify feed
-    if (initialFetchDone) {
-      const isSupervisor = profile.role === 'supervisor';
-
-      if (isSupervisor) {
-        // 1. Pending Supervisor Verification Requests (For Supervisors only)
-        groupedSupervisorRequests.forEach(r => {
-          const staff = profilesList.find(p => p.id === r.user_id);
-          const staffName = staff?.full_name || 'Staff';
-          const staffCode = staff?.username?.toUpperCase() || 'N/A';
-          const datesLabel = r.is_bulk ? r.formatted_bulk_dates : formatDate(r.date);
-          list.push({
-            id: `sup-req-${r.id}`,
-            type: 'pending_supervisor_request',
-            timestamp: r.created_at || r.date || currentSessionTime,
-            title: 'Leave Verification Needed 🔔',
-            body: `${staffName} (${staffCode}) applied for ${r.leave_type} (Date: ${datesLabel}).`,
-            record: r
-          });
-        });
-      }
-    }
+    // For Supervisor: pending staff requests are shown in supervisor panels/tabs, not here.
 
     userRecords.forEach(r => {
       const hasRequest = r.admin_edit_request && typeof r.admin_edit_request === 'object';

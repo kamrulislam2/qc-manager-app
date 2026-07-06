@@ -62,39 +62,9 @@ export function useGlobalNotifications(
         setRulesRecords(rulesData);
       }
 
-      // 4. Fetch admin approvals (if admin)
-      if (profile.role === 'admin') {
-        const { data: adminData, error: adminError } = await supabase
-          .from('chuti')
-          .select('*')
-          .or("status.eq.approved_by_supervisor,reserve_adjustment_status.eq.pending")
-          .is('deleted_at', null);
-        if (!adminError && adminData) {
-          setAdminPendingRecords(adminData);
-        }
-      } else {
-        setAdminPendingRecords([]);
-      }
-
-      // 5. Fetch supervisor approvals (if supervisor)
-      if (profile.role === 'supervisor') {
-        const { data: supData, error: supError } = await supabase
-          .from('chuti')
-          .select('*')
-          .eq('status', 'pending_supervisor')
-          .is('deleted_at', null);
-        if (!supError && supData) {
-          const filtered = supData.filter(r => {
-            const meta = r.admin_edit_request && typeof r.admin_edit_request === 'object'
-              ? (r.admin_edit_request as { supervisor_ids?: string[] })
-              : null;
-            return meta && Array.isArray(meta.supervisor_ids) && meta.supervisor_ids.includes(profile.id);
-          });
-          setSupervisorPendingRecords(filtered);
-        }
-      } else {
-        setSupervisorPendingRecords([]);
-      }
+      // 4. Fetch admin/supervisor approvals - Not needed in user panel notifications
+      setAdminPendingRecords([]);
+      setSupervisorPendingRecords([]);
     } catch (err) {
       console.error('Failed to fetch global notifications data:', err);
     }
@@ -142,8 +112,7 @@ export function useGlobalNotifications(
   useEffect(() => {
     if (!sessionUser) return;
 
-    const isPrivileged = profile?.role === 'admin' || profile?.role === 'supervisor';
-    const filter = isPrivileged ? undefined : `user_id=eq.${sessionUser.id}`;
+    const filter = `user_id=eq.${sessionUser.id}`;
 
     const chutiChannel = supabase
       .channel('global-chuti-notif-changes')
@@ -283,69 +252,7 @@ export function useGlobalNotifications(
       });
     });
 
-    // 4. Admin Approvals Notifications
-    if (profile.role === 'admin') {
-      adminPendingRecords.forEach(r => {
-        if (r.status === 'approved_by_supervisor' && r.leave_type !== 'Overtime') {
-          list.push({
-            id: `pending-leave-${r.id}`,
-            type: 'pending_admin_chuti_request',
-            timestamp: r.created_at || currentSessionTime,
-            title: 'New Leave Request (Admin Approval Pending) ⏳',
-            body: `A leave request from ${profilesList.find(p => p.id === r.user_id)?.full_name || 'Staff'} is pending your approval.`,
-            chutiId: r.id,
-            record: r
-          });
-        }
-        if (r.reserve_adjustment_status === 'pending' || (r.leave_type === 'Overtime' && r.status === 'approved_by_supervisor')) {
-          list.push({
-            id: `pending-reserve-${r.id}`,
-            type: 'pending_admin_reserve_request',
-            timestamp: r.created_at || currentSessionTime,
-            title: 'Reserve Adjustment Pending Approval ⏳',
-            body: `A reserve adjustment request from ${profilesList.find(p => p.id === r.user_id)?.full_name || 'Staff'} is pending your approval.`,
-            chutiId: r.id,
-            record: r
-          });
-        }
-      });
-
-      profilesList.forEach(p => {
-        if (p.profile_change_status === 'pending') {
-          list.push({
-            id: `pending-profile-${p.id}`,
-            type: 'pending_admin_profile_request',
-            timestamp: p.created_at || currentSessionTime,
-            title: 'Profile Change Request ⏳',
-            body: `Profile updates for ${p.full_name || p.username} require your approval.`
-          });
-        }
-        if (p.password_reset_status === 'pending') {
-          list.push({
-            id: `pending-pwd-${p.id}`,
-            type: 'pending_admin_password_request',
-            timestamp: p.created_at || currentSessionTime,
-            title: 'Password Reset Request ⏳',
-            body: `Password reset request for ${p.full_name || p.username} requires your approval.`
-          });
-        }
-      });
-    }
-
-    // 5. Supervisor Approvals Notifications
-    if (profile.role === 'supervisor') {
-      supervisorPendingRecords.forEach(r => {
-        list.push({
-          id: `pending-sup-${r.id}`,
-          type: 'pending_supervisor_request',
-          timestamp: r.created_at || currentSessionTime,
-          title: 'Supervisor Approval Pending ⏳',
-          body: `A leave request from ${profilesList.find(p => p.id === r.user_id)?.full_name || 'Staff'} is pending your approval.`,
-          chutiId: r.id,
-          record: r
-        });
-      });
-    }
+    // 4. Admin and Supervisor approvals are handled strictly inside the admin approvals panel / modal, not here.
 
     const filtered = list.filter(n => !dismissedNotificationIds?.has(n.id));
     return filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
