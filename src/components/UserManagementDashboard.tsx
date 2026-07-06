@@ -358,8 +358,6 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
 
   // Delete handler for leaves in details view
   const handleDeleteRecord = async (record: ChutiRecord) => {
-    if (!confirm('Are you sure you want to permanently delete this leave entry?')) return;
-
     try {
       const { error } = await supabase
         .from('chuti')

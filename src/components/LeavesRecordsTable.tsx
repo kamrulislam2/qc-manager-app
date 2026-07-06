@@ -5,6 +5,7 @@ import { ChutiRecord } from '@/utils/offlineSync';
 import { FilterPanel } from './FilterPanel';
 import { StatusBadge } from './StatusBadge';
 import { CustomSelect } from './CustomSelect';
+import { ConfirmModal } from '@/components/modals/ConfirmModal';
 
 import { SkeletonLoader } from './SkeletonLoader';
 
@@ -80,6 +81,10 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
   } | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
+  const [deleteConfirmMessage, setDeleteConfirmMessage] = useState('');
+  const [onConfirmDeleteAction, setOnConfirmDeleteAction] = useState<() => void>(() => () => {});
 
   useEffect(() => {
     setIsMounted(true);
@@ -218,14 +223,23 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
 
   const handleContextDelete = (record: ChutiRecord) => {
     setContextMenu(null);
-    onDeleteClick(record);
+    setDeleteConfirmTitle("Delete Leave Entry");
+    setDeleteConfirmMessage("Are you sure you want to permanently delete this leave entry? This action cannot be undone.");
+    setOnConfirmDeleteAction(() => () => {
+      onDeleteClick(record);
+      setDeleteConfirmOpen(false);
+    });
+    setDeleteConfirmOpen(true);
   };
 
-  const handleBulkDelete = async () => {
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} selected records?`)) {
+  const handleBulkDelete = () => {
+    setDeleteConfirmTitle("Delete Selected Leaves");
+    setDeleteConfirmMessage(`Are you sure you want to delete ${selectedIds.length} selected records? This action cannot be undone.`);
+    setOnConfirmDeleteAction(() => async () => {
       const idsToDelete = [...selectedIds];
       setSelectedIds([]);
       setIsSelectionMode(false);
+      setDeleteConfirmOpen(false);
       
       for (const id of idsToDelete) {
         const record = records.find(r => r.id === id);
@@ -233,7 +247,8 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
           await onDeleteClick(record);
         }
       }
-    }
+    });
+    setDeleteConfirmOpen(true);
   };
 
   const handleReset = () => {
@@ -553,6 +568,18 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
           </div>,
           document.body
         )}
+      {deleteConfirmOpen && (
+        <ConfirmModal
+          isOpen={deleteConfirmOpen}
+          onClose={() => setDeleteConfirmOpen(false)}
+          onConfirm={onConfirmDeleteAction}
+          title={deleteConfirmTitle}
+          message={deleteConfirmMessage}
+          confirmText="Delete"
+          cancelText="Cancel"
+          isDanger={true}
+        />
+      )}
     </div>
   );
 };
