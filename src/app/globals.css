@@ -746,3 +746,23 @@ html:not(.dark) textarea:disabled {
   -webkit-text-fill-color: #334155 !important;
   opacity: 0.75 !important;
 }
+
+/* Custom Text Selection Styling for Web & App visibility */
+::selection {
+  background-color: rgba(99, 102, 241, 0.5) !important; /* indigo-500 transparent */
+  color: #ffffff !important;
+}
+::-moz-selection {
+  background-color: rgba(99, 102, 241, 0.5) !important;
+  color: #ffffff !important;
+}
+input::selection,
+textarea::selection {
+  background-color: rgba(99, 102, 241, 0.5) !important;
+  color: #ffffff !important;
+}
+input::-moz-selection,
+textarea::-moz-selection {
+  background-color: rgba(99, 102, 241, 0.5) !important;
+  color: #ffffff !important;
+}
