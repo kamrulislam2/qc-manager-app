@@ -989,7 +989,7 @@ export const exportHelper = {
       return;
     }
 
-    let headersHtml = `
+    const headersHtml = `
       <th>Name</th>
       <th>Codename</th>
       <th>Leave Type</th>
@@ -1021,7 +1021,7 @@ export const exportHelper = {
       `;
     });
 
-    let html = `
+    const html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"/><style>td { border: 0.5pt solid #ccc; }</style></head>
       <body>

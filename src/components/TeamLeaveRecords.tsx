@@ -24,10 +24,6 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
   initialFetchDone,
   onBack,
 }) => {
-  if (!initialFetchDone) {
-    return <TeamLeaveRecordsSkeleton />;
-  }
-
   // Initialize to local today's date in 'YYYY-MM-DD' Swedish format
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const d = new Date();
@@ -68,6 +64,10 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
       return true;
     });
   }, [adminRecords, selectedDate, teamUserIds]);
+
+  if (!initialFetchDone) {
+    return <TeamLeaveRecordsSkeleton />;
+  }
 
   const handleResetToToday = () => {
     const d = new Date();
