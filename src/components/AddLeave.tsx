@@ -432,8 +432,16 @@ export function AddLeave({
       const isAddingOnBehalf = profile && targetProfile && targetProfile.id !== profile.id;
       const isPrivilegedRole = profile?.role === 'supervisor' || profile?.role === 'admin';
 
-      if (isAddingOnBehalf && isPrivilegedRole) {
-        // Ensure session is fresh by triggering getUser which auto-refreshes JWT if expired
+      // 1. Try direct Supabase insertion first (works on both Web and Desktop App directly)
+      const { data: directData, error: directError } = await supabase
+        .from('chuti')
+        .insert(insertData)
+        .select();
+
+      if (!directError && directData) {
+        data = directData;
+      } else if (isAddingOnBehalf && isPrivilegedRole) {
+        // 2. If direct insert failed (e.g. due to RLS restriction), fall back to server API route
         await supabase.auth.getUser();
         const { data: { session } } = await supabase.auth.getSession();
 
@@ -441,30 +449,36 @@ export function AddLeave({
           throw new Error('Your session has expired or is invalid. Please sign out and sign back in.');
         }
 
-        const response = await fetch(getApiUrl('/api/supervisor/add-leave'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ insertData }),
-        });
+        try {
+          const response = await fetch(getApiUrl('/api/supervisor/add-leave'), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ insertData }),
+          });
 
-        if (!response.ok) {
-          const errJson = await response.json().catch(() => ({}));
-          throw new Error(errJson.error || 'Server failed to add leave');
+          if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error || 'Server failed to add leave');
+          }
+
+          const resJson = await response.json();
+          data = resJson.data;
+        } catch (fetchErr: unknown) {
+          console.error('API route fetch error:', fetchErr);
+          if (directError) {
+            throw new Error(directError.message || 'Permission denied: Unable to add leave for this user.');
+          }
+          const msg = (fetchErr as Error).message || '';
+          if (msg.includes('Failed to fetch') || msg.includes('Load failed')) {
+            throw new Error('Network connection issue. Please verify your internet or try again.');
+          }
+          throw fetchErr;
         }
-
-        const resJson = await response.json();
-        data = resJson.data;
-      } else {
-        const { data: directData, error: directError } = await supabase
-          .from('chuti')
-          .insert(insertData)
-          .select();
-
-        if (directError) throw directError;
-        data = directData;
+      } else if (directError) {
+        throw directError;
       }
 
       toast.success(allDates.length > 1 ? `Successfully added ${allDates.length} bulk leaves!` : 'Leave added successfully!');

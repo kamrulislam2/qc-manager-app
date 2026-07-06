@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
@@ -275,6 +275,17 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     }
   }, [profile]);
 
+  // Debounced wrapper to prevent duplicate fetch calls when realtime events and user actions fire together
+  const fetchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debouncedFetchStaffLeaveData = useCallback((staffId: string) => {
+    if (fetchTimerRef.current) {
+      clearTimeout(fetchTimerRef.current);
+    }
+    fetchTimerRef.current = setTimeout(() => {
+      fetchStaffLeaveData(staffId);
+    }, 200);
+  }, [fetchStaffLeaveData]);
+
   // Fetch leave data on mount/change of selected staff member
   useEffect(() => {
     if (viewingStaff) {
@@ -304,7 +315,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chuti', filter: `user_id=eq.${viewingStaff.id}` },
         () => {
-          fetchStaffLeaveData(viewingStaff.id);
+          debouncedFetchStaffLeaveData(viewingStaff.id);
         }
       )
       .subscribe();
@@ -315,7 +326,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leave_settlements', filter: `user_id=eq.${viewingStaff.id}` },
         () => {
-          fetchStaffLeaveData(viewingStaff.id);
+          debouncedFetchStaffLeaveData(viewingStaff.id);
         }
       )
       .subscribe();
@@ -326,7 +337,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
         'postgres_changes',
         { event: '*', schema: 'public', table: 'govt_holiday_responses', filter: `user_id=eq.${viewingStaff.id}` },
         () => {
-          fetchStaffLeaveData(viewingStaff.id);
+          debouncedFetchStaffLeaveData(viewingStaff.id);
         }
       )
       .subscribe();
@@ -336,7 +347,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       supabase.removeChannel(settlementsChannel);
       supabase.removeChannel(holidayResponsesChannel);
     };
-  }, [viewingStaff, fetchStaffLeaveData, profile]);
+  }, [viewingStaff, debouncedFetchStaffLeaveData, profile]);
 
   // Toggle adjustment handler for leaves in details view
   const handleToggleAdjustment = async (record: ChutiRecord) => {
@@ -349,7 +360,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       if (error) throw error;
       toast.success('Adjustment status updated.');
       if (viewingStaff) {
-        fetchStaffLeaveData(viewingStaff.id);
+        debouncedFetchStaffLeaveData(viewingStaff.id);
       }
     } catch (err: unknown) {
       console.error(err);
@@ -368,7 +379,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       if (error) throw error;
       toast.success('Leave entry deleted successfully.');
       if (viewingStaff) {
-        fetchStaffLeaveData(viewingStaff.id);
+        debouncedFetchStaffLeaveData(viewingStaff.id);
       }
     } catch (err: unknown) {
       console.error(err);
@@ -783,8 +794,8 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                       onSuccess={() => {
                         setShowAddLeaveForStaff(false);
                         setActiveSubTab('leave');
-                        // Refresh leave data
-                        fetchStaffLeaveData(viewingStaff.id);
+                        // Refresh leave data without triggering double reload
+                        debouncedFetchStaffLeaveData(viewingStaff.id);
                       }}
                       onConvertShortLeaveToFullLeave={() => {}}
                       holidayResponses={viewingStaffHolidayResponses}

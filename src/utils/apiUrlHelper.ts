@@ -32,7 +32,6 @@ export function getApiUrl(path: string): string {
       return `http://localhost:3000${path}`;
     }
 
-    // Default to the stable git branch deployment URL on Vercel, or override via Env variable
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://qc-manager-y4bzh900h-kamrul-projects.vercel.app';
     return `${baseUrl.replace(/\/$/, '')}${path}`;
   }
