@@ -323,6 +323,14 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
         "xXpD3Dop7ZadNywdkiRYDm1IOhuONgFV1m1QMIm7RhUJ638i50sjUJ858Kxi",
       ),
       ipinfo: getVal(process.env.NEXT_PUBLIC_IPINFO_TOKEN, "292d4695dfb892"),
+      scamalytics_client: getVal(
+        process.env.NEXT_PUBLIC_SCAMALYTICS_CLIENT,
+        "6a4caf1a23e50",
+      ),
+      scamalytics_key: getVal(
+        process.env.NEXT_PUBLIC_SCAMALYTICS_KEY,
+        "fcbc5dd07402794248daa4c76840b64c760f0d27c3100a7255ba1323d212507d",
+      ),
     };
 
     // ─── QUERY SOURCE 1: IPLOCATION.NET ───
@@ -545,7 +553,7 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
     const fetchScamalytics = async (): Promise<SourceResult> => {
       try {
         const data = (await secureFetch(
-          `https://api11.scamalytics.com/v3/6a4caf1a23e50/?key=fcbc5dd07402794248daa4c76840b64c760f0d27c3100a7255ba1323d212507d&ip=${ip}`
+          `https://api11.scamalytics.com/v3/${keys.scamalytics_client}/?key=${keys.scamalytics_key}&ip=${ip}`
         )) as unknown as ScamalyticsResponse;
         if (data.error) throw new Error(data.error);
 
