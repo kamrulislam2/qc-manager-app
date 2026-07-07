@@ -173,6 +173,12 @@ export function useDerivedState({
       if (r.status !== 'pending_supervisor') return false;
       if (r.user_id === sessionUser?.id) return false;
 
+      // Restrict to team members supervised by this supervisor
+      const userSupervisorIds = r.profiles?.supervisor_ids || [];
+      if (!userSupervisorIds.includes(sessionUser?.id || '')) {
+        return false;
+      }
+
       const meta = r.admin_edit_request && typeof r.admin_edit_request === 'object'
         ? (r.admin_edit_request as { supervisor_ids?: string[] })
         : null;

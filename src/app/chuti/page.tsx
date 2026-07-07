@@ -11,7 +11,7 @@ import { SkeletonLoader } from '@/components/SkeletonLoader';
 import { DashboardProvider } from '@/contexts/DashboardContext';
 import { DashboardModals } from '@/components/DashboardModals';
 import { TeamLeaveRecords } from '@/components/TeamLeaveRecords';
-
+import { ChutiRecord } from '@/utils/offlineSync';
 
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useChutiOperations } from '@/hooks/useChutiOperations';
@@ -96,6 +96,9 @@ export default function Dashboard({
 
   const handleChutiTabChange = (tab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings') => {
     onChutiTabChange(tab);
+    if (tab !== 'add_leave') {
+      setEditingRecord(null);
+    }
     if (adminActiveTab !== 'admin' && tab !== 'add_leave' && tab !== 'leave_settings') {
       setAdminActiveTab('admin');
       if (typeof window !== 'undefined' && profile?.id) {
@@ -137,6 +140,8 @@ export default function Dashboard({
       console.error('Failed to load dismissed notifications:', e);
     }
   }, []);
+
+  const [editingRecord, setEditingRecord] = useState<ChutiRecord | null>(null);
 
   // Listen for view details events dispatched from User Management
   useEffect(() => {
@@ -672,17 +677,37 @@ export default function Dashboard({
         
         {/* ================= ADD LEAVE INLINE VIEW ================= */}
         {profile?.has_changed_password !== false && !!profile?.is_setup_completed && activeChutiTab === 'add_leave' && (
-          <AddLeave
-            profile={profile}
-            profilesList={profilesList}
-            records={profile?.role === 'admin' ? adminRecords : userRecords}
-            globalSettings={globalSettings}
-            leaveSettlements={leaveSettlements}
-            onSuccess={fetchRecords}
-            onConvertShortLeaveToFullLeave={handleConvertShortLeaveToFullLeave}
-            holidayResponses={holidayResponses}
-            initialFetchDone={initialFetchDone}
-          />
+          <div className="space-y-4">
+            {editingRecord && (
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-800/60">
+                <button
+                  onClick={() => {
+                    setEditingRecord(null);
+                    onChutiTabChange('leave_history');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-xs font-semibold text-slate-355 hover:text-white transition-all cursor-pointer"
+                >
+                  Cancel Edit
+                </button>
+              </div>
+            )}
+            <AddLeave
+              profile={profile}
+              profilesList={profilesList}
+              records={profile?.role === 'admin' ? adminRecords : userRecords}
+              globalSettings={globalSettings}
+              leaveSettlements={leaveSettlements}
+              editingRecord={editingRecord}
+              onSuccess={() => {
+                setEditingRecord(null);
+                onChutiTabChange('leave_history');
+                fetchRecords();
+              }}
+              onConvertShortLeaveToFullLeave={handleConvertShortLeaveToFullLeave}
+              holidayResponses={holidayResponses}
+              initialFetchDone={initialFetchDone}
+            />
+          </div>
         )}
 
         {/* ================= LEAVE SETTINGS INLINE VIEW ================= */}
@@ -722,6 +747,10 @@ export default function Dashboard({
             }}
             onToggleAdjustment={handleToggleAdjustmentClick}
             onDeleteClick={triggerDeleteRecord}
+            onEditClick={(record) => {
+              setEditingRecord(record);
+              onChutiTabChange('add_leave');
+            }}
             onRevisionClick={handleOpenRevisionModal}
             onConvertShortLeaveToFullLeave={handleConvertShortLeaveToFullLeave}
             holidayResponses={holidayResponses}

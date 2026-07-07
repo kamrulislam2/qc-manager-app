@@ -75,7 +75,8 @@ export function AddLeave({
   const [editReason, setEditReason] = useState('');
 
   const isSupervisorRole = profile?.role === 'supervisor';
-  const needsReapproval = isSupervisorRole && !!editingRecord && (editingRecord.status === 'approved' || editingRecord.status === 'settled');
+  const isUserRole = profile?.role === 'user';
+  const needsReapproval = (isSupervisorRole || isUserRole) && !!editingRecord && (editingRecord.status === 'approved' || editingRecord.status === 'settled');
 
   // Initialize today's date and default times
   useEffect(() => {
@@ -344,16 +345,20 @@ export function AddLeave({
         }
 
         changeDescription = changeDescription.replace(/,\s*$/, '');
-        const supervisorName = profile?.username?.toUpperCase() || 'SUPERVISOR';
-        const editLog = `\n[Edited by ${supervisorName}: ${changeDescription}. Reason: ${editReason}]`;
+        const editorName = isSupervisorRole 
+          ? (profile?.username?.toUpperCase() || 'SUPERVISOR') 
+          : (profile?.username?.toUpperCase() || 'USER');
+        const editLog = `\n[Edited by ${editorName}: ${changeDescription}. Reason: ${editReason}]`;
         commentWithCategory = (editingRecord.comment || '') + editLog;
 
-        // Reset status for admin re-approval
-        finalStatus = 'approved_by_supervisor';
+        // Reset status for re-approval
+        finalStatus = isSupervisorRole ? 'approved_by_supervisor' : 'pending_supervisor';
       } else {
-        // If not approved yet, we keep status or set to approved_by_supervisor if supervisor edits
+        // If not approved yet, we keep status or set to approved_by_supervisor if supervisor edits, or pending_supervisor if user edits
         if (isSupervisorRole) {
           finalStatus = 'approved_by_supervisor';
+        } else if (isUserRole) {
+          finalStatus = 'pending_supervisor';
         }
       }
 
