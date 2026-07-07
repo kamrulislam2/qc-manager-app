@@ -268,11 +268,6 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   };
 
-  const handleAccessClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setContextMenuPos({ x: e.clientX, y: e.clientY });
-  };
-
   const handleResetToToday = () => {
     const d = new Date();
     const year = d.getFullYear();
@@ -412,9 +407,9 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
                   return (
                     <button
                       onContextMenu={handleAccessContextMenu}
-                      onClick={handleAccessClick}
+                      onClick={() => setShowAccessModal(true)}
                       className="flex items-center gap-1.5 py-2 px-3.5 bg-emerald-950/40 hover:bg-emerald-900/30 border border-emerald-800/80 text-emerald-400 hover:text-emerald-350 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
-                      title="Left-click or right-click for options"
+                      title="Right-click for options"
                     >
                       Access: {codename}
                     </button>
