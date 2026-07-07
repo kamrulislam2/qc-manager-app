@@ -645,41 +645,11 @@ export default function AppPortal() {
     window.addEventListener('click', updateActivity);
     window.addEventListener('scroll', updateActivity);
 
-    // Periodically verify session validity in the background (every 15 seconds)
-    const interval = setInterval(async () => {
-      const { data: latestProfile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (!error && latestProfile) {
-        const mappedProfile = {
-          ...latestProfile,
-          password_reset_status: latestProfile.password_reset_status || latestProfile.global_settings?.password_reset_status || 'none'
-        } as Profile;
-
-        const currentSessionId = localStorage.getItem('qc_session_id');
-        const activeSessions = Array.isArray(mappedProfile.global_settings?.active_sessions) 
-          ? mappedProfile.global_settings.active_sessions 
-          : [];
-        
-        const isStillValid = activeSessions.some((s: any) => s.sessionId === currentSessionId);
-        if (!isStillValid) {
-          localStorage.removeItem('qc_session_id');
-          localStorage.removeItem(`last_active_time_${userId}`);
-          await supabase.auth.signOut();
-          toast.error("Logged out: You are logged in on 3 other devices/locations.");
-        }
-      }
-    }, 15000);
-
     return () => {
       window.removeEventListener('mousemove', updateActivity);
       window.removeEventListener('keydown', updateActivity);
       window.removeEventListener('click', updateActivity);
       window.removeEventListener('scroll', updateActivity);
-      clearInterval(interval);
     };
   }, [sessionUser]);
 
