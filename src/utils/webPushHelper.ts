@@ -18,6 +18,16 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export async function subscribeUserToPush(userId: string): Promise<boolean> {
+  const isTauri = typeof window !== 'undefined' && (
+    '__TAURI_INTERNALS__' in window || 
+    (window as any).__TAURI__ !== undefined || 
+    window.location.protocol === 'tauri:'
+  );
+  if (isTauri) {
+    console.log('Tauri environment detected, bypassing service worker subscription');
+    return true;
+  }
+
   if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn('Push messaging is not supported in this browser');
     return false;
@@ -98,6 +108,16 @@ export async function subscribeUserToPush(userId: string): Promise<boolean> {
 }
 
 export async function unsubscribeUserFromPush(userId: string): Promise<boolean> {
+  const isTauri = typeof window !== 'undefined' && (
+    '__TAURI_INTERNALS__' in window || 
+    (window as any).__TAURI__ !== undefined || 
+    window.location.protocol === 'tauri:'
+  );
+  if (isTauri) {
+    console.log('Tauri environment detected, bypassing service worker unsubscription');
+    return true;
+  }
+
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return false;
   }

@@ -25,6 +25,12 @@ pub fn run() {
                 )?;
             }
             
+            // Set up default application menu for macOS so copy, paste, and reload shortcuts work
+            #[cfg(target_os = "macos")]
+            {
+                let app_menu = tauri::menu::Menu::default(app.handle())?;
+                let _ = app.set_menu(app_menu);
+            }
             // Set up system tray menu
             let open_item = MenuItem::with_id(app, "open", "Open QC App", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Exit", true, None::<&str>)?;

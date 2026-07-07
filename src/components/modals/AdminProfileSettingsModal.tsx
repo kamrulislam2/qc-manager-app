@@ -313,7 +313,12 @@ export function AdminProfileSettingsModal({
                     setIsPushSubscribed(willSubscribe);
                     localStorage.setItem('push_subscribed_pref_' + sessionUser.id, willSubscribe ? 'true' : 'false');
 
-                    const isTauri = (window as any).__TAURI_INTERNALS__;
+                    const isTauri = typeof window !== 'undefined' && (
+                      '__TAURI_INTERNALS__' in window || 
+                      (window as any).__TAURI__ !== undefined || 
+                      (window as any).Tauri !== undefined ||
+                      window.location.protocol === 'tauri:'
+                    );
                     if (isTauri) {
                       return; // Done for Tauri (it reads from localStorage directly)
                     }

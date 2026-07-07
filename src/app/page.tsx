@@ -192,9 +192,23 @@ export default function AppPortal() {
       const offlineHandler = () => setIsOnline(false);
       window.addEventListener("online", onlineHandler);
       window.addEventListener("offline", offlineHandler);
+
+      // Handle Cmd+R, Ctrl+R, F5 reload in Tauri and browser
+      const handleReloadShortcut = (e: KeyboardEvent) => {
+        if (
+          (e.key === "r" && (e.metaKey || e.ctrlKey)) ||
+          e.key === "F5"
+        ) {
+          e.preventDefault();
+          window.location.reload();
+        }
+      };
+      window.addEventListener("keydown", handleReloadShortcut);
+
       return () => {
         window.removeEventListener("online", onlineHandler);
         window.removeEventListener("offline", offlineHandler);
+        window.removeEventListener("keydown", handleReloadShortcut);
       };
     }
   }, []);

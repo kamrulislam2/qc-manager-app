@@ -210,17 +210,28 @@ export async function POST(request: NextRequest) {
     // BROADCAST TO ACTIVE DESKTOP CLIENTS (TAURI)
     // Even if they don't have a web push subscription, active desktop users will receive this broadcast
     try {
-      const channel = supabaseServer.channel('desktop-notifications');
-      await channel.send({
-        type: 'broadcast',
-        event: 'os-push',
-        payload: {
-          targetUserIds,
-          title,
-          body
-        }
+      const response = await fetch(`${supabaseUrl}/realtime/v1/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          channel: 'desktop-notifications',
+          event: 'os-push',
+          payload: {
+            targetUserIds,
+            title,
+            body
+          }
+        }),
       });
-      console.log('[SendPush] Broadcasted notification to desktop clients.');
+      if (response.ok) {
+        console.log('[SendPush] Broadcasted notification to desktop clients successfully via REST API.');
+      } else {
+        console.warn('[SendPush] REST broadcast response status:', response.status);
+      }
     } catch (broadcastErr) {
       console.warn('[SendPush] Failed to broadcast to desktop clients:', broadcastErr);
     }
