@@ -763,9 +763,13 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: cannot register push subscription for another user';
   END IF;
 
-  DELETE FROM public.push_subscriptions WHERE endpoint = p_endpoint;
   INSERT INTO public.push_subscriptions (user_id, endpoint, p256dh, auth)
-  VALUES (p_user_id, p_endpoint, p_p256dh, p_auth);
+  VALUES (p_user_id, p_endpoint, p_p256dh, p_auth)
+  ON CONFLICT (endpoint) 
+  DO UPDATE SET 
+    user_id = EXCLUDED.user_id,
+    p256dh = EXCLUDED.p256dh,
+    auth = EXCLUDED.auth;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
