@@ -1,6 +1,6 @@
 # 🌟 QC App — Unified Office Leave Tracker & Quotes Manager
 
-**Version 3.3.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 3.3.1** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -116,7 +116,12 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v3.3.0 — Minor Release (Current)
+### 🚀 v3.3.1 — Patch Release (Current)
+*   **Minimal Scrollbar Aesthetics**: Implemented a global, custom `.custom-scrollbar` utility style (thin, transparent by default, fading in on hover) and applied it to custom select dropdowns, user notifications modal, and leave approval panels.
+*   **Notifications Persistence & Expiry**: Extended dismissed notifications persistence in local storage to 30 days (preventing them from reappearing after 1 day). Automatically filter out non-actionable informational notifications older than 7 days from the list.
+*   **React Hook Purity Fix**: Resolved an ESLint compilation error where `Date.now()` was called inside `useMemo` by substituting it with the stable `currentSessionTime` timestamp.
+
+### 🚀 v3.3.0 — Minor Release
 *   **macOS & Windows Unified Auto-Updater Pipeline**: Integrated a custom updater builder script (`combine-latest-json.js`) into the GitHub Actions build workflow. This merges signatures and artifact payloads from both Windows and macOS platforms into a single, clean `latest.json` file on release, resolving the 404/signature validation issue.
 *   **macOS System Integration**: Restored macOS native menu functionality (`Menu::default`) including support for native keyboard shortcuts (`Cmd+A`, `Cmd+C`, `Cmd+V`, `Cmd+X`, and `Cmd+R` for page reload).
 *   **Profile Leave History Syncing**: Fixed a syncing issue where self-submitted leaves (made by Admin, Supervisor, or normal users) were not showing up under User Profile leave history. Now, pending/approved leaves are correctly visible across both the User Dashboard and the User Profile details in the User Management tab.

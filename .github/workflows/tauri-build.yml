@@ -121,14 +121,14 @@ jobs:
           releaseBody: |
             ### QC App v__VERSION__ 🚀
 
-            **v3.2.0* introduces database-level badge syncing, an advanced temporary access delegation system for supervisors, expanded editing workflows for users and admins, and decoupled UI badge rendering for seamless performance.
+            **v3.3.1** introduces global minimal scrollbar aesthetics, extended notification persistence (up to 30 days), auto-cleanup of older notifications, and strict compiler purity fixes.
 
-            #### 🛠 What's New in v3.2.0:
+            #### 🛠 What's New in v3.3.1:
 
-            - **Database-Level Badge Syncing** — Migrated top performer badge, streak, and annual win calculations entirely to PostgreSQL (`sync_top_performer_badges` RPC), eliminating heavy client-side record fetching (up to 15,000 records) and network or connection pool overhead.
-            - **Temporary Access Delegation** — Added a secure delegation modal for supervisors to assign view/approval roles using circular checkbox selectors and body portal-loaded context menus (Edit & Remove Access).
-            - **Flexible Record & Leave Editing** — Allowed normal users to edit their own leave records (automatically resetting settled requests to `pending_supervisor` via `needsReapproval` checks), and granted admins/supervisors full control to modify sign-in/out times, break durations, working hours, and job roles.
-            - **Decoupled Badge UI & Optimizations** — Completely removed `localStorage` caching of computed badges, rendering them directly from the database's `profilesList` state across Navbar, User Management, and Leaderboards to prevent stale data. Removed redundant `Total` text wrap constraints in leave usage summaries.
+            - **Minimal Scrollbar Aesthetics** — Designed a global `.custom-scrollbar` utility (thin, transparent by default, fading in on hover) and integrated it across dropdown selectors, notification menus, and leave approval panel lists.
+            - **Expanded Notification Persistence** — Changed dismissed notification retention in localStorage from 24 hours to 30 days so dismissed alerts do not reappear.
+            - **Auto-Cleanup of Old Alerts** — Implemented automatic filtering to hide non-actionable informational notifications older than 7 days, keeping the dashboard clean.
+            - **Strict Compiler React Purity Fix** — Resolved ESLint compilation issues with React 19 strict hooks purity rules.
 
             #### 📦 Installation Instructions:
             - **Windows (64-bit)**: Download the `x86_64` `.exe` or `.msi` installer.
