@@ -1049,3 +1049,46 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON public.audit_logs(create
 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id ON public.audit_logs(actor_id);
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.audit_logs;
+
+-- ==========================================
+-- 12. KPI Assessments Table
+-- ==========================================
+CREATE TABLE public.kpi_assessments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  month_year TEXT NOT NULL,
+  emp_id TEXT,
+  date_of_joining TEXT,
+  department TEXT DEFAULT 'Data Entry',
+  appraiser_name TEXT,
+  reviewer_name TEXT,
+  kpis JSONB NOT NULL DEFAULT '[]'::jsonb,
+  appraisee_signed BOOLEAN DEFAULT false,
+  appraisee_sign_date TEXT,
+  appraiser_signed BOOLEAN DEFAULT false,
+  appraiser_sign_date TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(user_id, month_year)
+);
+
+ALTER TABLE public.kpi_assessments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow select for all authenticated users" 
+ON public.kpi_assessments FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Allow insert/update/delete for admin, supervisor, or self" 
+ON public.kpi_assessments FOR ALL 
+TO authenticated 
+USING (
+  auth.uid() = user_id 
+  OR EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() 
+    AND (role = 'admin' OR role = 'supervisor')
+  )
+);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.kpi_assessments;
