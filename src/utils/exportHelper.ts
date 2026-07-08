@@ -141,7 +141,7 @@ const buildTeamWiseTablesHtml = (
   recordsToExport: ChutiRecord[],
   profilesList: Profile[],
   profile: Profile | null,
-  isExcel: boolean
+  _isExcel: boolean
 ): string => {
   const headersHtml = `
     <tr>

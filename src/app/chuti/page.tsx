@@ -366,7 +366,6 @@ export default function Dashboard({
   // Modal open/close handlers
   const modalHandlers = useModalHandlers({
     profile,
-    adminActiveTab,
     setRevisionRecord,
     setRevisionDate,
     setRevisionLeaveType,

@@ -4,7 +4,6 @@ import { ChutiRecord } from '@/utils/offlineSync';
 
 interface UseModalHandlersParams {
   profile: Profile | null;
-  adminActiveTab: string;
 
   // Revision modal setters (from useChutiOperations)
   setRevisionRecord: (r: ChutiRecord | null) => void;
@@ -77,7 +76,6 @@ interface UseModalHandlersParams {
 
 export function useModalHandlers({
   profile,
-  adminActiveTab,
   setRevisionRecord,
   setRevisionDate,
   setRevisionLeaveType,

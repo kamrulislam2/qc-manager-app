@@ -11,18 +11,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
   }
 }
 
-/**
- * Detect if running inside a Tauri desktop app (production or dev).
- * Tauri v2 exposes window.__TAURI_INTERNALS__ in both dev and production.
- */
-function isTauri(): boolean {
-  if (typeof window === 'undefined') return false;
-  return (
-    (window as any).__TAURI_INTERNALS__ !== undefined ||
-    window.location.protocol === 'tauri:' ||
-    window.location.hostname === 'tauri.localhost'
-  );
-}
+
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

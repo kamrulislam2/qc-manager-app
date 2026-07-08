@@ -333,7 +333,6 @@ export const calculateLeaveOrOvertime = (
     return m;
   };
 
-  const shiftEndMins = getShiftRelativeMins(shiftEnd);
   const actualStartMins = getShiftRelativeMins(actualStart);
   const actualEndMins = getShiftRelativeMins(actualEnd);
 
