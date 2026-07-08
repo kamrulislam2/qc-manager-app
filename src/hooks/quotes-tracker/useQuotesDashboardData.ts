@@ -105,10 +105,18 @@ export const useQuotesDashboardData = () => {
   }, []);
 
   const fetchingRef = useRef(false);
+  const lastFetchedKeyRef = useRef<string>('');
 
   // Fetch all records for the selected Month & Year
-  const fetchRecords = useCallback(async (isSilent: boolean = false) => {
+  const fetchRecords = useCallback(async (isSilent: boolean = false, force: boolean = false) => {
     if (!sessionUser || !profile) return;
+    
+    const fetchKey = `${selectedYear}-${selectedMonth}-${sessionUser.id}`;
+    if (lastFetchedKeyRef.current === fetchKey && !force && !isSilent) {
+      console.log('fetchRecords: Same inputs already fetched. Skipping duplicate call.');
+      return;
+    }
+
     if (fetchingRef.current) {
       console.log('fetchRecords is already in progress. Skipping concurrent run.');
       return;
@@ -421,6 +429,7 @@ export const useQuotesDashboardData = () => {
       filtered.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
       
       setRecords(filtered);
+      lastFetchedKeyRef.current = fetchKey;
 
       // If Offline or Net Error & Admin, load profiles list from cache
       if ((profile.role === 'admin' || profile.role === 'supervisor')) {
@@ -968,6 +977,7 @@ export const useQuotesDashboardData = () => {
   }, [sessionUser, profile, fetchRecords, fetchAvailableDates, fetchAuditLogs, router, setProfile, setProfilesList]);
 
   const handleLogout = async () => {
+    lastFetchedKeyRef.current = '';
     if (typeof window !== 'undefined') {
       localStorage.removeItem('quotes_sales_profile');
     }
