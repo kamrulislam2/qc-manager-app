@@ -81,7 +81,7 @@ export const AsitisCausalityPanel: React.FC<AsitisCausalityPanelProps> = ({
   const [dbSaving, setDbSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Context Menu State
+  // Context Menu Position relative to the parent container
   const [previewContextMenu, setPreviewContextMenu] = useState<{
     x: number;
     y: number;
@@ -89,6 +89,7 @@ export const AsitisCausalityPanel: React.FC<AsitisCausalityPanelProps> = ({
 
   const canManageTemplate = profile?.role === "admin" || profile?.role === "supervisor";
   const previewContextMenuRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Load from Supabase DB on mount
   const fetchTemplateFromDB = async () => {
@@ -309,13 +310,17 @@ export const AsitisCausalityPanel: React.FC<AsitisCausalityPanelProps> = ({
     }
   };
 
+  // Triggers context menu positioned relative to the parent relative container
   const handlePreviewContextMenu = (e: React.MouseEvent) => {
     if (!canManageTemplate) return;
     e.preventDefault();
-    setPreviewContextMenu({
-      x: e.clientX,
-      y: e.clientY
-    });
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setPreviewContextMenu({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+    }
   };
 
   const handleCancelEdit = () => {
@@ -333,7 +338,10 @@ export const AsitisCausalityPanel: React.FC<AsitisCausalityPanelProps> = ({
   }
 
   return (
-    <div className="bg-slate-955/20 border border-slate-850 rounded-2xl p-5 space-y-6 animate-fade-in relative min-h-[70vh]">
+    <div
+      ref={containerRef}
+      className="bg-slate-955/20 border border-slate-850 rounded-2xl p-5 space-y-6 animate-fade-in relative min-h-[70vh]"
+    >
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-850/60 pb-4 border-dashed">
         <div>
@@ -495,7 +503,7 @@ export const AsitisCausalityPanel: React.FC<AsitisCausalityPanelProps> = ({
                         onChange={(e) => handleDriverTitleChange(driver.id, title.id, e.target.value)}
                         placeholder="Driver field title..."
                         className="flex-1 px-3 py-1.5 bg-slate-950/80 border border-slate-850 hover:border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 text-xs transition-all font-semibold"
-                      />
+                    />
 
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
@@ -528,7 +536,7 @@ export const AsitisCausalityPanel: React.FC<AsitisCausalityPanelProps> = ({
                 className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-slate-800 hover:border-indigo-500/40 rounded-xl bg-transparent hover:bg-slate-900/20 text-slate-400 hover:text-indigo-400 transition-all font-semibold text-xs cursor-pointer"
               >
                 <PlusCircle className="h-4 w-4" />
-                Add Adi {String(drivers.length + 1).padStart(2, "0")} +
+                Add Adi {String(drivers.length + 1).padStart(2, "0")}
               </button>
             )}
           </div>
@@ -536,31 +544,55 @@ export const AsitisCausalityPanel: React.FC<AsitisCausalityPanelProps> = ({
 
         {/* Live preview: 5 cols in Edit Mode, Full 12 cols in Standard Mode */}
         <div className={`space-y-3 transition-all duration-300 ${isEditMode ? "lg:col-span-5" : "lg:col-span-12"}`}>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap gap-2">
             <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               {isEditMode ? "Live Preview" : "Template Format"}
             </h5>
-            {!isEditMode && canManageTemplate && (
-              <span className="text-[10px] text-slate-500 italic">
-                * Right-click the preview area to Edit Template
-              </span>
+            
+            {/* Header controls for Standard Mode */}
+            {!isEditMode && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {drivers.length < 5 && (
+                  <button
+                    onClick={handleAddDriver}
+                    className="px-2.5 py-1 rounded border border-slate-800 hover:border-indigo-500/40 bg-transparent hover:bg-slate-900/40 text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add Adi {String(drivers.length + 1).padStart(2, "0")}
+                  </button>
+                )}
+                {drivers.length > 0 && (
+                  <button
+                    onClick={() => handleRemoveDriver(drivers.length)}
+                    className="px-2.5 py-1 rounded border border-red-950/40 bg-transparent hover:bg-red-950/20 text-[10px] font-bold text-red-500 hover:text-red-400 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Remove Adi {String(drivers.length).padStart(2, "0")}
+                  </button>
+                )}
+                {canManageTemplate && (
+                  <span className="text-[10px] text-slate-500 italic ml-1 select-none">
+                    * Right-click the preview area to Edit Template
+                  </span>
+                )}
+              </div>
             )}
           </div>
           
           <div
             onContextMenu={handlePreviewContextMenu}
-            className="bg-slate-950 border border-slate-850 rounded-xl p-6 text-xs font-mono text-slate-300 min-h-[60vh] h-auto overflow-y-auto custom-scrollbar select-text whitespace-pre-wrap leading-relaxed shadow-inner cursor-context-menu"
+            className="bg-slate-955 border border-slate-850 rounded-xl p-6 text-xs font-mono text-slate-300 min-h-[60vh] h-auto overflow-y-auto custom-scrollbar select-text whitespace-pre-wrap leading-relaxed shadow-inner cursor-context-menu"
           >
             {getCopyFormattedText()}
           </div>
         </div>
       </div>
 
-      {/* Context Menu for Preview Box */}
+      {/* Context Menu for Preview Box (positioned absolutely relative to containerRef) */}
       {previewContextMenu && (
         <div
           ref={previewContextMenuRef}
-          className="fixed bg-slate-900 border border-slate-800 rounded-lg shadow-xl py-1.5 w-40 z-50 animate-fade-in"
+          className="absolute bg-slate-900 border border-slate-800 rounded-lg shadow-xl py-1.5 w-40 z-50 animate-fade-in"
           style={{ top: previewContextMenu.y, left: previewContextMenu.x }}
         >
           <button
