@@ -1,12 +1,12 @@
 "use client";
 
-import { DailyEntrySkeleton } from "./skeleton/DailyEntrySkeleton";
-import { MonthlyListSkeleton } from "./skeleton/MonthlyListSkeleton";
-import { QuoteRulesSkeleton } from "./skeleton/QuoteRulesSkeleton";
-import { AnalyticsSkeleton } from "./skeleton/AnalyticsSkeleton";
-import { AuditLogsSkeleton } from "./skeleton/AuditLogsSkeleton";
-import { IPCheckerSkeleton } from "./skeleton/IPCheckerSkeleton";
-import { LoginCodesSkeleton } from "./skeleton/LoginCodesSkeleton";
+import { DailyEntrySkeleton } from "@/components/common/skeleton/DailyEntrySkeleton";
+import { MonthlyListSkeleton } from "@/components/common/skeleton/MonthlyListSkeleton";
+import { QuoteRulesSkeleton } from "@/components/common/skeleton/QuoteRulesSkeleton";
+import { AnalyticsSkeleton } from "@/components/common/skeleton/AnalyticsSkeleton";
+import { AuditLogsSkeleton } from "@/components/common/skeleton/AuditLogsSkeleton";
+import { IPCheckerSkeleton } from "@/components/common/skeleton/IPCheckerSkeleton";
+import { LoginCodesSkeleton } from "@/components/common/skeleton/LoginCodesSkeleton";
 
 interface SkeletonLoaderProps {
   type?:

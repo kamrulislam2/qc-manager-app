@@ -5,10 +5,10 @@ import { Profile, RecordItem, FileType } from '@/types';
 import { supabase } from '@/utils/supabase';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
-import { StatsGrid } from '@/components/StatsGrid';
-import { RecordsTable } from '@/components/RecordsTable';
+import { StatsGrid } from '@/components/common/StatsGrid';
+import { RecordsTable } from '@/components/quotes-tracker/RecordsTable';
 import { calculateSummaryStats } from '@/utils/quotesDashboardHelpers';
-import { EditRecordModal } from '@/components/modals/EditRecordModal';
+import { EditRecordModal } from '@/components/quotes-tracker/modals/EditRecordModal';
 
 interface UserQuotesHistoryPanelProps {
   viewingStaff: Profile;

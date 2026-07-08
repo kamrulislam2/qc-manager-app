@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Search, RefreshCw, AlertTriangle, CheckCircle, Bell, User } from 'lucide-react';
 import { Profile, ChutiRecordWithProfile, BulkRepresentative } from '@/types';
 import { formatDate, formatTimeToAMPM } from '@/utils/dashboardHelpers';
-import { CustomSelect } from './CustomSelect';
+import { CustomSelect } from '@/components/common/CustomSelect';
 
 interface LeaveApprovalPanelProps {
   role: 'admin' | 'supervisor';

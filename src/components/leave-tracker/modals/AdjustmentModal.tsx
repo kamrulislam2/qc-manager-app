@@ -5,7 +5,7 @@ import { SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { calculateStats, GlobalSettings } from '@/utils/dashboardHelpers';
 
-import { Modal } from '../Modal';
+import { Modal } from '@/components/common/Modal';
 
 interface AdjustmentModalProps {
   showAdjustmentModal: boolean;

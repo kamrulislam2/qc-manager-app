@@ -3,26 +3,26 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
-import { useQuotesDashboardData } from "@/hooks/useQuotesDashboardData";
-import { useSaveFileHelper } from "@/hooks/useSaveFileHelper";
-import { useCopyHelper } from "@/hooks/useCopyHelper";
+import { useQuotesDashboardData } from "@/hooks/quotes-tracker/useQuotesDashboardData";
+import { useSaveFileHelper } from "@/hooks/quotes-tracker/useSaveFileHelper";
+import { useCopyHelper } from "@/hooks/quotes-tracker/useCopyHelper";
 
-const StatsGrid = lazy(() => import("@/components/StatsGrid").then(m => ({ default: m.StatsGrid })));
-const RecordsTable = lazy(() => import("@/components/RecordsTable").then(m => ({ default: m.RecordsTable })));
-const DailyEntryForm = lazy(() => import("@/components/DailyEntryForm").then(m => ({ default: m.DailyEntryForm })));
-import { EditRecordModal } from "@/components/modals/EditRecordModal";
-import { ConfirmModal } from "@/components/modals/ConfirmModal";
-import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
-import { SaleStatusModal } from "@/components/modals/SaleStatusModal";
-import { AdminViewToggle } from "@/components/AdminViewToggle";
-import { SkeletonLoader } from "@/components/QuotesSkeletonLoader";
-const AnalyticsPanel = lazy(() => import("@/components/AnalyticsPanel").then(m => ({ default: m.AnalyticsPanel })));
-const AuditLogsPanel = lazy(() => import("@/components/AuditLogsPanel").then(m => ({ default: m.AuditLogsPanel })));
-const QuoteRulesPanel = lazy(() => import("@/components/QuoteRulesPanel").then(m => ({ default: m.QuoteRulesPanel })));
-const CopyHelperPanel = lazy(() => import("@/components/CopyHelperPanel").then(m => ({ default: m.CopyHelperPanel })));
-const SaveFileHelperPanel = lazy(() => import("@/components/SaveFileHelperPanel").then(m => ({ default: m.SaveFileHelperPanel })));
-import { IPChecker } from "@/components/IPChecker";
-import { LoginCodesPanel } from "@/components/LoginCodesPanel";
+const StatsGrid = lazy(() => import("@/components/common/StatsGrid").then(m => ({ default: m.StatsGrid })));
+const RecordsTable = lazy(() => import("@/components/quotes-tracker/RecordsTable").then(m => ({ default: m.RecordsTable })));
+const DailyEntryForm = lazy(() => import("@/components/leave-tracker/DailyEntryForm").then(m => ({ default: m.DailyEntryForm })));
+import { EditRecordModal } from "@/components/quotes-tracker/modals/EditRecordModal";
+import { ConfirmModal } from "@/components/common/modals/ConfirmModal";
+import { CustomEntryModal } from "@/components/quotes-tracker/modals/CustomEntryModal";
+import { SaleStatusModal } from "@/components/quotes-tracker/modals/SaleStatusModal";
+import { AdminViewToggle } from "@/components/leave-tracker/AdminViewToggle";
+import { SkeletonLoader } from "@/components/quotes-tracker/QuotesSkeletonLoader";
+const AnalyticsPanel = lazy(() => import("@/components/leave-tracker/AnalyticsPanel").then(m => ({ default: m.AnalyticsPanel })));
+const AuditLogsPanel = lazy(() => import("@/components/common/AuditLogsPanel").then(m => ({ default: m.AuditLogsPanel })));
+const QuoteRulesPanel = lazy(() => import("@/components/quotes-tracker/QuoteRulesPanel").then(m => ({ default: m.QuoteRulesPanel })));
+const CopyHelperPanel = lazy(() => import("@/components/quotes-tracker/CopyHelperPanel").then(m => ({ default: m.CopyHelperPanel })));
+const SaveFileHelperPanel = lazy(() => import("@/components/quotes-tracker/SaveFileHelperPanel").then(m => ({ default: m.SaveFileHelperPanel })));
+import { IPChecker } from "@/components/leave-tracker/IPChecker";
+import { LoginCodesPanel } from "@/components/quotes-tracker/LoginCodesPanel";
 import { validator } from "@/utils/quotesValidator";
 import {
   calculateSummaryStats,

@@ -3,8 +3,8 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Profile, BulkRepresentative } from '@/types';
-import { Modal } from '../Modal';
-import { LeaveApprovalPanel } from '../LeaveApprovalPanel';
+import { Modal } from '@/components/common/Modal';
+import { LeaveApprovalPanel } from '@/components/leave-tracker/LeaveApprovalPanel';
 
 interface SupervisorApprovalModalProps {
   // Supervisor Approvals panel

@@ -9,7 +9,7 @@ import {
   RefreshCw,
   AlertTriangle,
 } from "lucide-react";
-import { StatCard } from "./StatCard";
+import { StatCard } from "@/components/common/StatCard";
 import {
   formatDate,
   HalfYearlyOfficeLeaveStats,

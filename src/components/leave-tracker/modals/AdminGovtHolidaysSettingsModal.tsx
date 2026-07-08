@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { GlobalSettings, formatDate } from '@/utils/dashboardHelpers';
-import { DateInput } from '@/components/DateInput';
+import { DateInput } from '@/components/common/DateInput';
 import { supabase } from '@/utils/supabase';
-import { Modal } from '../Modal';
+import { Modal } from '@/components/common/Modal';
 import { toast } from 'react-hot-toast';
 
 interface AdminGovtHolidaysSettingsModalProps {

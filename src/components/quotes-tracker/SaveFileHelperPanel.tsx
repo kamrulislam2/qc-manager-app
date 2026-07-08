@@ -3,7 +3,7 @@
 import React from "react";
 import { Save, ArrowLeft, Check, X, Edit3, Trash2 } from "lucide-react";
 import { RecordItem, SavedDocument } from "@/types";
-import { ConfirmModal } from "./modals/ConfirmModal";
+import { ConfirmModal } from "@/components/common/modals/ConfirmModal";
 import { isTauriApp } from "@/utils/apiUrlHelper";
 
 interface SaveFileHelperPanelProps {

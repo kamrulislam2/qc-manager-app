@@ -5,9 +5,9 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { Profile, RecordItem, AuditLogItem } from '@/types';
-import { useQuotesTheme } from '@/hooks/useQuotesTheme';
-import { useRecordActions } from '@/hooks/useRecordActions';
-import { useAdminActions } from '@/hooks/useAdminActions';
+import { useQuotesTheme } from '@/hooks/quotes-tracker/useQuotesTheme';
+import { useRecordActions } from '@/hooks/leave-tracker/useRecordActions';
+import { useAdminActions } from '@/hooks/leave-tracker/useAdminActions';
 import { toast } from 'react-hot-toast';
 import {
   syncOfflineData,

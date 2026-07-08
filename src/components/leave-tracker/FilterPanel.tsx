@@ -1,7 +1,7 @@
 import React from 'react';
 import { SlidersHorizontal, Download, RefreshCw } from 'lucide-react';
-import { DateInput } from './DateInput';
-import { CustomSelect } from './CustomSelect';
+import { DateInput } from '@/components/common/DateInput';
+import { CustomSelect } from '@/components/common/CustomSelect';
 
 interface FilterPanelProps {
   filterType: string;

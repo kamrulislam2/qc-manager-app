@@ -5,7 +5,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { Profile } from '@/types';
 
-import { Modal } from '../Modal';
+import { Modal } from '@/components/common/Modal';
 
 interface AdminCancelAdjustmentModalProps {
   showCancelAdjustmentModal: boolean;

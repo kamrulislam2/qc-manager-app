@@ -1,25 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { UserDashboardView } from '@/components/UserDashboardView';
-import { AdminDashboardView } from '@/components/AdminDashboardView';
-import { AddLeave } from '@/components/AddLeave';
-import { AdminLeaveSettings } from '@/components/AdminLeaveSettings';
-import { SkeletonLoader } from '@/components/SkeletonLoader';
+import { Loader2 } from 'lucide-react';
+const UserDashboardView = lazy(() => import('@/components/leave-tracker/UserDashboardView').then(m => ({ default: m.UserDashboardView })));
+const AdminDashboardView = lazy(() => import('@/components/leave-tracker/AdminDashboardView').then(m => ({ default: m.AdminDashboardView })));
+const AddLeave = lazy(() => import('@/components/leave-tracker/AddLeave').then(m => ({ default: m.AddLeave })));
+const AdminLeaveSettings = lazy(() => import('@/components/leave-tracker/AdminLeaveSettings').then(m => ({ default: m.AdminLeaveSettings })));
+const TeamLeaveRecords = lazy(() => import('@/components/leave-tracker/TeamLeaveRecords').then(m => ({ default: m.TeamLeaveRecords })));
+const DashboardModals = lazy(() => import('@/components/leave-tracker/DashboardModals').then(m => ({ default: m.DashboardModals })));
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { DashboardProvider } from '@/contexts/DashboardContext';
-import { DashboardModals } from '@/components/DashboardModals';
-import { TeamLeaveRecords } from '@/components/TeamLeaveRecords';
 import { ChutiRecord } from '@/utils/offlineSync';
 
-import { useDashboardData } from '@/hooks/useDashboardData';
-import { useChutiOperations } from '@/hooks/useChutiOperations';
-import { useAdjustmentOperations } from '@/hooks/useAdjustmentOperations';
-import { useAdminStaffOperations } from '@/hooks/useAdminStaffOperations';
-import { useDerivedState } from '@/hooks/useDerivedState';
-import { useExportOperations } from '@/hooks/useExportOperations';
-import { useModalHandlers } from '@/hooks/useModalHandlers';
+import { useDashboardData } from '@/hooks/leave-tracker/useDashboardData';
+import { useChutiOperations } from '@/hooks/leave-tracker/useChutiOperations';
+import { useAdjustmentOperations } from '@/hooks/leave-tracker/useAdjustmentOperations';
+import { useAdminStaffOperations } from '@/hooks/leave-tracker/useAdminStaffOperations';
+import { useDerivedState } from '@/hooks/leave-tracker/useDerivedState';
+import { useExportOperations } from '@/hooks/leave-tracker/useExportOperations';
+import { useModalHandlers } from '@/hooks/leave-tracker/useModalHandlers';
 
 
 interface DashboardProps {
@@ -679,8 +680,11 @@ export default function Dashboard({
 
   return (
     <DashboardProvider value={contextValue}>
-
-
+      <Suspense fallback={
+        <div className="w-full flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 text-purple-550 animate-spin" />
+        </div>
+      }>
         
         {/* ================= ADD LEAVE INLINE VIEW ================= */}
         {profile?.has_changed_password !== false && !!profile?.is_setup_completed && activeChutiTab === 'add_leave' && (
@@ -845,7 +849,8 @@ export default function Dashboard({
           />
         )}
 
-      <DashboardModals />
+        <DashboardModals />
+      </Suspense>
     </DashboardProvider>
   );
 }

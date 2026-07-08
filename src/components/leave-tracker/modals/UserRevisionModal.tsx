@@ -5,9 +5,9 @@ import { Edit, AlertTriangle, RefreshCw } from "lucide-react";
 import { Profile } from "@/types";
 import { ChutiRecord } from "@/utils/offlineSync";
 import { getCleanComment } from "@/utils/dashboardHelpers";
-import { ChutiFormFields } from "../ChutiFormFields";
+import { ChutiFormFields } from "@/components/leave-tracker/ChutiFormFields";
 
-import { Modal } from "../Modal";
+import { Modal } from "@/components/common/Modal";
 
 interface UserRevisionModalProps {
   showUserRevisionModal: boolean;

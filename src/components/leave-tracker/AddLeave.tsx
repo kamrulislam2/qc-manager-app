@@ -14,13 +14,13 @@ import {
   formatDate,
   getSettlementSplits
 } from '@/utils/dashboardHelpers';
-import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/useLeaveQuotaStats';
+import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/leave-tracker/useLeaveQuotaStats';
 import { sendPushNotification } from '@/utils/webPushHelper';
 import { getApiUrl } from '@/utils/apiUrlHelper';
 import { toast } from 'react-hot-toast';
-import { AddLeaveFormFields } from './AddLeaveFormFields';
-import { LeaveUsageSummary } from './LeaveUsageSummary';
-import { SkeletonLoader } from './SkeletonLoader';
+import { AddLeaveFormFields } from '@/components/leave-tracker/AddLeaveFormFields';
+import { LeaveUsageSummary } from '@/components/leave-tracker/LeaveUsageSummary';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 interface AddLeaveProps {
   profile: Profile | null;

@@ -5,9 +5,9 @@ import { createPortal } from "react-dom";
 import { Profile, ChutiRecordWithProfile } from "@/types";
 import { ChutiRecord } from "@/utils/offlineSync";
 import { exportHelper } from "@/utils/exportHelper";
-import { LeavesRecordsTable } from "./LeavesRecordsTable";
-import { DateInput } from "./DateInput";
-import { TeamLeaveRecordsSkeleton } from "./skeleton/TeamLeaveRecordsSkeleton";
+import { LeavesRecordsTable } from "@/components/leave-tracker/LeavesRecordsTable";
+import { DateInput } from "@/components/common/DateInput";
+import { TeamLeaveRecordsSkeleton } from "@/components/common/skeleton/TeamLeaveRecordsSkeleton";
 import {
   Calendar,
   RefreshCw,
@@ -21,7 +21,7 @@ import {
   formatTimeToAMPM,
   getCleanComment,
 } from "@/utils/dashboardHelpers";
-import { Modal } from "./Modal";
+import { Modal } from "@/components/common/Modal";
 import { supabase } from "@/utils/supabase";
 import toast from "react-hot-toast";
 

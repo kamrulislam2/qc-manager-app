@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { X, Loader2, KeyRound, Check } from "lucide-react";
-import { CategoryCheckboxList } from "../CategoryCheckboxList";
+import { CategoryCheckboxList } from "@/components/quotes-tracker/CategoryCheckboxList";
 import { Profile } from "@/types";
 
 interface EditProfileModalProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CustomSelect } from './CustomSelect';
+import { CustomSelect } from '@/components/common/CustomSelect';
 import { formatTimeToAMPM } from '@/utils/dashboardHelpers';
 
 interface ProfileFieldsProps {

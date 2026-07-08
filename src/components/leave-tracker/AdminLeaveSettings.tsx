@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Trash2, RefreshCw, Settings } from 'lucide-react';
 import { GlobalSettings, formatDate } from '@/utils/dashboardHelpers';
-import { DateInput } from '@/components/DateInput';
+import { DateInput } from '@/components/common/DateInput';
 import { supabase } from '@/utils/supabase';
 import { toast } from 'react-hot-toast';
 

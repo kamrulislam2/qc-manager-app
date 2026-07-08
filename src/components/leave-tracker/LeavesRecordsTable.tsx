@@ -3,12 +3,12 @@ import { createPortal } from 'react-dom';
 import { Edit, Trash2, Search, Plus } from 'lucide-react';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { Profile } from '@/types';
-import { FilterPanel } from './FilterPanel';
-import { StatusBadge } from './StatusBadge';
-import { CustomSelect } from './CustomSelect';
-import { ConfirmModal } from '@/components/modals/ConfirmModal';
+import { FilterPanel } from '@/components/leave-tracker/FilterPanel';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { CustomSelect } from '@/components/common/CustomSelect';
+import { ConfirmModal } from '@/components/common/modals/ConfirmModal';
 
-import { SkeletonLoader } from './SkeletonLoader';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 interface LeavesRecordsTableProps {
   records: ChutiRecord[];

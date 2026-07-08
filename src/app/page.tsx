@@ -5,28 +5,27 @@ import { supabase } from "@/utils/supabase";
 import { Profile } from "@/types";
 import { Loader2 } from "lucide-react";
 import LoginPage from "@/app/login/page";
-import { UnifiedSidebar } from "@/components/UnifiedSidebar";
-import { Navbar } from "@/components/Navbar";
+import { UnifiedSidebar } from "@/components/common/UnifiedSidebar";
+import { Navbar } from "@/components/common/Navbar";
 import { Toaster, toast } from 'react-hot-toast';
-import { useGlobalNotifications } from "@/hooks/useGlobalNotifications";
-import { UserNotificationsModal } from "@/components/modals/UserNotificationsModal";
-import { SkeletonLoader } from "@/components/SkeletonLoader";
-import { SkeletonLoader as QuotesSkeletonLoader } from "@/components/QuotesSkeletonLoader";
+import { useGlobalNotifications } from "@/hooks/leave-tracker/useGlobalNotifications";
+import { UserNotificationsModal } from "@/components/common/modals/UserNotificationsModal";
+import { SkeletonLoader } from "@/components/common/SkeletonLoader";
+import { SkeletonLoader as QuotesSkeletonLoader } from "@/components/quotes-tracker/QuotesSkeletonLoader";
 import { subscribeUserToPush } from "@/utils/webPushHelper";
-import { useDesktopNotifications } from "@/hooks/useDesktopNotifications";
+import { useDesktopNotifications } from "@/hooks/common/useDesktopNotifications";
 import { checkInactivity, registerAndCheckSession, updateSessionLastActiveInDb } from "@/utils/sessionHelper";
 
-import { UserKpiPerformancePanel } from "@/components/user-management/UserKpiPerformancePanel";
-import ChutiDashboard from "@/app/chuti/page";
-
+import { UserKpiPerformancePanel } from "@/components/common/user-management/UserKpiPerformancePanel";
+const ChutiDashboard = lazy(() => import("@/app/chuti/page"));
 const QuotesDashboard = lazy(() => import("@/app/quotes/page"));
 const UserManagementDashboard = lazy(() =>
-  import("@/components/UserManagementDashboard").then((m) => ({
+  import("@/components/common/UserManagementDashboard").then((m) => ({
     default: m.UserManagementDashboard,
   })),
 );
 const TodoPanel = lazy(() =>
-  import("@/components/TodoPanel").then((m) => ({ default: m.TodoPanel })),
+  import("@/components/common/TodoPanel").then((m) => ({ default: m.TodoPanel })),
 );
 
 

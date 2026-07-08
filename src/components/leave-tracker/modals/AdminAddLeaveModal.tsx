@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { RefreshCw, Calendar, AlertTriangle, Loader } from "lucide-react";
 import { Profile } from "@/types";
-import { AddLeaveFormFields } from "@/components/AddLeaveFormFields";
+import { AddLeaveFormFields } from "@/components/leave-tracker/AddLeaveFormFields";
 import { supabase } from "@/utils/supabase";
 import {
   calculateLeaveOrOvertime,
@@ -17,9 +17,9 @@ import {
 import { ChutiRecord, generateUUID } from "@/utils/offlineSync";
 import { sendPushNotification } from "@/utils/webPushHelper";
 import { toast } from "react-hot-toast";
-import { LeaveUsageSummary } from "@/components/LeaveUsageSummary";
+import { LeaveUsageSummary } from "@/components/leave-tracker/LeaveUsageSummary";
 
-import { Modal } from "../Modal";
+import { Modal } from "@/components/common/Modal";
 
 interface AdminAddLeaveModalProps {
   showModal: boolean;

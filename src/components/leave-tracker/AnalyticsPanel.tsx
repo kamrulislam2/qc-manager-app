@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { RecordItem, Profile } from "@/types";
-import { VerifiedBadge } from "./VerifiedBadge";
-import { AnalyticsSkeleton } from "./skeleton/AnalyticsSkeleton";
+import { VerifiedBadge } from "@/components/common/VerifiedBadge";
+import { AnalyticsSkeleton } from "@/components/common/skeleton/AnalyticsSkeleton";
 import {
   FileText,
   TrendingUp,

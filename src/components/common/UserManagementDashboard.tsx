@@ -4,10 +4,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
-import { useAdminActions } from '@/hooks/useAdminActions';
-import { ConfirmModal } from '@/components/modals/ConfirmModal';
-import { Modal } from '@/components/Modal';
-import { UserManagementSkeleton } from '@/components/skeleton/UserManagementSkeleton';
+import { useAdminActions } from '@/hooks/leave-tracker/useAdminActions';
+import { ConfirmModal } from '@/components/common/modals/ConfirmModal';
+import { Modal } from '@/components/common/Modal';
+import { UserManagementSkeleton } from '@/components/common/skeleton/UserManagementSkeleton';
 import toast from 'react-hot-toast';
 import {
   Search,
@@ -24,16 +24,16 @@ import {
   BarChart2,
   FileText
 } from 'lucide-react';
-import { UserDisplayName } from '@/components/UserDisplayName';
+import { UserDisplayName } from '@/components/common/UserDisplayName';
 import { BadgeInfo } from '@/utils/leaderboardHelper';
 
 // Extracted Subtabs Panels
-import { CreateUserPanel } from '@/components/user-management/CreateUserPanel';
-import { UserProfileSettingsPanel } from '@/components/user-management/UserProfileSettingsPanel';
-import { UserLeaveHistoryPanel } from '@/components/user-management/UserLeaveHistoryPanel';
-import { UserQuotesHistoryPanel } from '@/components/user-management/UserQuotesHistoryPanel';
-import { UserKpiPerformancePanel } from '@/components/user-management/UserKpiPerformancePanel';
-import { AddLeave } from '@/components/AddLeave';
+import { CreateUserPanel } from '@/components/common/user-management/CreateUserPanel';
+import { UserProfileSettingsPanel } from '@/components/common/user-management/UserProfileSettingsPanel';
+import { UserLeaveHistoryPanel } from '@/components/common/user-management/UserLeaveHistoryPanel';
+import { UserQuotesHistoryPanel } from '@/components/common/user-management/UserQuotesHistoryPanel';
+import { UserKpiPerformancePanel } from '@/components/common/user-management/UserKpiPerformancePanel';
+import { AddLeave } from '@/components/leave-tracker/AddLeave';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { LeaveSettlement, GovtHolidayResponse } from '@/types';
 import { GlobalSettings, getGlobalSettingsFromProfile } from '@/utils/dashboardHelpers';

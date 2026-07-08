@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { User, AlertTriangle, RefreshCw, X, Lock } from 'lucide-react';
 import { Profile } from '@/types';
 import { subscribeUserToPush, unsubscribeUserFromPush, sendPushNotification } from '@/utils/webPushHelper';
-import { ProfileFields } from '../ProfileFields';
+import { ProfileFields } from '@/components/leave-tracker/ProfileFields';
 import toast from 'react-hot-toast';
 
 interface AdminProfileSettingsModalProps {

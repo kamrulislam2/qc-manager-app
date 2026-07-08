@@ -4,19 +4,19 @@ import { useDashboardContext } from '@/contexts/DashboardContext';
 import { ChutiRecordWithProfile, GovtHolidayResponse } from '@/types';
 import { ChutiRecord } from '@/utils/offlineSync';
 
-import { WelcomeModals } from '@/components/modals/WelcomeModals';
-import { AdminAddLeaveModal } from '@/components/modals/AdminAddLeaveModal';
-import { UserRevisionModal } from '@/components/modals/UserRevisionModal';
-import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
-import { AdjustmentModal } from '@/components/modals/AdjustmentModal';
-import { SupervisorApprovalModal } from '@/components/modals/SupervisorApprovalModal';
-import { AdminProfileSettingsModal } from '@/components/modals/AdminProfileSettingsModal';
-import { AdminLeaveApprovalModal } from '@/components/modals/AdminLeaveApprovalModal';
-import { AdminEditRecordModal } from '@/components/modals/AdminEditRecordModal';
-import { AdminCancelAdjustmentModal } from '@/components/modals/AdminCancelAdjustmentModal';
-import { AdminCreateUserModal } from '@/components/modals/AdminCreateUserModal';
-import { AdminCredentialsModal } from '@/components/modals/AdminCredentialsModal';
-import { AdminDeleteUserModal } from '@/components/modals/AdminDeleteUserModal';
+import { WelcomeModals } from '@/components/common/modals/WelcomeModals';
+import { AdminAddLeaveModal } from '@/components/leave-tracker/modals/AdminAddLeaveModal';
+import { UserRevisionModal } from '@/components/leave-tracker/modals/UserRevisionModal';
+import { DeleteConfirmModal } from '@/components/common/modals/DeleteConfirmModal';
+import { AdjustmentModal } from '@/components/leave-tracker/modals/AdjustmentModal';
+import { SupervisorApprovalModal } from '@/components/leave-tracker/modals/SupervisorApprovalModal';
+import { AdminProfileSettingsModal } from '@/components/leave-tracker/modals/AdminProfileSettingsModal';
+import { AdminLeaveApprovalModal } from '@/components/leave-tracker/modals/AdminLeaveApprovalModal';
+import { AdminEditRecordModal } from '@/components/leave-tracker/modals/AdminEditRecordModal';
+import { AdminCancelAdjustmentModal } from '@/components/leave-tracker/modals/AdminCancelAdjustmentModal';
+import { AdminCreateUserModal } from '@/components/leave-tracker/modals/AdminCreateUserModal';
+import { AdminCredentialsModal } from '@/components/leave-tracker/modals/AdminCredentialsModal';
+import { AdminDeleteUserModal } from '@/components/leave-tracker/modals/AdminDeleteUserModal';
 
 export const DashboardModals = () => {
   const { dashboardData, derivedState, chutiOps, adjustmentOps, adminStaffOps } = useDashboardContext();

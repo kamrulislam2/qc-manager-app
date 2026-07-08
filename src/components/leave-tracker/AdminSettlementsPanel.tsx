@@ -6,12 +6,12 @@ import { Profile, LeaveSettlement, GovtHolidayResponse } from '@/types';
 import { sendPushNotification } from '@/utils/webPushHelper';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { GlobalSettings, calculateStats, calculateHalfYearlyOfficeLeave, getSettlementSplits, getSettlementLabel } from '@/utils/dashboardHelpers';
-import { AdminSettleUserModal } from './modals/AdminSettleUserModal';
+import { AdminSettleUserModal } from '@/components/leave-tracker/modals/AdminSettleUserModal';
 import { toast } from 'react-hot-toast';
-import { Modal } from './Modal';
-import { CustomSelect } from './CustomSelect';
+import { Modal } from '@/components/common/Modal';
+import { CustomSelect } from '@/components/common/CustomSelect';
 import { exportHelper } from '@/utils/exportHelper';
-import { SkeletonLoader } from './SkeletonLoader';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 interface AdminSettlementsPanelProps {
   profilesList: Profile[];

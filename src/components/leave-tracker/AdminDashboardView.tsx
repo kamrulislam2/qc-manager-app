@@ -11,10 +11,10 @@ import {
   Download
 } from 'lucide-react';
 import { Profile, ChutiRecordWithProfile, GovtHolidayResponse, LeaveSettlement } from '@/types';
-import { AdminSettlementsPanel } from './AdminSettlementsPanel';
+import { AdminSettlementsPanel } from '@/components/leave-tracker/AdminSettlementsPanel';
 import { ChutiRecord } from '@/utils/offlineSync';
-import { LeavesRecordsTable } from './LeavesRecordsTable';
-import { StaffMasterTable } from './StaffMasterTable';
+import { LeavesRecordsTable } from '@/components/leave-tracker/LeavesRecordsTable';
+import { StaffMasterTable } from '@/components/leave-tracker/StaffMasterTable';
 import {
   formatDate,
   formatTimeToAMPM,
@@ -26,14 +26,14 @@ import {
   parseHolidayItem,
   getSettlementSplits
 } from '@/utils/dashboardHelpers';
-import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/useLeaveQuotaStats';
-import { AdminOfficeLeaveSettingsModal } from './modals/AdminOfficeLeaveSettingsModal';
-import { AdminEidLeaveSettingsModal } from './modals/AdminEidLeaveSettingsModal';
-import { AdminGovtHolidaysSettingsModal } from './modals/AdminGovtHolidaysSettingsModal';
-import { StatCard } from './StatCard';
-import { UserStats } from './UserStats';
-import { DateInput } from './DateInput';
-import { SkeletonLoader } from './SkeletonLoader';
+import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/leave-tracker/useLeaveQuotaStats';
+import { AdminOfficeLeaveSettingsModal } from '@/components/leave-tracker/modals/AdminOfficeLeaveSettingsModal';
+import { AdminEidLeaveSettingsModal } from '@/components/leave-tracker/modals/AdminEidLeaveSettingsModal';
+import { AdminGovtHolidaysSettingsModal } from '@/components/leave-tracker/modals/AdminGovtHolidaysSettingsModal';
+import { StatCard } from '@/components/common/StatCard';
+import { UserStats } from '@/components/leave-tracker/UserStats';
+import { DateInput } from '@/components/common/DateInput';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 interface AdminDashboardViewProps {
   profilesList: Profile[];

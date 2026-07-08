@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, RotateCcw, ShieldAlert, DollarSign, FolderPlus, ArrowRightLeft, Check } from 'lucide-react';
 import { Profile, LeaveSettlement, GovtHolidayResponse } from '@/types';
-import { Modal } from '../Modal';
+import { Modal } from '@/components/common/Modal';
 
 import { GlobalSettings, getOutstandingOfficeLeave, calculateStats, formatDaysAndHours } from '@/utils/dashboardHelpers';
 import { ChutiRecord } from '@/utils/offlineSync';

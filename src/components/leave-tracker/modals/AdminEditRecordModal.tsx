@@ -4,8 +4,8 @@ import React from "react";
 import { Edit, RefreshCw } from "lucide-react";
 import { Profile } from "@/types";
 import { ChutiRecord } from "@/utils/offlineSync";
-import { ChutiFormFields } from "../ChutiFormFields";
-import { Modal } from "../Modal";
+import { ChutiFormFields } from "@/components/leave-tracker/ChutiFormFields";
+import { Modal } from "@/components/common/Modal";
 
 interface AdminEditRecordModalProps {
   showAdminEditModal: boolean;

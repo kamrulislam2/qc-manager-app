@@ -1,19 +1,19 @@
 import React from 'react';
-import { TableSkeleton } from './skeleton/TableSkeleton';
-import { StatsSkeleton } from './skeleton/StatsSkeleton';
-import { ListSkeleton } from './skeleton/ListSkeleton';
-import { ProfileHeaderSkeleton } from './skeleton/ProfileHeaderSkeleton';
-import { LeavesTableSkeleton } from './skeleton/LeavesTableSkeleton';
-import { UserManagementSkeleton } from './skeleton/UserManagementSkeleton';
-import { ResponsesTableSkeleton } from './skeleton/ResponsesTableSkeleton';
-import { SettlementsTableSkeleton } from './skeleton/SettlementsTableSkeleton';
-import { ChutiFormSkeleton } from './skeleton/ChutiFormSkeleton';
-import { LeaveHistorySkeleton } from './skeleton/LeaveHistorySkeleton';
-import { LeaveSettingsSkeleton } from './skeleton/LeaveSettingsSkeleton';
-import { TodoSkeleton } from './skeleton/TodoSkeleton';
-import { AnalyticsSkeleton } from './skeleton/AnalyticsSkeleton';
-import { AuditLogsSkeleton } from './skeleton/AuditLogsSkeleton';
-import { TeamLeaveRecordsSkeleton } from './skeleton/TeamLeaveRecordsSkeleton';
+import { TableSkeleton } from '@/components/common/skeleton/TableSkeleton';
+import { StatsSkeleton } from '@/components/common/skeleton/StatsSkeleton';
+import { ListSkeleton } from '@/components/common/skeleton/ListSkeleton';
+import { ProfileHeaderSkeleton } from '@/components/common/skeleton/ProfileHeaderSkeleton';
+import { LeavesTableSkeleton } from '@/components/common/skeleton/LeavesTableSkeleton';
+import { UserManagementSkeleton } from '@/components/common/skeleton/UserManagementSkeleton';
+import { ResponsesTableSkeleton } from '@/components/common/skeleton/ResponsesTableSkeleton';
+import { SettlementsTableSkeleton } from '@/components/common/skeleton/SettlementsTableSkeleton';
+import { ChutiFormSkeleton } from '@/components/common/skeleton/ChutiFormSkeleton';
+import { LeaveHistorySkeleton } from '@/components/common/skeleton/LeaveHistorySkeleton';
+import { LeaveSettingsSkeleton } from '@/components/common/skeleton/LeaveSettingsSkeleton';
+import { TodoSkeleton } from '@/components/common/skeleton/TodoSkeleton';
+import { AnalyticsSkeleton } from '@/components/common/skeleton/AnalyticsSkeleton';
+import { AuditLogsSkeleton } from '@/components/common/skeleton/AuditLogsSkeleton';
+import { TeamLeaveRecordsSkeleton } from '@/components/common/skeleton/TeamLeaveRecordsSkeleton';
 
 interface SkeletonLoaderProps {
   variant?: 'table' | 'stats' | 'list' | 'profile-header' | 'leaves-table' | 'staff-table' | 'responses-table' | 'settlements-table' | 'chuti-form' | 'leave-history' | 'leave-settings' | 'todo' | 'analytics' | 'audit-logs' | 'team-leaves-report';

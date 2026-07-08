@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, RefreshCw } from "lucide-react";
 import { GlobalSettings } from "@/utils/dashboardHelpers";
-import { Modal } from "@/components/Modal";
+import { Modal } from "@/components/common/Modal";
 
 interface AdminEidLeaveSettingsModalProps {
   showModal: boolean;

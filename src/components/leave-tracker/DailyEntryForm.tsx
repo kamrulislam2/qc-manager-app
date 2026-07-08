@@ -1,8 +1,8 @@
 import React from "react";
 import { FileText, MapPin, UserCheck, Plus, Loader2, X } from "lucide-react";
 import { FileType } from "@/types";
-import { CategorySelector } from "./CategorySelector";
-import { BranchSelector } from "./BranchSelector";
+import { CategorySelector } from "@/components/quotes-tracker/CategorySelector";
+import { BranchSelector } from "@/components/common/BranchSelector";
 
 interface DailyEntryFormProps {
   fileName: string;

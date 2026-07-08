@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import { FileType, Profile } from "@/types";
 import { formatDate } from "@/utils/quotesDashboardHelpers";
-import { CategorySelector } from "../CategorySelector";
-import { BranchSelector } from "../BranchSelector";
+import { CategorySelector } from "@/components/quotes-tracker/CategorySelector";
+import { BranchSelector } from "@/components/common/BranchSelector";
 
 interface CustomEntryModalProps {
   isOpen: boolean;

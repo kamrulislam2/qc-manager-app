@@ -3,7 +3,7 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Profile } from '@/types';
-import { Modal } from '../Modal';
+import { Modal } from '@/components/common/Modal';
 
 interface AdminDeleteUserModalProps {
   showDeleteUserModal: boolean;

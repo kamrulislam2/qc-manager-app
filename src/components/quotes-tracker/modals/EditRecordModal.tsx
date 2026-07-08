@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from "react";
 import { X, Loader2 } from "lucide-react";
 import { FileType } from "@/types";
-import { BranchSelector } from "../BranchSelector";
+import { BranchSelector } from "@/components/common/BranchSelector";
 
 interface EditRecordModalProps {
   editFileName: string;

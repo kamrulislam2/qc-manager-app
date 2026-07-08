@@ -3,9 +3,9 @@
 import React from 'react';
 import { CheckCircle, Lock, AlertTriangle, User, RefreshCw } from 'lucide-react';
 import { Profile } from '@/types';
-import { PasswordMatchIndicator } from '@/components/PasswordMatchIndicator';
-import { ProfileFields } from '../ProfileFields';
-import { Modal } from '../Modal';
+import { PasswordMatchIndicator } from '@/components/common/PasswordMatchIndicator';
+import { ProfileFields } from '@/components/leave-tracker/ProfileFields';
+import { Modal } from '@/components/common/Modal';
 
 interface WelcomeModalsProps {
   // Onboarding welcome popup

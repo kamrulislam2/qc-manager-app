@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { Edit, RefreshCw } from 'lucide-react';
-import { PasswordMatchIndicator } from '@/components/PasswordMatchIndicator';
+import { PasswordMatchIndicator } from '@/components/common/PasswordMatchIndicator';
 import { Profile } from '@/types';
-import { Modal } from '../Modal';
+import { Modal } from '@/components/common/Modal';
 
 interface AdminCredentialsModalProps {
   showCredentialsModal: boolean;

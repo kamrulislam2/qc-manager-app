@@ -4,7 +4,7 @@ import React from 'react';
 import { Trash2, RefreshCw } from 'lucide-react';
 import { ChutiRecord } from '@/utils/offlineSync';
 
-import { Modal } from '../Modal';
+import { Modal } from '@/components/common/Modal';
 
 interface DeleteConfirmModalProps {
   showDeleteModal: boolean;

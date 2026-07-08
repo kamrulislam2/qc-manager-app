@@ -17,9 +17,9 @@ import {
   Edit
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { ConfirmModal } from '@/components/modals/ConfirmModal';
+import { ConfirmModal } from '@/components/common/modals/ConfirmModal';
 import { createPortal } from 'react-dom';
-import { TodoSkeleton } from './skeleton/TodoSkeleton';
+import { TodoSkeleton } from '@/components/common/skeleton/TodoSkeleton';
 
 interface TodoPanelProps {
   profile: Profile | null;

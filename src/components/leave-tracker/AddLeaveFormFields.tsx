@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { DateInput } from '@/components/DateInput';
+import { DateInput } from '@/components/common/DateInput';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { formatDate, formatTimeToAMPM, formatDaysAndHours, checkIfHolidayOrWeekend, getLeaveValidationError } from '@/utils/dashboardHelpers';
-import { CustomSelect } from './CustomSelect';
+import { CustomSelect } from '@/components/common/CustomSelect';
 
 interface AddLeaveFormFieldsProps {
   date: string;

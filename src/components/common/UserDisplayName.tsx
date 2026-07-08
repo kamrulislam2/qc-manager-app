@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Profile } from "@/types";
 import { BadgeInfo } from "@/utils/leaderboardHelper";
-import { VerifiedBadge } from "./VerifiedBadge";
+import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 
 interface UserDisplayNameProps {
   profile: Profile;

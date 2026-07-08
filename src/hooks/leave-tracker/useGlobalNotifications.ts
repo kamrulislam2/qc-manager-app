@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
 import { ChutiRecord } from '@/utils/offlineSync';
-import { NotificationItem } from '@/hooks/useDerivedState';
+import { NotificationItem } from '@/hooks/leave-tracker/useDerivedState';
 import { toast } from 'react-hot-toast';
 import { parseHolidayItem, getGlobalSettingsFromProfile, defaultGlobalSettings } from '@/utils/dashboardHelpers';
 

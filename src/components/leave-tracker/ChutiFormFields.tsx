@@ -1,6 +1,6 @@
 import React from 'react';
-import { DateInput } from '@/components/DateInput';
-import { CustomSelect } from './CustomSelect';
+import { DateInput } from '@/components/common/DateInput';
+import { CustomSelect } from '@/components/common/CustomSelect';
 import { formatTimeToAMPM } from '@/utils/dashboardHelpers';
 
 interface ChutiFormFieldsProps {

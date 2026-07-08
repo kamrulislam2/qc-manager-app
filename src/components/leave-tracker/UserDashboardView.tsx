@@ -1,6 +1,6 @@
 import React from 'react';
-import { UserStats } from './UserStats';
-import { LeavesRecordsTable } from './LeavesRecordsTable';
+import { UserStats } from '@/components/leave-tracker/UserStats';
+import { LeavesRecordsTable } from '@/components/leave-tracker/LeavesRecordsTable';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { Profile, GovtHolidayResponse, LeaveSettlement } from '@/types';
 import {
@@ -14,9 +14,9 @@ import {
   getSettlementSplits,
   getSettlementLabel
 } from '@/utils/dashboardHelpers';
-import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/useLeaveQuotaStats';
+import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/leave-tracker/useLeaveQuotaStats';
 import { Calendar, RotateCcw, RefreshCw, ArrowLeft } from 'lucide-react';
-import { UserSettleModal } from './modals/UserSettleModal';
+import { UserSettleModal } from '@/components/leave-tracker/modals/UserSettleModal';
 
 interface UserDashboardViewProps {
   profile: Profile | null;

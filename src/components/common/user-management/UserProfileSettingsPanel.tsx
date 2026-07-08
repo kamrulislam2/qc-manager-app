@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Profile } from "@/types";
-import { StaffSettingsForm } from "@/components/StaffSettingsForm";
+import { StaffSettingsForm } from "@/components/leave-tracker/StaffSettingsForm";
 import {
   RefreshCw,
   KeyRound,

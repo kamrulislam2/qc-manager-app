@@ -3,8 +3,8 @@
 import React from 'react';
 import { Bell } from 'lucide-react';
 import { Profile, ChutiRecordWithProfile, BulkRepresentative } from '@/types';
-import { Modal } from '../Modal';
-import { LeaveApprovalPanel } from '../LeaveApprovalPanel';
+import { Modal } from '@/components/common/Modal';
+import { LeaveApprovalPanel } from '@/components/leave-tracker/LeaveApprovalPanel';
 
 interface AdminLeaveApprovalModalProps {
   showLeaveApprovalModal: boolean;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { User, Plus, Download, Search } from 'lucide-react';
-import { CustomSelect } from './CustomSelect';
-import { SkeletonLoader } from './SkeletonLoader';
+import { CustomSelect } from '@/components/common/CustomSelect';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 export interface Profile {
   id: string;

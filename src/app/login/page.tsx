@@ -14,8 +14,8 @@ import {
   Apple,
 } from "lucide-react";
 import { getApiUrl, isTauriApp } from "@/utils/apiUrlHelper";
-import { useAppReleaseLinks } from "@/hooks/useAppReleaseLinks";
-import { Modal } from "@/components/Modal";
+import { useAppReleaseLinks } from "@/hooks/common/useAppReleaseLinks";
+import { Modal } from "@/components/common/Modal";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

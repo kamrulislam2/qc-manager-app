@@ -3,7 +3,7 @@
 import React from 'react';
 import { Profile, GovtHolidayResponse, LeaveSettlement } from '@/types';
 import { ChutiRecord } from '@/utils/offlineSync';
-import { UserDashboardView } from '@/components/UserDashboardView';
+import { UserDashboardView } from '@/components/leave-tracker/UserDashboardView';
 import { Loader2 } from 'lucide-react';
 import {
   calculateStats,
@@ -15,7 +15,7 @@ import {
   formatTimeToAMPM,
   getCleanComment
 } from '@/utils/dashboardHelpers';
-import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/useLeaveQuotaStats';
+import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/leave-tracker/useLeaveQuotaStats';
 
 interface UserLeaveHistoryPanelProps {
   viewingStaff: Profile;

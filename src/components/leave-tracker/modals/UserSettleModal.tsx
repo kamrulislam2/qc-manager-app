@@ -5,7 +5,7 @@ import { RefreshCw, RotateCcw, Sparkles, CheckCircle2, DollarSign, ArrowRightLef
 import { Profile, LeaveSettlement, GovtHolidayResponse } from '@/types';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { GlobalSettings, calculateStats, calculateHalfYearlyOfficeLeave, getSettlementSplits, getOutstandingOfficeLeave, formatDaysAndHours } from '@/utils/dashboardHelpers';
-import { Modal } from '../Modal';
+import { Modal } from '@/components/common/Modal';
 import { supabase } from '@/utils/supabase';
 import { sendPushNotification } from '@/utils/webPushHelper';
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { Check } from "lucide-react";
-import { Toggle } from "./Toggle";
-import { CategoryCheckboxList } from "./CategoryCheckboxList";
+import { Toggle } from "@/components/common/Toggle";
+import { CategoryCheckboxList } from "@/components/quotes-tracker/CategoryCheckboxList";
 import { Profile } from "@/types";
 import { formatTimeToAMPM } from "@/utils/dashboardHelpers";
 

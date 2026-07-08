@@ -18,8 +18,8 @@ import {
 import { Profile } from '@/types';
 import { downloadLatestRelease, DownloadPlatform } from '@/utils/downloadHelper';
 
-import { VerifiedBadge } from './VerifiedBadge';
-import { UserDisplayName } from './UserDisplayName';
+import { VerifiedBadge } from '@/components/common/VerifiedBadge';
+import { UserDisplayName } from '@/components/common/UserDisplayName';
 import { BadgeInfo } from '@/utils/leaderboardHelper';
 
 interface NavbarProps {

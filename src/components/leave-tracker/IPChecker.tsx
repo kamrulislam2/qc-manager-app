@@ -8,7 +8,7 @@ import {
   CheckCircle,
   Loader2,
 } from "lucide-react";
-import { IPCheckerSkeleton } from "./skeleton/IPCheckerSkeleton";
+import { IPCheckerSkeleton } from "@/components/common/skeleton/IPCheckerSkeleton";
 
 interface WindowWithTauri extends Window {
   __TAURI__?: {

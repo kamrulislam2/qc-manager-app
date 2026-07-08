@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
-import { Modal } from '../Modal';
-import { CustomSelect } from '../CustomSelect';
+import { Modal } from '@/components/common/Modal';
+import { CustomSelect } from '@/components/common/CustomSelect';
 import { Profile } from '@/types';
 
 interface AdminCreateUserModalProps {
