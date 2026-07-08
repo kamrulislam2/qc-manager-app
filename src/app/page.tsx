@@ -952,6 +952,8 @@ export default function AppPortal() {
                   <SkeletonLoader variant="analytics" />
                 ) : activeTab === "audit_logs" ? (
                   <SkeletonLoader variant="audit-logs" />
+                ) : activeTab === "kpi" ? (
+                  null
                 ) : (
                   <SkeletonLoader variant="table" />
                 )}
