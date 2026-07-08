@@ -81,6 +81,10 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
   const [saving, setSaving] = useState(false);
   const [dbState, setDbState] = useState<'synced' | 'local' | 'checking'>('checking');
   const [isDirty, setIsDirty] = useState(false);
+
+  // Autocomplete suggestions for Appraiser
+  const [appUsers, setAppUsers] = useState<{ id: string; full_name: string; username: string; }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   // Production stats count
   const [typeCounts, setTypeCounts] = useState<Record<string, number>>({});
@@ -107,6 +111,22 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
       }
     };
     fetchSession();
+  }, []);
+
+  // Fetch active users for appraiser autocomplete
+  useEffect(() => {
+    const fetchAppUsers = async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, full_name, username')
+          .order('full_name', { ascending: true });
+        if (data) setAppUsers(data);
+      } catch (err) {
+        console.warn('Failed to fetch user profiles for suggestions:', err);
+      }
+    };
+    fetchAppUsers();
   }, []);
 
   // Is current viewer allowed to edit supervisor/appraiser fields?
@@ -137,6 +157,20 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
     if (!appraiser) return false;
     return name === appraiser || uname === appraiser;
   }, [currentUser, appraiserName]);
+
+  const hasSupervisors = useMemo(() => {
+    return targetStaff.supervisor_ids && targetStaff.supervisor_ids.length > 0;
+  }, [targetStaff.supervisor_ids]);
+
+  const filteredSuggestions = useMemo(() => {
+    const query = (appraiserName || '').trim().toLowerCase();
+    if (!query) return [];
+    return appUsers.filter(u => {
+      const name = (u.full_name || '').toLowerCase();
+      const uname = (u.username || '').toLowerCase();
+      return name.includes(query) || uname.includes(query);
+    });
+  }, [appraiserName, appUsers]);
 
   // Format dates for display
   const evaluationPeriod = useMemo(() => {
@@ -1233,14 +1267,43 @@ USING (auth.uid() = user_id OR EXISTS (
           {/* Appraiser's Name */}
           <div className="flex items-center border-b border-slate-900 pb-2 print:border-neutral-200">
             <span className="w-32 font-semibold text-slate-400 shrink-0 print:text-black">Appraiser's Name</span>
-            {isSupervisorOrAdmin ? (
-              <input
-                type="text"
-                placeholder="Md Jahangir Hossan"
-                value={appraiserName}
-                onChange={(e) => setAppraiserName(e.target.value)}
-                className="bg-slate-900/60 border border-slate-850 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-750 focus:outline-hidden focus:border-blue-500 w-52 transition-colors print:bg-transparent print:border-0 print:p-0 print:text-black"
-              />
+            {!hasSupervisors && isSupervisorOrAdmin ? (
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Type to search Appraiser..."
+                  value={appraiserName}
+                  onChange={(e) => {
+                    setAppraiserName(e.target.value);
+                    setIsDirty(true);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-600 focus:outline-hidden focus:border-blue-500 w-52 transition-colors print:hidden"
+                />
+                {showSuggestions && filteredSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50 divide-y divide-slate-900">
+                    {filteredSuggestions.map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => {
+                          setAppraiserName(user.full_name || user.username);
+                          setShowSuggestions(false);
+                          setIsDirty(true);
+                        }}
+                        className="w-full text-left px-3 py-2 text-[11px] hover:bg-blue-600/15 text-slate-355 hover:text-white transition-colors cursor-pointer flex justify-between items-center"
+                      >
+                        <span className="font-semibold">{user.full_name || user.username}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">@{user.username}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Print mode text representation */}
+                <span className="hidden print:inline font-medium text-black">{appraiserName || '—'}</span>
+              </div>
             ) : (
               <span className="font-medium text-white print:text-black">{appraiserName || '—'}</span>
             )}
