@@ -1,6 +1,6 @@
 # 🌟 QC App — Unified Office Leave Tracker & Quotes Manager
 
-**Version 3.3.1** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 3.4.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -116,7 +116,13 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v3.3.1 — Patch Release (Current)
+### 🚀 v3.4.0 — Minor Release (Current)
+*   **Workspace Modularization**: Restructured components, modals, and hooks into `leave-tracker`, `quotes-tracker`, and `common` scopes, resolving architecture complexity.
+*   **Performance & Lazy-loading**: Implemented React lazy loading on all heavy workspace panels and tab views with smooth `<Suspense>` loaders, decreasing initial JS payload and speeding up initial page load.
+*   **Supabase Edge Function Push Notifications**: Ported push notification logic from Node/Next.js to a globally distributed Deno Edge Function (`send-push`), allowing faster delivery, RLS-bypassing secure operations, and zero Serverless function execution billing on Vercel.
+*   **Linter & Dead Code Cleanup**: Removed unused variables (`isTauri`, `adminActiveTab`, `shiftEndMins`) and excluded Deno functions from `tsconfig` checking for a squeaky-clean build.
+
+### 🚀 v3.3.1 — Patch Release
 *   **Minimal Scrollbar Aesthetics**: Implemented a global, custom `.custom-scrollbar` utility style (thin, transparent by default, fading in on hover) and applied it to custom select dropdowns, user notifications modal, and leave approval panels.
 *   **Notifications Persistence & Expiry**: Extended dismissed notifications persistence in local storage to 30 days (preventing them from reappearing after 1 day). Automatically filter out non-actionable informational notifications older than 7 days from the list.
 *   **React Hook Purity Fix**: Resolved an ESLint compilation error where `Date.now()` was called inside `useMemo` by substituting it with the stable `currentSessionTime` timestamp.

@@ -121,14 +121,14 @@ jobs:
           releaseBody: |
             ### QC App v__VERSION__ 🚀
 
-            **v3.3.1** introduces global minimal scrollbar aesthetics, extended notification persistence (up to 30 days), auto-cleanup of older notifications, and strict compiler purity fixes.
+            **v3.4.0** introduces a modular workspace refactoring, extensive code-splitting for fast load times, and a port of push notification services to Supabase Edge Functions.
 
-            #### 🛠 What's New in v3.3.1:
+            #### 🛠 What's New in v3.4.0:
 
-            - **Minimal Scrollbar Aesthetics** — Designed a global `.custom-scrollbar` utility (thin, transparent by default, fading in on hover) and integrated it across dropdown selectors, notification menus, and leave approval panel lists.
-            - **Expanded Notification Persistence** — Changed dismissed notification retention in localStorage from 24 hours to 30 days so dismissed alerts do not reappear.
-            - **Auto-Cleanup of Old Alerts** — Implemented automatic filtering to hide non-actionable informational notifications older than 7 days, keeping the dashboard clean.
-            - **Strict Compiler React Purity Fix** — Resolved ESLint compilation issues with React 19 strict hooks purity rules.
+            - **Workspace Modularization** — Organized the codebase into dedicated domains: `leave-tracker`, `quotes-tracker`, and `common` (shared panels like User Management, KPIs, and Audit Logs) to simplify scalability.
+            - **Performance & Lazy-loading** — Lazily loaded heavy panels and tabs with visual skeleton fallbacks under `<Suspense>` to reduce initial load latency.
+            - **Supabase Edge Function Push Notifications** — Ported push notification dispatch logic to a globally distributed Deno Edge Function (`send-push`), allowing faster delivery, RLS-bypassing secure operations, and zero Serverless function execution billing on Vercel.
+            - **Dead Code Cleanup** — Cleaned up several compiler/linter warnings (unused imports/variables) and isolated Deno function scopes in TypeScript configs.
 
             #### 📦 Installation Instructions:
             - **Windows (64-bit)**: Download the `x86_64` `.exe` or `.msi` installer.
