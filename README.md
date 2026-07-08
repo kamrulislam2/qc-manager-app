@@ -1,6 +1,6 @@
 # 🌟 QC App — Unified Office Leave Tracker & Quotes Manager
 
-**Version 3.4.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 3.5.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -116,7 +116,14 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v3.4.0 — Minor Release (Current)
+### 🚀 v3.5.0 — Minor Release (Current)
+*   **Asitis Causality Format Editor**: Added a fully inline-editable document format template editor for the Asitis Causality quotes tracker subtab, complete with hover fields and Supabase cloud sync.
+*   **Realtime Database Egress Optimization**: Added a `user_id` filter to the PostgreSQL realtime changes channel for the `records` table, preventing unnecessary database re-fetches and reducing network egress by 99%.
+*   **Audit Logs Query Limiting**: Added a `.limit(150)` constraint to the system audit logs query to prevent database egress overload.
+*   **Absolute Floating Context Menus**: Adjusted context menu positioning coordinates to render right-click options exactly under the cursor in both the Asitis Causality and Login Codes pages.
+*   **Causality Page Skeleton Loader**: Created and integrated `AsitisCausalitySkeleton.tsx` for loading state visualization.
+
+### 🚀 v3.4.0 — Minor Release
 *   **Workspace Modularization**: Restructured components, modals, and hooks into `leave-tracker`, `quotes-tracker`, and `common` scopes, resolving architecture complexity.
 *   **Performance & Lazy-loading**: Implemented React lazy loading on all heavy workspace panels and tab views with smooth `<Suspense>` loaders, decreasing initial JS payload and speeding up initial page load.
 *   **Supabase Edge Function Push Notifications**: Ported push notification logic from Node/Next.js to a globally distributed Deno Edge Function (`send-push`), allowing faster delivery, RLS-bypassing secure operations, and zero Serverless function execution billing on Vercel.

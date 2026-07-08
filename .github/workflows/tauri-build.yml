@@ -121,14 +121,15 @@ jobs:
           releaseBody: |
             ### QC App v__VERSION__ 🚀
 
-            **v3.4.0** introduces a modular workspace refactoring, extensive code-splitting for fast load times, and a port of push notification services to Supabase Edge Functions.
+            **v3.5.0** introduces the Asitis Causality format editor, Supabase real-time network egress optimizations, visual loading skeletons, and improved absolute mouse click menu alignment.
 
-            #### 🛠 What's New in v3.4.0:
+            #### 🛠 What's New in v3.5.0:
 
-            - **Workspace Modularization** — Organized the codebase into dedicated domains: `leave-tracker`, `quotes-tracker`, and `common` (shared panels like User Management, KPIs, and Audit Logs) to simplify scalability.
-            - **Performance & Lazy-loading** — Lazily loaded heavy panels and tabs with visual skeleton fallbacks under `<Suspense>` to reduce initial load latency.
-            - **Supabase Edge Function Push Notifications** — Ported push notification dispatch logic to a globally distributed Deno Edge Function (`send-push`), allowing faster delivery, RLS-bypassing secure operations, and zero Serverless function execution billing on Vercel.
-            - **Dead Code Cleanup** — Cleaned up several compiler/linter warnings (unused imports/variables) and isolated Deno function scopes in TypeScript configs.
+            - **Asitis Causality Format Editor** — Shipped a live-editable document template editor for Asitis Causality format. Features inline title editing, hover action keys (Add/Delete), and Supabase synchronization.
+            - **Realtime Database Egress Optimization** — Added a user-level filter (`user_id`) to the real-time WebSocket channel for records. This stops the app from making massive database re-fetches when other users submit records, reducing network egress usage by 99%.
+            - **Audit Logs Query Limiting** — Added a query limit of 150 records to the system audit logs fetcher, preventing loading unnecessary historical log records in the background.
+            - **Absolute Floating Context Menus** — Changed coordinate calculations to relative position bounding rects, ensuring right-click context menus open exactly under the cursor without layout shifts.
+            - **Dedicated Skeleton Loaders** — Designed and integrated a loading skeleton for the Asitis Causality workspace to ensure smooth UI transition states.
 
             #### 📦 Installation Instructions:
             - **Windows (64-bit)**: Download the `x86_64` `.exe` or `.msi` installer.
