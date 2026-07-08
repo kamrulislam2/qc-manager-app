@@ -1283,7 +1283,22 @@ USING (auth.uid() = user_id OR EXISTS (
                   className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-600 focus:outline-hidden focus:border-blue-500 w-52 transition-colors print:hidden"
                 />
                 {showSuggestions && filteredSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50 divide-y divide-slate-900">
+                  <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50 divide-y divide-slate-900 custom-scrollbar">
+                    <style>{`
+                      .custom-scrollbar::-webkit-scrollbar {
+                        width: 5px;
+                      }
+                      .custom-scrollbar::-webkit-scrollbar-track {
+                        background: transparent;
+                      }
+                      .custom-scrollbar::-webkit-scrollbar-thumb {
+                        background: rgba(255, 255, 255, 0.12);
+                        border-radius: 9999px;
+                      }
+                      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                        background: rgba(255, 255, 255, 0.25);
+                      }
+                    `}</style>
                     {filteredSuggestions.map((user) => (
                       <button
                         key={user.id}
