@@ -23,6 +23,7 @@ const CopyHelperPanel = lazy(() => import("@/components/quotes-tracker/CopyHelpe
 const SaveFileHelperPanel = lazy(() => import("@/components/quotes-tracker/SaveFileHelperPanel").then(m => ({ default: m.SaveFileHelperPanel })));
 import { IPChecker } from "@/components/leave-tracker/IPChecker";
 import { LoginCodesPanel } from "@/components/quotes-tracker/LoginCodesPanel";
+import { AsitisCausalityPanel } from "@/components/quotes-tracker/AsitisCausalityPanel";
 import { validator } from "@/utils/quotesValidator";
 import {
   calculateSummaryStats,
@@ -61,8 +62,8 @@ const ALL_10_FILE_TYPES = [
 ];
 
 interface DashboardProps {
-  activeTab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes";
-  onTabChange: (tab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes") => void;
+  activeTab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "asitis_causality";
+  onTabChange: (tab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "asitis_causality") => void;
 }
 
 export default function Dashboard({
@@ -1025,6 +1026,7 @@ export default function Dashboard({
   if (loading) {
     let loaderType: "form" | "table" | "analytics" | "audit-logs" | "rules" | "ip_checker" | "login_codes" | "generic" = "generic";
     if (activeTab === "entry") loaderType = "form";
+    else if (activeTab === "asitis_causality") loaderType = "form";
     else if (activeTab === "monthly") loaderType = "table";
     else if (activeTab === "analytics") loaderType = "analytics";
     else if (activeTab === "audit_logs") loaderType = "audit-logs";
@@ -1678,6 +1680,11 @@ export default function Dashboard({
               isOnline={isOnline}
               showToast={showToast}
             />
+          )}
+
+          {/* TAB 9: ASITIS CAUSALITY */}
+          {activeTab === "asitis_causality" && (
+            <AsitisCausalityPanel />
           )}
 
 

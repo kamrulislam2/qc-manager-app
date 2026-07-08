@@ -109,7 +109,7 @@ export default function AppPortal() {
   }, []);
 
   const [activeQuotesTab, setActiveQuotesTab] = useState<
-    "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes"
+    "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "asitis_causality"
   >(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("quotes_sales_active_tab");
@@ -120,7 +120,8 @@ export default function AppPortal() {
         saved === "audit_logs" ||
         saved === "rules" ||
         saved === "ip_checker" ||
-        saved === "login_codes"
+        saved === "login_codes" ||
+        saved === "asitis_causality"
       ) {
         return saved as
           | "entry"
@@ -129,7 +130,8 @@ export default function AppPortal() {
           | "audit_logs"
           | "rules"
           | "ip_checker"
-          | "login_codes";
+          | "login_codes"
+          | "asitis_causality";
       }
     }
     return "entry";
@@ -155,7 +157,7 @@ export default function AppPortal() {
   });
 
   const handleQuotesTabChange = (
-    tab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes",
+    tab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "asitis_causality",
   ) => {
     if (tab === "analytics" || tab === "audit_logs") {
       setActiveTab(tab);
@@ -936,6 +938,7 @@ export default function AppPortal() {
                 ) : activeTab === "quotes" ? (
                   <QuotesSkeletonLoader type={
                     activeQuotesTab === "entry" ? "form" : 
+                    activeQuotesTab === "asitis_causality" ? "form" :
                     activeQuotesTab === "monthly" ? "table" : 
                     activeQuotesTab === "rules" ? "rules" : 
                     activeQuotesTab === "analytics" ? "analytics" : 
