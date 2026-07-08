@@ -42,6 +42,15 @@ export const CreateUserPanel: React.FC<CreateUserPanelProps> = ({
   const [newSignInTime, setNewSignInTime] = useState("");
   const [newSignOutTime, setNewSignOutTime] = useState("");
 
+  // KPI & Performance states
+  const [newKpiSkills, setNewKpiSkills] = useState<string[]>([]);
+  const [newKpiDeptIndicators, setNewKpiDeptIndicators] = useState<string[]>([]);
+  const [newKpiOtherDeptIndicators, setNewKpiOtherDeptIndicators] = useState<string[]>([]);
+  const [newPerformsDataEntry, setNewPerformsDataEntry] = useState(true);
+  const [newDepartment, setNewDepartment] = useState("Data Entry");
+  const [newPerformsOtherDeptTasks, setNewPerformsOtherDeptTasks] = useState(false);
+  const [newOtherDepartment, setNewOtherDepartment] = useState("IT");
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCodename.trim() || newCodename.trim().length < 3) {
@@ -83,6 +92,13 @@ export const CreateUserPanel: React.FC<CreateUserPanelProps> = ({
       breakTime: parseInt(newBreakTime) || 0,
       signInTime: newSignInTime,
       signOutTime: newSignOutTime,
+      kpiSkills: newKpiSkills,
+      kpiDeptIndicators: newKpiDeptIndicators,
+      kpiOtherDeptIndicators: newKpiOtherDeptIndicators,
+      performsDataEntry: newPerformsDataEntry,
+      department: newDepartment,
+      performsOtherDeptTasks: newPerformsOtherDeptTasks,
+      otherDepartment: newOtherDepartment,
     });
 
     if (success) {
@@ -132,6 +148,20 @@ export const CreateUserPanel: React.FC<CreateUserPanelProps> = ({
         setSignInTime={setNewSignInTime}
         signOutTime={newSignOutTime}
         setSignOutTime={setNewSignOutTime}
+        kpiSkills={newKpiSkills}
+        setKpiSkills={setNewKpiSkills}
+        kpiDeptIndicators={newKpiDeptIndicators}
+        setKpiDeptIndicators={setNewKpiDeptIndicators}
+        kpiOtherDeptIndicators={newKpiOtherDeptIndicators}
+        setKpiOtherDeptIndicators={setNewKpiOtherDeptIndicators}
+        performsDataEntry={newPerformsDataEntry}
+        setPerformsDataEntry={setNewPerformsDataEntry}
+        department={newDepartment}
+        setDepartment={setNewDepartment}
+        performsOtherDeptTasks={newPerformsOtherDeptTasks}
+        setPerformsOtherDeptTasks={setNewPerformsOtherDeptTasks}
+        otherDepartment={newOtherDepartment}
+        setOtherDepartment={setNewOtherDepartment}
       />
       <div className="bg-slate-900/20 border border-slate-850/60 p-5 rounded-2xl flex flex-wrap justify-between items-center gap-4 mt-6">
         <div className="flex flex-wrap gap-2.5 font-sans">

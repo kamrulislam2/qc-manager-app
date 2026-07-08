@@ -565,7 +565,37 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     fetchProfiles();
   }, [fetchProfiles]);
 
-  const handleCreateUserWrapper = async (params: { codename: string; role: 'admin' | 'supervisor' | 'user'; fullName: string; initialChutiCount: number; initialPassword?: string; quoteTypes: string[]; canManageRules: boolean; needsApproval: boolean; supervisorIds: string[]; eligibleGovtHoliday: boolean; eligibleOfficeLeave: boolean; allowOvertime: boolean; allowReserve: boolean; allowedTypes: string[]; hasChutiAccess: boolean; hasQuotesAccess: boolean; password?: string }) => {
+  const handleCreateUserWrapper = async (params: { 
+    codename: string; 
+    role: 'admin' | 'supervisor' | 'user'; 
+    fullName: string; 
+    initialChutiCount: number; 
+    initialPassword?: string; 
+    quoteTypes: string[]; 
+    canManageRules: boolean; 
+    needsApproval: boolean; 
+    supervisorIds: string[]; 
+    eligibleGovtHoliday: boolean; 
+    eligibleOfficeLeave: boolean; 
+    allowOvertime: boolean; 
+    allowReserve: boolean; 
+    allowedTypes: string[]; 
+    hasChutiAccess: boolean; 
+    hasQuotesAccess: boolean; 
+    password?: string;
+    jobRole?: string;
+    workingHours?: number;
+    breakTime?: number;
+    defaultSignIn?: string;
+    defaultSignOut?: string;
+    kpiSkills?: string[];
+    kpiDeptIndicators?: string[];
+    performsDataEntry?: boolean;
+    department?: string;
+    performsOtherDeptTasks?: boolean;
+    otherDepartment?: string;
+    kpiOtherDeptIndicators?: string[];
+  }) => {
     const pw = await createUser(
       params.codename,
       params.role,
@@ -580,7 +610,19 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       params.eligibleGovtHoliday,
       params.eligibleOfficeLeave,
       params.allowOvertime,
-      params.allowReserve
+      params.allowReserve,
+      params.jobRole,
+      params.workingHours,
+      params.breakTime,
+      params.defaultSignIn,
+      params.defaultSignOut,
+      params.kpiSkills,
+      params.kpiDeptIndicators,
+      params.performsDataEntry,
+      params.department,
+      params.performsOtherDeptTasks,
+      params.otherDepartment,
+      params.kpiOtherDeptIndicators
     );
     return pw;
   };
