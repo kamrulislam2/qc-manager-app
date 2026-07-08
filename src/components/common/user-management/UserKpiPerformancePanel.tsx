@@ -842,10 +842,8 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
   };
 
   // Joined KPI Skills string
-  const kpiSkillsJoined = useMemo(() => {
-    const skills = targetStaff.global_settings?.kpi_skills || [];
-    return skills.length > 0 ? skills.join(', ') : 'Spoken English, Communication skill';
-  }, [targetStaff.global_settings]);
+  const skills = targetStaff.global_settings?.kpi_skills || [];
+  const kpiSkillsJoined = skills.length > 0 ? skills.join(', ') : 'Spoken English, Communication skill';
 
   if (loading) {
     return (
