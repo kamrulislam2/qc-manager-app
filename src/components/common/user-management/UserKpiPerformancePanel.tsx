@@ -1951,29 +1951,31 @@ USING (auth.uid() = user_id OR EXISTS (
 
           {/* Appraiser Signature */}
           <div className="space-y-4 flex flex-col md:items-end print:items-end">
-            <div className="flex items-center gap-2.5 print:hidden">
-              <input
-                type="checkbox"
-                id="appraiser-sign-chk"
-                checked={appraiserSigned}
-                disabled={!isSupervisorOrAdmin}
-                onChange={(e) => handleAppraiserSignChange(e.target.checked)}
-                className="h-4.5 w-4.5 rounded-lg border-slate-800 bg-slate-950 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <label htmlFor="appraiser-sign-chk" className="text-xs font-semibold text-slate-300 cursor-pointer select-none">
-                Sign Assessment (Appraiser)
-              </label>
-            </div>
+            <div className="w-72 space-y-4">
+              <div className="flex items-center gap-2.5 print:hidden">
+                <input
+                  type="checkbox"
+                  id="appraiser-sign-chk"
+                  checked={appraiserSigned}
+                  disabled={!isDesignatedAppraiser}
+                  onChange={(e) => handleAppraiserSignChange(e.target.checked)}
+                  className="h-4.5 w-4.5 rounded-lg border-slate-800 bg-slate-950 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <label htmlFor="appraiser-sign-chk" className="text-xs font-semibold text-slate-300 cursor-pointer select-none">
+                  Sign Assessment (Appraiser)
+                </label>
+              </div>
 
-            <div className="border-t border-slate-800/80 pt-2 space-y-1 w-72 print:border-black print:border-t">
-              <div className="text-xs font-mono font-bold text-white uppercase tracking-wide print:text-black min-h-[16px]">
-                {appraiserSigned ? appraiserName : ''}
+              <div className="border-t border-slate-800/80 pt-2 space-y-1 w-full print:border-black print:border-t">
+                <div className="text-xs font-mono font-bold text-white uppercase tracking-wide print:text-black min-h-[16px]">
+                  {appraiserSigned ? appraiserName : ''}
+                </div>
+                <div className="text-[10px] font-semibold text-slate-450 uppercase tracking-wider print:text-black">
+                  Appraiser Signature {appraiserSigned && appraiserSignDate && `| Date: ${appraiserSignDate}`}
+                </div>
               </div>
-              <div className="text-[10px] font-semibold text-slate-450 uppercase tracking-wider print:text-black">
-                Appraiser Signature {appraiserSigned && appraiserSignDate && `| Date: ${appraiserSignDate}`}
-              </div>
+            </div>
           </div>
-        </div>
       </div>
     </div>
 
