@@ -201,7 +201,7 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
 
     // Filter to active types
     const activeKeys = activeFileTypes.map(t => t.key);
-    let activeCoreWeightageSum = activeKeys.reduce((acc, k) => acc + (defaults[k] || 0), 0);
+    const activeCoreWeightageSum = activeKeys.reduce((acc, k) => acc + (defaults[k] || 0), 0);
 
     // If active keys sum is 0 or doesn't match, distribute equally
     const finalWeightages: Record<string, number> = {};
