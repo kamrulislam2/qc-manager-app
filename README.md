@@ -1,6 +1,6 @@
 # 🌟 QC App — Unified Office Leave Tracker & Quotes Manager
 
-**Version 4.2.1** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 4.3.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -172,6 +172,14 @@ npm run tauri build
 *   **Custom Alert Confirmation Modal**: Replaced standard browser `confirm` prompts with custom modal designs when deleting leaves in the user profile view.
 *   **Right-Click Protection**: Disabled default browser context menus globally while keeping custom project context menus operational. Also disabled custom context menu options for supervisors on non-deletable records.
 *   **Linter & Styling Cleanup**: Resolved all remaining TypeScript compiler warning types and corrected Tailwind class formatting.
+
+### 🚀 v4.3.0 — Minor Release
+*   **Automatic Date Validation & Year Guard** — Restricted leave date picker inputs strictly to the running year (e.g. 2026), with real-time day/month input validation and auto-correction. Prevents submit actions if validation errors exist.
+*   **Quote File Name Sanitizer** — Automatically sanitizes pasted or typed quote file names to strip out comments (e.g. `(Check Note)`, `(Expert please)`), branch names, file types, and trailing dots in both Daily and Custom entries.
+*   **Sleek Custom Scrollbars** — Replaced all native browser/OS scrollbars with customized, thin, transparent scrollbars matching the premium dark theme.
+*   **Supabase Network & Realtime Optimization** — Consolidated multiple separate database subscriptions into single combined channels (over 60% reduction in concurrent active channels) and implemented debounced fetch coalescing to dramatically reduce Supabase Egress and Realtime Message quota consumption.
+*   **IP Checker Verification Links** — Integrated amber alerting and direct copying for `iphey.com` and `whoer.net` VM verification links inside the IP Checker card.
+*   **Centred Modals & Login Panel Gradient** — Repositioned edit overlays using React Portals to solve the layout containment blur issues and updated button gradient aesthetics.
 
 ### 🚀 v4.2.1 — Patch Release
 *   **App Icon & Favicon Regeneration** — Generated Tauri desktop application icons and web assets across all platform resolutions from the new brand asset.
