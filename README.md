@@ -179,6 +179,7 @@ npm run tauri build
 *   **Improved Workspace Layout** — Relocated KPI and Performance settings to a full-width section at the bottom, keeping Leave and Quotes workspace access cards cleaner side-by-side.
 *   **Enforced Main Department Display** — Ensured that both the printed sheet and Excel export output display only the main department, even if secondary tasks are assigned.
 *   **Database Duplicate Records Cleanup** — Safely resolved 4,718 duplicate database entries from June 2026 logs using paginated querying.
+*   **App Icon & Favicon Refresh** — Generated Tauri desktop application icons and web assets across all platform resolutions from the new brand asset.
 
 ### 🚀 v4.1.3 — Patch Release
 *   **Duplicate Record Cleanups**: Identified and removed 717 duplicate database records by grouping matching `codename`, `file_name`, and `submitted_at` values.

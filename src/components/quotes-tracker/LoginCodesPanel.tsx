@@ -141,7 +141,7 @@ export const LoginCodesPanel: React.FC<LoginCodesPanelProps> = ({
 
       if (error) throw error;
       if (data && data.length > 0) {
-        const filtered = data.filter((item: any) => item.login_id !== "__asitis_causality_template__");
+        const filtered = data.filter((item: any) => !item.login_id.startsWith("__"));
         setLoginCodes(filtered);
       } else {
         setLoginCodes(DEFAULT_LOGIN_CODES);
@@ -153,7 +153,11 @@ export const LoginCodesPanel: React.FC<LoginCodesPanelProps> = ({
       );
       const stored = localStorage.getItem("local_login_codes");
       if (stored) {
-        setLoginCodes(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        const filtered = Array.isArray(parsed)
+          ? parsed.filter((item: any) => !item.login_id.startsWith("__"))
+          : [];
+        setLoginCodes(filtered.length > 0 ? filtered : DEFAULT_LOGIN_CODES);
       } else {
         setLoginCodes(DEFAULT_LOGIN_CODES);
       }

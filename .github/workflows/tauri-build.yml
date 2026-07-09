@@ -121,7 +121,7 @@ jobs:
           releaseBody: |
             ### QC App v__VERSION__ 🚀
 
-            **v4.2.0** is a minor release introducing customizable KPI evaluation periods, historical report re-evaluation switching, optimized column settings layout, main department display rules, and paginated June duplicates cleanup.
+            **v4.2.0** is a minor release introducing customizable KPI evaluation periods, historical report re-evaluation switching, optimized column settings layout, main department display rules, app icon updates, and paginated June duplicates cleanup.
 
             #### 🛠 What's New in v4.2.0:
 
@@ -130,6 +130,7 @@ jobs:
             - **Improved Workspace Layout** — Relocated KPI and Performance settings to a full-width section at the bottom, keeping Leave and Quotes workspace access cards cleaner side-by-side.
             - **Enforced Main Department Display** — Ensured that both the printed sheet and Excel export output display only the main department, even if secondary tasks are assigned.
             - **Database Duplicate Records Cleanup** — Safely resolved 4,718 duplicate database entries from June 2026 logs using paginated querying.
+            - **App Icon & Favicon Refresh** — Re-generated all desktop platform icon resolutions (Windows, macOS, Linux) and web assets from the new brand logo asset.
 
             #### 📦 Installation Instructions:
             - **Windows (64-bit)**: Download the `x86_64` `.exe` or `.msi` installer.
