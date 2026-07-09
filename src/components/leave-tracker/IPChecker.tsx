@@ -7,6 +7,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  Copy,
+  Check,
+  ExternalLink,
 } from "lucide-react";
 import { IPCheckerSkeleton } from "@/components/common/skeleton/IPCheckerSkeleton";
 
@@ -138,14 +141,13 @@ interface IPInfoResponse {
   };
 }
 
-export const IPChecker: React.FC<IPCheckerProps> = ({
-  showToast,
-}) => {
+export const IPChecker: React.FC<IPCheckerProps> = ({ showToast }) => {
   const [ipInput, setIpInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [detectingIP, setDetectingIP] = useState(false);
   const [checkRan, setCheckRan] = useState(false);
   const [results, setResults] = useState<Record<string, SourceResult>>({});
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   const detectMyIP = async () => {
     setDetectingIP(true);
@@ -221,8 +223,7 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
 
     // If running in browser web build (localhost or Vercel production)
     const isBrowser =
-      typeof window !== "undefined" &&
-      !(window as any).__TAURI_INTERNALS__;
+      typeof window !== "undefined" && !(window as any).__TAURI_INTERNALS__;
 
     if (isBrowser) {
       let localUrl = url;
@@ -469,15 +470,15 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
         // CriminalIP outputs inbound/outbound score (higher inbound score means risk)
         const rawInbound = data.score?.inbound;
         let inboundScore = 0;
-        if (typeof rawInbound === 'number') {
+        if (typeof rawInbound === "number") {
           inboundScore = rawInbound;
-        } else if (typeof rawInbound === 'string') {
+        } else if (typeof rawInbound === "string") {
           const lower = rawInbound.toLowerCase();
-          if (lower === 'safe') inboundScore = 1;
-          else if (lower === 'low') inboundScore = 2;
-          else if (lower === 'moderate') inboundScore = 3;
-          else if (lower === 'high') inboundScore = 4;
-          else if (lower === 'critical') inboundScore = 5;
+          if (lower === "safe") inboundScore = 1;
+          else if (lower === "low") inboundScore = 2;
+          else if (lower === "moderate") inboundScore = 3;
+          else if (lower === "high") inboundScore = 4;
+          else if (lower === "critical") inboundScore = 5;
           else {
             const parsed = parseInt(rawInbound, 10);
             if (!isNaN(parsed)) inboundScore = parsed;
@@ -485,7 +486,8 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
         }
 
         const isSuspicious = inboundScore > 2; // e.g. 3/5 or higher
-        const normalizedInboundText = typeof rawInbound === 'string' ? rawInbound : `${inboundScore}/5`;
+        const normalizedInboundText =
+          typeof rawInbound === "string" ? rawInbound : `${inboundScore}/5`;
 
         return {
           success: true,
@@ -552,7 +554,7 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
     const fetchScamalytics = async (): Promise<SourceResult> => {
       try {
         const data = (await secureFetch(
-          `https://api11.scamalytics.com/v3/${keys.scamalytics_client}/?key=${keys.scamalytics_key}&ip=${ip}`
+          `https://api11.scamalytics.com/v3/${keys.scamalytics_client}/?key=${keys.scamalytics_key}&ip=${ip}`,
         )) as unknown as ScamalyticsResponse;
         if (data.error) throw new Error(data.error);
 
@@ -565,16 +567,25 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
         const isSuspiciousScore = score > 30;
 
         // Parse country code
-        let countryCode = dbip?.ip_country_code || maxmind?.ip_country_code || ipinfoVal?.ip_country_code || '';
+        let countryCode =
+          dbip?.ip_country_code ||
+          maxmind?.ip_country_code ||
+          ipinfoVal?.ip_country_code ||
+          "";
         countryCode = countryCode.toUpperCase();
 
         // Parse country name/location
-        const city = dbip?.ip_city || '';
-        const state = dbip?.ip_state_name || '';
-        const country = dbip?.ip_country_name || maxmind?.ip_country_name || ipinfoVal?.ip_country_name || '';
-        const countryName = city || state || country
-          ? `${city}${city && state ? ', ' : ''}${state}${state && country ? ', ' : ''}${country}`
-          : 'Unknown';
+        const city = dbip?.ip_city || "";
+        const state = dbip?.ip_state_name || "";
+        const country =
+          dbip?.ip_country_name ||
+          maxmind?.ip_country_name ||
+          ipinfoVal?.ip_country_name ||
+          "";
+        const countryName =
+          city || state || country
+            ? `${city}${city && state ? ", " : ""}${state}${state && country ? ", " : ""}${country}`
+            : "Unknown";
 
         // Parse proxy flags
         const proxyObj = sc?.scamalytics_proxy;
@@ -592,13 +603,23 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
         if (isGoogle) risks.push("Google Cloud");
         if (score > 0) risks.push(`Fraud Score: ${score}/100`);
 
-        const isProxyOrVpn = isVpn || isDatacenter || isPrivateRelay || isAWS || isGoogle || isSuspiciousScore;
+        const isProxyOrVpn =
+          isVpn ||
+          isDatacenter ||
+          isPrivateRelay ||
+          isAWS ||
+          isGoogle ||
+          isSuspiciousScore;
 
         return {
           success: true,
           countryCode,
           countryName,
-          isp: sc?.scamalytics_isp || sc?.scamalytics_org || dbip?.isp_name || 'N/A',
+          isp:
+            sc?.scamalytics_isp ||
+            sc?.scamalytics_org ||
+            dbip?.isp_name ||
+            "N/A",
           isProxyOrVpn,
           riskDetails: risks,
           rawData: data,
@@ -695,10 +716,7 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
 
       {/* Search System */}
       <div className="flex justify-center w-full pb-2">
-        <form
-          onSubmit={handleSearch}
-          className="flex gap-2 w-full max-w-md"
-        >
+        <form onSubmit={handleSearch} className="flex gap-2 w-full max-w-md">
           <div className="relative flex-1">
             {detectingIP ? (
               <Loader2 className="absolute left-3 top-2.5 h-4 w-4 text-blue-500 animate-spin" />
@@ -710,9 +728,7 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
               required
               disabled={loading || detectingIP}
               placeholder={
-                detectingIP
-                  ? "Detecting current IP..."
-                  : "e.g. 80.192.4.95"
+                detectingIP ? "Detecting current IP..." : "e.g. 80.192.4.95"
               }
               value={ipInput}
               onChange={(e) => setIpInput(e.target.value)}
@@ -784,8 +800,8 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
                 </span>
               </h4>
               <p className="text-xs mt-1 text-slate-400 leading-relaxed">
-                Tested across {successfulSources.length}/{totalSources}{" "}
-                active databases.
+                Tested across {successfulSources.length}/{totalSources} active
+                databases.
                 {isAllSafe
                   ? " All sources verified the IP location as UK and detected no active proxy, VPN, or hosting servers."
                   : " Failed validation. Please check country mismatches or active VPN/Proxy flags below."}
@@ -811,9 +827,62 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
                   : "bg-rose-600/10 text-rose-400 border-rose-500/20"
               }`}
             >
-              Security:{" "}
-              {isSecuritySafe ? "No Proxy/VPN" : "Proxy/VPN Flagged"}
+              Security: {isSecuritySafe ? "No Proxy/VPN" : "Proxy/VPN Flagged"}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* VM Verification Links */}
+      {checkRan && !loading && (
+        <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-955/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1 shadow-lg shadow-blue-950/10">
+          <div className="space-y-1.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 text-amber-400 animate-pulse">
+              ⚠️ VM Verification Required
+            </span>
+            <p className="text-xs font-semibold text-slate-200">
+              Please check your IP inside VM with these two links:
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            {["https://iphey.com", "https://whoer.net"].map((url) => {
+              const isCopied = copiedUrl === url;
+              return (
+                <div
+                  key={url}
+                  className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-blue-500/30 transition-all duration-200 group/link min-w-[210px]"
+                >
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-mono text-slate-355 hover:text-blue-400 transition-colors flex items-center gap-1.5"
+                  >
+                    <span>{url.replace("https://", "")}</span>
+                    <ExternalLink className="h-3 w-3 opacity-40 group-hover/link:opacity-80 transition-opacity" />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(url);
+                      setCopiedUrl(url);
+                      showToast("success", `${url} copied!`);
+                      setTimeout(() => setCopiedUrl(null), 2000);
+                    }}
+                    title="Copy URL"
+                    className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-850 border border-slate-850 hover:border-slate-750 text-slate-400 hover:text-white transition-all cursor-pointer"
+                  >
+                    {isCopied ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-400 animate-scale-up" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 opacity-70" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -902,38 +971,49 @@ export const IPChecker: React.FC<IPCheckerProps> = ({
 
                       {/* Criminal IP risk percentage */}
                       {sourceName === "CriminalIP.io" &&
-                        (result.rawData as any)?.normalizedInboundScore !== undefined && (
+                        (result.rawData as any)?.normalizedInboundScore !==
+                          undefined && (
                           <p className="flex justify-between border-t border-slate-900/50 pt-1.5 mt-1.5">
                             <span>API Risk Rating:</span>
                             <strong
                               className={
-                                (result.rawData as any).normalizedInboundScore > 2
+                                (result.rawData as any).normalizedInboundScore >
+                                2
                                   ? "text-rose-400 font-bold"
                                   : "text-emerald-400 font-semibold"
                               }
                             >
-                              {(result.rawData as any).normalizedInboundScore * 20}% Risk ({(result.rawData as any).normalizedInboundText})
+                              {(result.rawData as any).normalizedInboundScore *
+                                20}
+                              % Risk (
+                              {(result.rawData as any).normalizedInboundText})
                             </strong>
                           </p>
                         )}
 
-
-
                       {/* Scamalytics risk percentage */}
                       {sourceName === "Scamalytics.com" &&
-                        (result.rawData as any)?.scamalytics?.scamalytics_score !== undefined && (
+                        (result.rawData as any)?.scamalytics
+                          ?.scamalytics_score !== undefined && (
                           <p className="flex justify-between border-t border-slate-900/50 pt-1.5 mt-1.5">
                             <span>Fraud Score:</span>
                             <strong
                               className={
-                                Number((result.rawData as any).scamalytics.scamalytics_score) > 30
+                                Number(
+                                  (result.rawData as any).scamalytics
+                                    .scamalytics_score,
+                                ) > 30
                                   ? "text-rose-400 font-bold"
                                   : "text-emerald-400 font-semibold"
                               }
                             >
-                              {Number((result.rawData as any).scamalytics.scamalytics_score)}
+                              {Number(
+                                (result.rawData as any).scamalytics
+                                  .scamalytics_score,
+                              )}
                               % Risk (
-                              {(result.rawData as any).scamalytics.scamalytics_risk || "low"}
+                              {(result.rawData as any).scamalytics
+                                .scamalytics_risk || "low"}
                               )
                             </strong>
                           </p>
