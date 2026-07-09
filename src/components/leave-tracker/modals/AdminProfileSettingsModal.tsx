@@ -139,6 +139,10 @@ export function AdminProfileSettingsModal({
       isSupervisorsChanged = oldSups.join(',') !== newSups.join(',');
     }
 
+    const isHiddenTabsChanged = !editingStaffProfileId && (
+      JSON.stringify([...hiddenTabs].sort()) !== JSON.stringify([...(targetProfile.global_settings?.hidden_tabs || [])].sort())
+    );
+
     if (editingStaffProfileId) {
       hasChanges = isUsernameChanged || isFullNameChanged || isWorkingHoursChanged || isBreakTimeChanged || 
                    isJobRoleChanged || isSignInChanged || isSignOutChanged || isNeedsApprovalChanged || 
@@ -148,7 +152,7 @@ export function AdminProfileSettingsModal({
       hasChanges = isUsernameChanged || isFullNameChanged || isWorkingHoursChanged || isBreakTimeChanged || 
                    isJobRoleChanged || isSignInChanged || isSignOutChanged || isNeedsApprovalChanged || 
                    isAllowReserveChanged || isAllowOvertimeChanged || 
-                   isEligibleOfficeChanged || isEligibleGovtChanged;
+                   isEligibleOfficeChanged || isEligibleGovtChanged || isHiddenTabsChanged;
     } else {
       hasChanges = isFullNameChanged || isWorkingHoursChanged || isBreakTimeChanged || 
                    isJobRoleChanged || isSignInChanged || isSignOutChanged;
