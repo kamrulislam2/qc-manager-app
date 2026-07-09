@@ -21,6 +21,7 @@ interface ChutiFormFieldsProps {
   comment: string;
   setComment: (val: string) => void;
   allowOvertime: boolean;
+  onDateErrorChange?: (hasError: boolean) => void;
 }
 
 export const ChutiFormFields: React.FC<ChutiFormFieldsProps> = ({
@@ -41,6 +42,7 @@ export const ChutiFormFields: React.FC<ChutiFormFieldsProps> = ({
   comment,
   setComment,
   allowOvertime,
+  onDateErrorChange,
 }) => {
   const isShortOrOvertime = leaveType !== 'Full Leave';
   const showAdjustmentSection = leaveType !== 'Full Leave';
@@ -50,6 +52,10 @@ export const ChutiFormFields: React.FC<ChutiFormFieldsProps> = ({
     { value: 'Full Leave', label: 'Full Leave' },
     ...((allowOvertime || leaveType === 'Overtime') ? [{ value: 'Overtime', label: 'Overtime' }] : []),
   ];
+
+  const currentYear = new Date().getFullYear();
+  const minDate = `${currentYear}-01-01`;
+  const maxDate = `${currentYear}-12-31`;
 
   return (
     <>
@@ -62,6 +68,9 @@ export const ChutiFormFields: React.FC<ChutiFormFieldsProps> = ({
             required
             value={date}
             onChange={setDate}
+            min={minDate}
+            max={maxDate}
+            onErrorChange={onDateErrorChange}
             className="bg-slate-955 text-sm"
           />
         </div>

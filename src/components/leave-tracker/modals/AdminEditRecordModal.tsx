@@ -58,6 +58,8 @@ export function AdminEditRecordModal({
   handleAdminSaveEdit,
   submitting = false,
 }: AdminEditRecordModalProps) {
+  const [hasDateError, setHasDateError] = React.useState(false);
+
   if (profile?.role !== "admin" || !adminEditRecord) return null;
 
   const targetUserProfile = profilesList.find(
@@ -97,6 +99,7 @@ export function AdminEditRecordModal({
             targetUserProfile?.allow_overtime ||
             adminEditLeaveType === "Overtime"
           }
+          onDateErrorChange={setHasDateError}
         />
 
         <div className="flex gap-3 pt-4 border-t border-slate-800/80">
@@ -110,7 +113,7 @@ export function AdminEditRecordModal({
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || hasDateError}
             className="flex-1 flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-md text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-purple-500 hover:from-blue-500 hover:to-purple-400 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950 cursor-pointer disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
           >
             {submitting && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}

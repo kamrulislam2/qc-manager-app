@@ -45,6 +45,7 @@ interface AddLeaveFormFieldsProps {
   workingHours?: number;
   isAdmin?: boolean;
   globalSettings?: any;
+  onDateErrorChange?: (id: string, hasError: boolean) => void;
 }
 
 export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
@@ -84,6 +85,7 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
   workingHours = 9.5,
   isAdmin = false,
   globalSettings,
+  onDateErrorChange,
 }) => {
   const isHoliday = globalSettings ? checkIfHolidayOrWeekend(date, globalSettings) : false;
   const validationError = getLeaveValidationError(leaveType, signInTime, signOutTime, workingHours, isHoliday);
@@ -220,6 +222,10 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
   }
 
   const duplicateRecord = date ? records.find(r => r.date === date) : null;
+  
+  const currentYear = new Date().getFullYear();
+  const minDate = `${currentYear}-01-01`;
+  const maxDate = `${currentYear}-12-31`;
 
   return (
     <div className="space-y-4">
@@ -232,6 +238,9 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
               required
               value={date}
               onChange={setDate}
+              min={minDate}
+              max={maxDate}
+              onErrorChange={(hasError) => onDateErrorChange?.("primary", hasError)}
               className="bg-slate-955 text-xs py-2"
             />
             {isFullLeave && (
@@ -279,6 +288,9 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
                         required
                         value={bulkDate}
                         onChange={(val) => handleUpdateBulkDate(index, val)}
+                        min={minDate}
+                        max={maxDate}
+                        onErrorChange={(hasError) => onDateErrorChange?.(`bulk-${index}`, hasError)}
                         className="bg-slate-955 py-1.5 text-xs"
                       />
                     </div>
