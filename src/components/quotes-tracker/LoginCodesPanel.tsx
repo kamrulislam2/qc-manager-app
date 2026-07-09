@@ -634,7 +634,7 @@ export const LoginCodesPanel: React.FC<LoginCodesPanelProps> = ({
 
       {/* ─── ADD/EDIT OVERLAY MODAL ─── */}
       {isFormOpen && (
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-40 flex items-center justify-center p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl relative">
             <button
               onClick={() => setIsFormOpen(false)}
@@ -662,7 +662,7 @@ export const LoginCodesPanel: React.FC<LoginCodesPanelProps> = ({
                   placeholder="e.g. SR616"
                   value={formLoginId}
                   onChange={(e) => setFormLoginId(e.target.value)}
-                  className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-700 disabled:opacity-50 disabled:bg-slate-950"
+                  className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-700 disabled:opacity-50 disabled:bg-slate-955"
                 />
               </div>
               <div>
@@ -695,13 +695,13 @@ export const LoginCodesPanel: React.FC<LoginCodesPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-3.5 py-2 rounded-lg bg-slate-850 hover:bg-slate-800 text-slate-300 font-semibold cursor-pointer transition-colors"
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 font-semibold cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-2 rounded-lg bg-linear-to-r from-purple-600 to-indigo-650 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold cursor-pointer shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-955"
+                  className="px-4 py-2 rounded-xl bg-linear-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 text-white font-semibold cursor-pointer shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-955"
                 >
                   {isEditing ? "Save Changes" : "Add Code"}
                 </button>
@@ -713,9 +713,9 @@ export const LoginCodesPanel: React.FC<LoginCodesPanelProps> = ({
 
       {/* ─── DELETE CONFIRM OVERLAY ─── */}
       {itemToDelete && (
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-45 flex items-center justify-center p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-xs shadow-2xl">
-            <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
+            <h4 className="text-sm font-bold text-red-500 mb-2 flex items-center gap-1.5">
               <AlertCircle className="h-4.5 w-4.5 text-red-500" />
               Delete Login Code?
             </h4>
@@ -727,13 +727,13 @@ export const LoginCodesPanel: React.FC<LoginCodesPanelProps> = ({
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setItemToDelete(null)}
-                className="px-3.5 py-2 rounded-lg bg-slate-850 hover:bg-slate-850/80 text-slate-300 font-semibold cursor-pointer transition-colors"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 font-semibold cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold cursor-pointer transition-colors shadow-md shadow-red-950/20"
+                className="px-4 py-2 rounded-xl bg-red-650 hover:bg-red-550 text-white font-semibold cursor-pointer transition-colors shadow-md shadow-red-950/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               >
                 Delete
               </button>

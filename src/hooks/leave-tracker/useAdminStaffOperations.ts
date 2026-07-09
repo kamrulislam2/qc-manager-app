@@ -347,6 +347,8 @@ export const useAdminStaffOperations = ({
         if (error) throw error;
 
         setProfile(prev => prev ? { ...prev, ...updatedProfile } : (updatedProfile as Profile));
+        localStorage.setItem(`cached_profile_${sessionUser.id}`, JSON.stringify({ ...profile, ...updatedProfile }));
+        window.dispatchEvent(new CustomEvent("profile-updated", { detail: { ...profile, ...updatedProfile } }));
         setMessage({ type: 'success', text: 'Your profile successfully updated!' });
         setShowProfileSettingsModal(false);
       } else {
