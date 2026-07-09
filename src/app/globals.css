@@ -767,6 +767,28 @@ textarea::-moz-selection {
   color: #ffffff !important;
 }
 
+/* Global Custom Scrollbars for a Premium App Look */
+::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.15) !important;
+  border-radius: 99px !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.35) !important;
+}
+
+/* Firefox compatibility */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.15) transparent;
+}
+
 /* Minimal Custom Scrollbar Utility */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px !important;

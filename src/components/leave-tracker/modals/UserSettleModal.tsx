@@ -323,7 +323,7 @@ export function UserSettleModal({
       maxWidthClass="max-w-xl"
     >
       <div className="space-y-6 font-sans text-xs text-slate-300">
-        <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-6 scrollbar-thin scrollbar-thumb-slate-850 scrollbar-track-transparent">
+        <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-6 custom-scrollbar">
           <div className="p-4 bg-indigo-950/20 border border-indigo-900/40 text-indigo-300 rounded-xl leading-relaxed">
             <p className="font-bold flex items-center gap-1.5 text-slate-100 text-sm">
               <Sparkles className="h-4.5 w-4.5 text-indigo-400 shrink-0" />
