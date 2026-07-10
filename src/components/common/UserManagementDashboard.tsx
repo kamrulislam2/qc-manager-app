@@ -37,6 +37,7 @@ import { AddLeave } from '@/components/leave-tracker/AddLeave';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { LeaveSettlement, GovtHolidayResponse } from '@/types';
 import { GlobalSettings, getGlobalSettingsFromProfile } from '@/utils/dashboardHelpers';
+import { sendPushNotification } from '@/utils/webPushHelper';
 
 
 
@@ -409,26 +410,57 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
 
   // Toggle adjustment handler for leaves in details view
   const handleToggleAdjustment = async (record: ChutiRecord) => {
-    try {
-      // Optimistically update UI state immediately
-      setViewingStaffRecords(prev => prev.map(r => r.id === record.id ? { ...r, adjustment: !r.adjustment } : r));
+    const isAdmin = profile?.role === 'admin';
+    const isSupervisor = profile?.role === 'supervisor';
 
-      const { error } = await supabase
-        .from('chuti')
-        .update({ adjustment: !record.adjustment })
-        .eq('id', record.id);
-
-      if (error) throw error;
-      toast.success('Adjustment status updated.');
-      if (viewingStaff) {
-        debouncedFetchStaffLeaveData(viewingStaff.id, true);
+    if (isAdmin) {
+      // ─── Admin: Direct toggle, no approval needed ───
+      try {
+        setViewingStaffRecords(prev => prev.map(r => r.id === record.id ? { ...r, adjustment: !r.adjustment } : r));
+        const { error } = await supabase
+          .from('chuti')
+          .update({ adjustment: !record.adjustment })
+          .eq('id', record.id);
+        if (error) throw error;
+        toast.success('Adjustment status updated.');
+        if (viewingStaff) debouncedFetchStaffLeaveData(viewingStaff.id, true);
+      } catch (err: unknown) {
+        console.error(err);
+        toast.error('Failed to update adjustment: ' + ((err as Error).message || 'unknown error'));
+        if (viewingStaff) fetchStaffLeaveData(viewingStaff.id, true);
       }
-    } catch (err: unknown) {
-      console.error(err);
-      toast.error('Failed to update adjustment: ' + ((err as Error).message || 'unknown error'));
-      if (viewingStaff) {
-        fetchStaffLeaveData(viewingStaff.id, true);
+    } else if (isSupervisor) {
+      // ─── Supervisor: Toggle needs admin approval ───
+      try {
+        const newValue = !record.adjustment;
+        // Set status to approved_by_supervisor → admin needs to approve
+        setViewingStaffRecords(prev => prev.map(r => r.id === record.id ? { ...r, adjustment: newValue, status: 'approved_by_supervisor' as ChutiRecord['status'] } : r));
+        const supervisorName = profile?.username?.toUpperCase() || 'SUPERVISOR';
+        const editLog = `\n[Adjustment toggled to ${newValue ? 'Yes' : 'No'} by ${supervisorName} — pending admin approval]`;
+        const updatedComment = (record.comment || '') + editLog;
+        const { error } = await supabase
+          .from('chuti')
+          .update({ adjustment: newValue, status: 'approved_by_supervisor', comment: updatedComment, is_edited: true })
+          .eq('id', record.id);
+        if (error) throw error;
+        toast.success('Adjustment toggled. Pending admin approval.');
+        // Notify admin
+        const adminIds = profiles.filter(p => p.role === 'admin').map(p => p.id);
+        if (adminIds.length > 0) {
+          sendPushNotification({
+            userIds: adminIds,
+            title: 'Adjustment Changed (Needs Approval)',
+            body: `Supervisor ${profile?.full_name || profile?.username} changed adjustment on a leave for ${viewingStaff?.full_name || viewingStaff?.username}.`
+          }).catch(err => console.error('Error sending push:', err));
+        }
+        if (viewingStaff) debouncedFetchStaffLeaveData(viewingStaff.id, true);
+      } catch (err: unknown) {
+        console.error(err);
+        toast.error('Failed to update adjustment: ' + ((err as Error).message || 'unknown error'));
+        if (viewingStaff) fetchStaffLeaveData(viewingStaff.id, true);
       }
+    } else {
+      toast.error('You do not have permission to toggle adjustments.');
     }
   };
 
@@ -1008,6 +1040,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                       initialFetchDone={true}
                       targetUser={viewingStaff}
                       addedBySupervisor={profile?.role === 'supervisor' || profile?.role === 'admin'}
+                      adminDirectEdit={profile?.role === 'admin' && viewingStaff?.id !== profile?.id}
                     />
                   </div>
                 ) : (

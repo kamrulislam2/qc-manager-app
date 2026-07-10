@@ -37,6 +37,8 @@ interface AddLeaveProps {
   /** When true, bypasses supervisor approval — leave goes straight to admin queue */
   addedBySupervisor?: boolean;
   editingRecord?: ChutiRecord | null;
+  /** When true, admin is editing another user's record directly — no re-approval needed */
+  adminDirectEdit?: boolean;
 }
 
 export function AddLeave({
@@ -51,6 +53,7 @@ export function AddLeave({
   targetUser = null,
   addedBySupervisor = false,
   editingRecord = null,
+  adminDirectEdit = false,
 }: AddLeaveProps) {
   // If supervisor is adding on behalf of a user, use that user as the target
   const targetProfile = targetUser ?? profile;
@@ -79,7 +82,9 @@ export function AddLeave({
 
   const isSupervisorRole = profile?.role === 'supervisor';
   const isUserRole = profile?.role === 'user';
-  const needsReapproval = (isSupervisorRole || isUserRole) && !!editingRecord && (editingRecord.status === 'approved' || editingRecord.status === 'settled');
+  const isAdminRole = profile?.role === 'admin';
+  // Admin direct edit: no re-approval needed. Supervisor/User edits on approved records: re-approval required.
+  const needsReapproval = !adminDirectEdit && (isSupervisorRole || isUserRole) && !!editingRecord && (editingRecord.status === 'approved' || editingRecord.status === 'settled');
 
   const targetProfileId = targetProfile?.id;
   const defaultSignIn = targetProfile?.default_sign_in;
@@ -334,8 +339,25 @@ export function AddLeave({
       let commentWithCategory = comment.trim();
       let finalStatus = editingRecord.status;
 
-      if (needsReapproval) {
-        // Construct changes summary
+      if (adminDirectEdit) {
+        // ─── ADMIN DIRECT EDIT — no re-approval, status stays as-is ───
+        // Build a change log for audit trail
+        let changeDescription = '';
+        if (editingRecord.date !== date) changeDescription += `Date (${editingRecord.date} -> ${date}), `;
+        if (editingRecord.leave_type !== leaveType) changeDescription += `Leave Type (${editingRecord.leave_type} -> ${leaveType}), `;
+        const formattedLeaveHour = leaveType === 'Full Leave' ? '00:00' : leaveHour;
+        const originalLeaveHourStr = editingRecord.leave_hour ? editingRecord.leave_hour.toString().split('.')[0].substring(0, 5) : '00:00';
+        if (originalLeaveHourStr !== formattedLeaveHour) changeDescription += `Hours (${originalLeaveHourStr} -> ${formattedLeaveHour}), `;
+        if (editingRecord.comment !== comment) changeDescription += `Comment updated, `;
+        changeDescription = changeDescription.replace(/,\s*$/, '');
+        if (changeDescription) {
+          const adminName = profile?.username?.toUpperCase() || 'ADMIN';
+          const editLog = `\n[Admin Edit by ${adminName}: ${changeDescription}]`;
+          commentWithCategory = (editingRecord.comment || '') + editLog;
+        }
+        // Keep finalStatus unchanged — admin edit doesn't require re-approval
+      } else if (needsReapproval) {
+        // ─── SUPERVISOR / USER re-approval flow ───
         let changeDescription = '';
         if (editingRecord.date !== date) {
           changeDescription += `Date (${editingRecord.date} -> ${date}), `;
@@ -360,13 +382,20 @@ export function AddLeave({
         commentWithCategory = (editingRecord.comment || '') + editLog;
 
         // Reset status for re-approval
-        finalStatus = isSupervisorRole ? 'approved_by_supervisor' : 'pending_supervisor';
+        if (isSupervisorRole) {
+          finalStatus = 'approved_by_supervisor';
+        } else if (isUserRole) {
+          // If user has no supervisor assigned, skip to admin approval directly
+          const hasSupervisors = targetProfile.supervisor_ids && targetProfile.supervisor_ids.length > 0;
+          finalStatus = hasSupervisors ? 'pending_supervisor' : 'approved_by_supervisor';
+        }
       } else {
         // If not approved yet, we keep status or set to approved_by_supervisor if supervisor edits, or pending_supervisor if user edits
         if (isSupervisorRole) {
           finalStatus = 'approved_by_supervisor';
         } else if (isUserRole) {
-          finalStatus = 'pending_supervisor';
+          const hasSupervisors = targetProfile.supervisor_ids && targetProfile.supervisor_ids.length > 0;
+          finalStatus = hasSupervisors ? 'pending_supervisor' : 'approved_by_supervisor';
         }
       }
 
@@ -427,9 +456,15 @@ export function AddLeave({
 
         if (updateError) throw updateError;
 
-        toast.success(needsReapproval ? 'Leave updated. Admin re-approval is required.' : 'Leave updated successfully.');
+        toast.success(
+          adminDirectEdit
+            ? 'Leave updated by admin.'
+            : needsReapproval
+            ? 'Leave updated. Admin re-approval is required.'
+            : 'Leave updated successfully.'
+        );
 
-        // Notify Admin if edit needs re-approval
+        // Notify Admin if edit needs re-approval (supervisor/user edit)
         if (needsReapproval && profile?.role === 'supervisor') {
           const adminIds = profilesList.filter(p => p.role === 'admin').map(p => p.id);
           if (adminIds.length > 0) {
@@ -438,6 +473,28 @@ export function AddLeave({
               title: 'Approved Leave Edited (Requires Re-approval)',
               body: `Supervisor ${profile.full_name || profile.username} edited an approved leave for ${targetProfile.full_name || targetProfile.username} on ${formatDate(date)}.`
             }).catch(err => console.error('Error sending push:', err));
+          }
+        }
+
+        // Notify user's supervisors if user edits and it needs re-approval
+        if (needsReapproval && profile?.role === 'user') {
+          const targetSupervisors = targetProfile.supervisor_ids || [];
+          if (targetSupervisors.length > 0) {
+            sendPushNotification({
+              userIds: targetSupervisors,
+              title: 'Leave Edited (Re-approval Required)',
+              body: `${profile.full_name || profile.username} edited an approved leave on ${formatDate(date)}.`
+            }).catch(err => console.error('Error sending push:', err));
+          } else {
+            // No supervisor assigned — notify admin directly
+            const adminIds = profilesList.filter(p => p.role === 'admin').map(p => p.id);
+            if (adminIds.length > 0) {
+              sendPushNotification({
+                userIds: adminIds,
+                title: 'Leave Edited (Re-approval Required)',
+                body: `${profile.full_name || profile.username} edited an approved leave on ${formatDate(date)}.`
+              }).catch(err => console.error('Error sending push:', err));
+            }
           }
         }
 
