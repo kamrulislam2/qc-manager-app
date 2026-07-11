@@ -121,12 +121,16 @@ jobs:
           releaseBody: |
             ### QC App v__VERSION__ 🚀
 
-            **v__VERSION__** is a minor release implementing a reusable Jummah Prayer short leave adjustment on Fridays, and resolving the perpetual loading loop in the User Profile's Leave History tab.
+            **v__VERSION__** is a critical security-hardening release implementing fixes for vulnerabilities identified during a penetration review.
 
             #### 🛠 What's New in v__VERSION__:
 
-            - **Jummah Prayer Short Leave Adjustment** — Automatically deducts 20 minutes from Friday short leaves and inserts/appends the `20 Min Adjusted with Jummah Prayer` comment.
-            - **Leave History Loading State Fix** — Resolved the bug where navigating to Employee 360 -> User Profile -> Leave History remains stuck in a loading loop due to uninitialized global settings.
+            - **Forgot-Password Hardening (H1)** — Implemented IP-based rate limiting (5 req/min) and switched to silent success responses for unregistered users to prevent username enumeration.
+            - **Supervisor RLS Scoping (H2)** — Scoped supervisor `UPDATE` and `DELETE` database policies on `chuti` exclusively to supervised team members.
+            - **Leave Submission Payload Sanitization (H3)** — Sandboxed the supervisor leave submission API route to ignore client-controlled security/audit fields.
+            - **RPC Executions Revocation (M1)** — Revoked public execute permissions on sensitive `SECURITY DEFINER` database helper functions.
+            - **Audit Trail Spoofing Block (M2)** — Enforced matching user IDs (`actor_id = auth.uid()`) on audit log insertion events.
+            - **Push Subscription Scope & Entropy Updates (L1/L2)** — Restricted push notifications deletion and upgraded session identifier entropy using cryptographically secure UUIDs.
 
             #### 📦 Installation Instructions:
             - **Windows (64-bit)**: Download the `x86_64` `.exe` or `.msi` installer.

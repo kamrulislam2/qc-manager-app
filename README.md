@@ -1,6 +1,6 @@
 # 🌟 QC App — Unified Office Leave Tracker & Quotes Manager
 
-**Version 4.4.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 4.4.1** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -172,6 +172,15 @@ npm run tauri build
 *   **Custom Alert Confirmation Modal**: Replaced standard browser `confirm` prompts with custom modal designs when deleting leaves in the user profile view.
 *   **Right-Click Protection**: Disabled default browser context menus globally while keeping custom project context menus operational. Also disabled custom context menu options for supervisors on non-deletable records.
 *   **Linter & Styling Cleanup**: Resolved all remaining TypeScript compiler warning types and corrected Tailwind class formatting.
+
+### 🚀 v4.4.1 — Patch Release (Security Hardening)
+*   **Security Audit Remediation** — Implemented comprehensive fixes for vulnerabilities identified during a penetration review:
+    - **Forgot-Password Protection (H1)**: Added IP-based rate limiting (5 req/min) and switched to silent success responses for unregistered users to prevent username enumeration.
+    - **Supervisor RLS Scoping (H2)**: Restricted supervisor UPDATE/DELETE Row Level Security (RLS) policies on `chuti` exclusively to supervised team members.
+    - **Add-Leave Payload Sanitization (H3)**: Sandboxed supervisor leave submission API payloads to prevent admin status bypasses or auditing log spoofing.
+    - **RPC Access Enforcement (M1)**: Configured restrictive SQL grants and execution revokes on privileged `SECURITY DEFINER` RPC functions.
+    - **Audit Log Integrity Guard (M2)**: Restrained audit logging insertions to verify the caller's authentic user ID (`actor_id = auth.uid()`).
+    - **Push Subscription Scope & Entropy Fixes (L1/L2)**: Hardened push notification deletes to owner-only scope and upgraded session tracking keys from math-based random strings to cryptographically secure `crypto.randomUUID()`.
 
 ### 🚀 v4.4.0 — Minor Release
 *   **Jummah Prayer Short Leave Adjustment** — Automatically deducts 20 minutes from calculated short leave durations on Fridays. Includes Friday auto-detection and an `Adjust with Jummah Prayer` toggle interface on the employee and supervisor/admin forms, automatically adding a `20 Min Adjusted with Jummah Prayer` comment.
