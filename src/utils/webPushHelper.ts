@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { getApiUrl } from './apiUrlHelper';
 
 // Helper function to convert base64 VAPID key to Uint8Array
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -17,10 +16,14 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+interface TauriWindow extends Window {
+  __TAURI__?: unknown;
+}
+
 export async function subscribeUserToPush(userId: string): Promise<boolean> {
   const isTauri = typeof window !== 'undefined' && (
     '__TAURI_INTERNALS__' in window || 
-    (window as any).__TAURI__ !== undefined || 
+    (window as TauriWindow).__TAURI__ !== undefined || 
     window.location.protocol === 'tauri:'
   );
   if (isTauri) {
@@ -110,7 +113,7 @@ export async function subscribeUserToPush(userId: string): Promise<boolean> {
 export async function unsubscribeUserFromPush(userId: string): Promise<boolean> {
   const isTauri = typeof window !== 'undefined' && (
     '__TAURI_INTERNALS__' in window || 
-    (window as any).__TAURI__ !== undefined || 
+    (window as TauriWindow).__TAURI__ !== undefined || 
     window.location.protocol === 'tauri:'
   );
   if (isTauri) {

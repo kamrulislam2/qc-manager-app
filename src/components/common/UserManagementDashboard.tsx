@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
@@ -9,7 +9,7 @@ import { ConfirmModal } from '@/components/common/modals/ConfirmModal';
 import { Modal } from '@/components/common/Modal';
 import { UserManagementSkeleton } from '@/components/common/skeleton/UserManagementSkeleton';
 import toast from 'react-hot-toast';
-import { useRealtimeHandler } from '@/contexts/RealtimeContext';
+import { useRealtimeHandler, RealtimePayload } from '@/contexts/RealtimeContext';
 import {
   Search,
   UserPlus,
@@ -133,7 +133,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const [leaveFilterStartDate, setLeaveFilterStartDate] = useState('');
   const [leaveFilterEndDate, setLeaveFilterEndDate] = useState('');
   const [leaveSearchQuery, setLeaveSearchQuery] = useState('');
-  const [selectedYear, setSelectedYear] = useState<string>(() => new Date().getFullYear().toString());
+
   const [detailSelectedYear, setDetailSelectedYear] = useState<string>(() => new Date().getFullYear().toString());
 
   // Change Credentials Modal State
@@ -398,7 +398,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   // - chuti + leave_settlements: forwarded as DOM events by the dashboard handler
 
   // ── govt_holiday_responses handler ──
-  const handleHolidayResponseRealtime = useCallback((payload: any) => {
+  const handleHolidayResponseRealtime = useCallback((payload: RealtimePayload) => {
     if (!viewingStaff) return;
     const rec = payload?.new || payload?.old;
     if (rec?.user_id === viewingStaff.id) {
@@ -416,7 +416,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     if (!isSupervisedByMe) return;
 
     const handleTablePayload = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { table?: string; payload?: any } | undefined;
+      const detail = (e as CustomEvent).detail as { table?: string; payload?: RealtimePayload } | undefined;
       if (!detail || (detail.table !== 'chuti' && detail.table !== 'leave_settlements')) return;
       const rec = detail.payload?.new || detail.payload?.old;
       if (rec?.user_id === viewingStaff.id) {
@@ -608,9 +608,9 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
         .order('username', { ascending: true });
       if (error) throw error;
       if (data) {
-        const mapped = data.map((p: any) => ({
+        const mapped = data.map((p) => ({
           ...p,
-          password_reset_status: p.password_reset_status || p.global_settings?.password_reset_status || 'none'
+          password_reset_status: p.password_reset_status || (p.global_settings as Record<string, string> | undefined)?.password_reset_status || 'none'
         }));
         setProfiles(mapped);
       }
@@ -747,9 +747,9 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
         .select('*')
         .order('username', { ascending: true });
       if (data) {
-        const mapped = data.map((p: any) => ({
+        const mapped = data.map((p) => ({
           ...p,
-          password_reset_status: p.password_reset_status || p.global_settings?.password_reset_status || 'none'
+          password_reset_status: p.password_reset_status || (p.global_settings as Record<string, string> | undefined)?.password_reset_status || 'none'
         }));
         setProfiles(mapped);
         const updated = mapped.find(p => p.id === viewingStaff.id);

@@ -4,6 +4,11 @@ import toast from 'react-hot-toast';
 
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
 
+interface ActiveSession {
+  sessionId: string;
+  lastActive: number;
+}
+
 export async function checkInactivity(userId: string): Promise<boolean> {
   if (typeof window === 'undefined') return false;
   
@@ -28,7 +33,7 @@ export async function checkInactivity(userId: string): Promise<boolean> {
 export async function registerAndCheckSession(
   userId: string, 
   userProfile: Profile,
-  setProfileState: (p: any) => void
+  setProfileState: (p: Profile | null) => void
 ): Promise<boolean> {
   if (typeof window === 'undefined') return true;
 
@@ -39,23 +44,23 @@ export async function registerAndCheckSession(
     localStorage.setItem('qc_session_id', currentSessionId);
   }
 
-  // 2. Read active_sessions from global_settings
-  const settings = userProfile.global_settings || {};
-  let activeSessions = Array.isArray(settings.active_sessions) ? settings.active_sessions : [];
+  // Read active_sessions from global_settings
+  const settings = (userProfile.global_settings || {}) as Record<string, unknown>;
+  let activeSessions: ActiveSession[] = Array.isArray(settings.active_sessions) ? (settings.active_sessions as ActiveSession[]) : [];
 
   const now = Date.now();
   // Filter out sessions older than 1 week
-  activeSessions = activeSessions.filter((s: any) => now - (s.lastActive || 0) < ONE_WEEK);
+  activeSessions = activeSessions.filter((s: ActiveSession) => now - (s.lastActive || 0) < ONE_WEEK);
 
   // Check if currentSessionId exists
-  const sessionExists = activeSessions.some((s: any) => s.sessionId === currentSessionId);
+  const sessionExists = activeSessions.some((s: ActiveSession) => s.sessionId === currentSessionId);
 
   if (!sessionExists) {
     // New login session
-    activeSessions.push({ sessionId: currentSessionId, lastActive: now });
+    activeSessions.push({ sessionId: currentSessionId!, lastActive: now });
 
     // Enforce max 3 sessions limit: Sort oldest first (ascending)
-    activeSessions.sort((a: any, b: any) => (a.lastActive || 0) - (b.lastActive || 0));
+    activeSessions.sort((a: ActiveSession, b: ActiveSession) => (a.lastActive || 0) - (b.lastActive || 0));
 
     if (activeSessions.length > 3) {
       activeSessions = activeSessions.slice(activeSessions.length - 3);
@@ -80,9 +85,9 @@ export async function registerAndCheckSession(
     }
   } else {
     // Session exists, check if lastActive is old (> 30s) and update
-    const currentSession = activeSessions.find((s: any) => s.sessionId === currentSessionId);
+    const currentSession = activeSessions.find((s: ActiveSession) => s.sessionId === currentSessionId);
     if (currentSession && now - (currentSession.lastActive || 0) > 30000) {
-      activeSessions = activeSessions.map((s: any) => {
+      activeSessions = activeSessions.map((s: ActiveSession) => {
         if (s.sessionId === currentSessionId) {
           return { ...s, lastActive: now };
         }
@@ -102,7 +107,7 @@ export async function registerAndCheckSession(
   }
 
   // Check if currentSessionId is still in the activeSessions list
-  const isStillValid = activeSessions.some((s: any) => s.sessionId === currentSessionId);
+  const isStillValid = activeSessions.some((s: ActiveSession) => s.sessionId === currentSessionId);
   if (!isStillValid) {
     // Evicted!
     localStorage.removeItem('qc_session_id');
@@ -127,12 +132,12 @@ export async function updateSessionLastActiveInDb(userId: string): Promise<void>
     .single();
 
   if (!error && data) {
-    const settings = data.global_settings || {};
-    let activeSessions = Array.isArray(settings.active_sessions) ? settings.active_sessions : [];
+    const settings = (data.global_settings || {}) as Record<string, unknown>;
+    let activeSessions: ActiveSession[] = Array.isArray(settings.active_sessions) ? (settings.active_sessions as ActiveSession[]) : [];
     const now = Date.now();
 
     let updated = false;
-    activeSessions = activeSessions.map((s: any) => {
+    activeSessions = activeSessions.map((s: ActiveSession) => {
       if (s.sessionId === currentSessionId) {
         updated = true;
         return { ...s, lastActive: now };

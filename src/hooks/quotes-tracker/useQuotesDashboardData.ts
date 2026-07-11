@@ -343,8 +343,9 @@ export const useQuotesDashboardData = () => {
             await setCacheData('profiles_cache', profiles || []);
             setProfilesList(profiles || []);
           }
-        } catch (netError: any) {
-          console.error('Network sync/fetch failed, falling back to cache:', netError?.message || netError, netError);
+        } catch (netError: unknown) {
+          const errMsg = netError instanceof Error ? netError.message : String(netError);
+          console.error('Network sync/fetch failed, falling back to cache:', errMsg, netError);
           showToast('error', 'Network error. Loading offline cache...');
         }
       }
@@ -359,7 +360,7 @@ export const useQuotesDashboardData = () => {
       // would have no guard and could re-upload everything (duplication). Also check a DB-level flag
       // in the admin's profile.global_settings, which persists across tabs AND devices.
       const existingSettings = (profile?.global_settings && typeof profile.global_settings === 'object')
-        ? (profile.global_settings as Record<string, any>)
+        ? (profile.global_settings as Record<string, unknown>)
         : {};
       const restoreDoneInDb = !!existingSettings.records_restored_at;
       const hasAttemptedRestore = restoreDoneInDb ||
@@ -467,15 +468,16 @@ export const useQuotesDashboardData = () => {
         });
       }
 
-    } catch (err: any) {
-      console.error('Error fetching records:', err?.message || err?.details || err);
-      showToast('error', 'Error loading data: ' + (err?.message || err?.details || String(err)));
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('Error fetching records:', errMsg);
+      showToast('error', 'Error loading data: ' + errMsg);
     } finally {
       setRecordsLoading(false);
       setInitialFetchDone(true);
       fetchingRef.current = false;
     }
-  }, [sessionUser, profile, selectedYear, selectedMonth, showToast, setProfilesList]);
+  }, [sessionUser, profile, selectedYear, selectedMonth, showToast, setProfilesList, setProfile]);
 
   // Fetch unique month/year dates that contain submitted records for the logged-in user (or anyone if admin)
   const fetchAvailableDates = useCallback(async () => {
@@ -512,8 +514,9 @@ export const useQuotesDashboardData = () => {
 
           earliestDate = earliestResult.data?.[0]?.submitted_at ? new Date(earliestResult.data[0].submitted_at) : null;
           latestDate = latestResult.data?.[0]?.submitted_at ? new Date(latestResult.data[0].submitted_at) : null;
-        } catch (netError: any) {
-          console.error('Failed to fetch available dates online, falling back to cache:', netError?.message || netError, netError);
+        } catch (netError: unknown) {
+          const errMsg = netError instanceof Error ? netError.message : String(netError);
+          console.error('Failed to fetch available dates online, falling back to cache:', errMsg, netError);
           // Offline: read min/max from IndexedDB cache
           const cached = await getCacheData<RecordItem>('records_cache');
           const userRecords = cached.filter(r => (profile.role === 'admin' || profile.role === 'supervisor') || r.user_id === sessionUser.id);
@@ -711,9 +714,10 @@ export const useQuotesDashboardData = () => {
 
       setSubmitting(false);
       return true;
-    } catch (err: any) {
-      console.error('Error completing first-time setup:', err?.message || err?.details || err);
-      showToast('error', 'Error during setup: ' + (err?.message || err?.details || String(err)));
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('Error completing first-time setup:', errMsg);
+      showToast('error', 'Error during setup: ' + errMsg);
       setSubmitting(false);
       return false;
     }

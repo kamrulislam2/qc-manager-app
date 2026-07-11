@@ -8,7 +8,7 @@ import { Profile, ChutiRecordWithProfile, LeaveSettlement, GovtHolidayResponse }
 import { ChutiRecord, SyncConflict, getOfflineRecords, syncOfflineData, getCacheData, setCacheData, mergeCacheData, removeCacheItems, upsertCacheItem, getGlobalSettingsCache, setGlobalSettingsCache, getSyncTimestamp, setSyncTimestamp, purgeStaleCacheData } from '@/utils/offlineSync';
 import { checkSubscriptionStatus, sendPushNotification } from '@/utils/webPushHelper';
 import { getGlobalSettingsFromProfile, defaultGlobalSettings, GlobalSettings, formatDate, parseHolidayItem } from '@/utils/dashboardHelpers';
-import { useRealtimeHandler } from '@/contexts/RealtimeContext';
+import { useRealtimeHandler, RealtimePayload } from '@/contexts/RealtimeContext';
 
 export const useDashboardData = () => {
 
@@ -180,9 +180,9 @@ export const useDashboardData = () => {
           .order('username', { ascending: true });
 
         if (!profilesErr && profiles) {
-          const mapped = profiles.map((p: any) => ({
+          const mapped = profiles.map((p) => ({
             ...p,
-            password_reset_status: p.password_reset_status || p.global_settings?.password_reset_status || 'none'
+            password_reset_status: p.password_reset_status || (p.global_settings as Record<string, string> | undefined)?.password_reset_status || 'none'
           }));
           profilesData = mapped;
           setProfilesList(mapped);
@@ -1011,7 +1011,7 @@ export const useDashboardData = () => {
   }, [fetchRecords]);
 
   // ── chuti handler ──
-  const handleChutiRealtime = useCallback((payload: any) => {
+  const handleChutiRealtime = useCallback((payload: RealtimePayload) => {
     console.log('Realtime chuti change received:', payload);
     // Forward so UserManagementDashboard can react without its own chuti subscription
     if (typeof window !== 'undefined') {
@@ -1021,14 +1021,16 @@ export const useDashboardData = () => {
   }, [handleRealtimeChange]);
 
   // ── profiles handler ──
-  const handleProfilesRealtime = useCallback((payload: any) => {
+  const handleProfilesRealtime = useCallback((payload: RealtimePayload) => {
     if (!sessionUser) return;
     console.log('Realtime profile change received:', payload);
+    const newRow = payload.new as Partial<Profile>;
+    const oldRow = payload.old as Partial<Profile>;
     // Forward for quotes workspace
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('realtime-profile-payload', { detail: payload }));
     }
-    if (payload.eventType === 'DELETE' && payload.old && payload.old.id === sessionUser.id) {
+    if (payload.eventType === 'DELETE' && oldRow?.id === sessionUser.id) {
       console.log('Your profile has been deleted by admin. Logging out...');
       const handleForceLogout = async () => {
         try {
@@ -1044,30 +1046,30 @@ export const useDashboardData = () => {
       handleForceLogout();
       return;
     }
-    if (payload.eventType === 'UPDATE' && payload.new) {
-      if (payload.new.id === sessionUser.id) {
-        setProfile(prev => prev ? { ...prev, ...payload.new } : (payload.new as Profile));
+    if (payload.eventType === 'UPDATE' && newRow) {
+      if (newRow.id === sessionUser.id) {
+        setProfile(prev => prev ? { ...prev, ...newRow } : (newRow as Profile));
       }
 
       // Inline update profilesList from payload to avoid full refetch
-      const oldUser = profilesListRef.current.find(p => p.id === payload.new.id);
+      const oldUser = profilesListRef.current.find(p => p.id === newRow.id);
       const hasSubstantialChange = !oldUser ||
-        oldUser.username !== payload.new.username ||
-        oldUser.role !== payload.new.role ||
-        oldUser.full_name !== payload.new.full_name ||
-        oldUser.job_role !== payload.new.job_role ||
-        oldUser.working_hours !== payload.new.working_hours ||
-        oldUser.break_time !== payload.new.break_time ||
-        oldUser.is_setup_completed !== payload.new.is_setup_completed;
+        oldUser.username !== newRow.username ||
+        oldUser.role !== newRow.role ||
+        oldUser.full_name !== newRow.full_name ||
+        oldUser.job_role !== newRow.job_role ||
+        oldUser.working_hours !== newRow.working_hours ||
+        oldUser.break_time !== newRow.break_time ||
+        oldUser.is_setup_completed !== newRow.is_setup_completed;
 
       const isApprover = profile?.role === 'admin' || profile?.role === 'supervisor';
       if (hasSubstantialChange && isApprover) {
         // Inline update the profiles list instead of full refetch
         setProfilesList(prev => {
-          const idx = prev.findIndex(p => p.id === payload.new.id);
+          const idx = prev.findIndex(p => p.id === newRow.id);
           if (idx >= 0) {
             const updated = [...prev];
-            updated[idx] = { ...updated[idx], ...payload.new } as Profile;
+            updated[idx] = { ...updated[idx], ...newRow } as Profile;
             return updated;
           }
           return prev;
@@ -1087,7 +1089,7 @@ export const useDashboardData = () => {
   }, [sessionUser, profile, handleRealtimeChange]);
 
   // ── leave_settlements handler ──
-  const handleSettlementsRealtime = useCallback((payload: any) => {
+  const handleSettlementsRealtime = useCallback((payload: RealtimePayload) => {
     console.log('Realtime settlement change received:', payload);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('realtime-table-payload', { detail: { table: 'leave_settlements', payload } }));

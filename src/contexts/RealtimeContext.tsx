@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useRef, useCallback } from 'react';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
 
@@ -13,7 +14,17 @@ export type RealtimeTable =
   | 'records'
   | 'govt_holiday_responses';
 
-export type RealtimeHandler = (payload: any) => void;
+/** Minimal interface for Supabase postgres_changes payloads */
+export interface RealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+  schema: string;
+  table: string;
+  commit_timestamp?: string;
+}
+
+export type RealtimeHandler = (payload: RealtimePayload) => void;
 
 interface RealtimeContextValue {
   /** Register a handler for a table. Returns an unsubscribe function. */
@@ -28,7 +39,7 @@ const RealtimeContext = createContext<RealtimeContextValue | null>(null);
 
 interface RealtimeProviderProps {
   children: React.ReactNode;
-  sessionUser: any;
+  sessionUser: SupabaseUser | null;
   profile: Profile | null;
 }
 
@@ -69,7 +80,7 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
 
     const isApprover = profile.role === 'admin' || profile.role === 'supervisor';
 
-    const dispatch = (table: RealtimeTable, payload: any) => {
+    const dispatch = (table: RealtimeTable, payload: RealtimePayload) => {
       handlersRef.current.get(table)?.forEach((handler) => {
         try {
           handler(payload);
@@ -90,7 +101,7 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
           table: 'chuti',
           ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
         },
-        (payload) => dispatch('chuti', payload)
+        (payload) => dispatch('chuti', payload as unknown as RealtimePayload)
       )
       // ── profiles ──
       .on(
@@ -101,7 +112,7 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
           table: 'profiles',
           ...(isApprover ? {} : { filter: `id=eq.${sessionUser.id}` }),
         },
-        (payload) => dispatch('profiles', payload)
+        (payload) => dispatch('profiles', payload as unknown as RealtimePayload)
       )
       // ── leave_settlements ──
       .on(
@@ -112,7 +123,7 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
           table: 'leave_settlements',
           ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
         },
-        (payload) => dispatch('leave_settlements', payload)
+        (payload) => dispatch('leave_settlements', payload as unknown as RealtimePayload)
       )
       // ── records (quotes) — always user-scoped ──
       .on(
@@ -123,7 +134,7 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
           table: 'records',
           filter: `user_id=eq.${sessionUser.id}`,
         },
-        (payload) => dispatch('records', payload)
+        (payload) => dispatch('records', payload as unknown as RealtimePayload)
       )
       // ── govt_holiday_responses ──
       .on(
@@ -134,7 +145,7 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
           table: 'govt_holiday_responses',
           ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
         },
-        (payload) => dispatch('govt_holiday_responses', payload)
+        (payload) => dispatch('govt_holiday_responses', payload as unknown as RealtimePayload)
       )
       .subscribe();
 

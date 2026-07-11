@@ -2,24 +2,25 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
-import { Profile } from '@/types';
+import { Profile, GovtHolidayResponse, ComplianceRule, ChutiRecordWithProfile } from '@/types';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { NotificationItem } from '@/hooks/leave-tracker/useDerivedState';
 import { toast } from 'react-hot-toast';
 import { parseHolidayItem, getGlobalSettingsFromProfile, defaultGlobalSettings } from '@/utils/dashboardHelpers';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 export function useGlobalNotifications(
-  sessionUser: any,
+  sessionUser: SupabaseUser | null,
   profile: Profile | null,
   profilesList: Profile[],
   sharedUserRecords?: ChutiRecord[],
-  sharedHolidayResponses?: any[]
+  sharedHolidayResponses?: GovtHolidayResponse[]
 ) {
   const [userRecords, setUserRecords] = useState<ChutiRecord[]>([]);
-  const [holidayResponses, setHolidayResponses] = useState<any[]>([]);
-  const [rulesRecords, setRulesRecords] = useState<any[]>([]);
-  const [adminPendingRecords, setAdminPendingRecords] = useState<ChutiRecord[]>([]);
-  const [supervisorPendingRecords, setSupervisorPendingRecords] = useState<ChutiRecord[]>([]);
+  const [holidayResponses, setHolidayResponses] = useState<GovtHolidayResponse[]>([]);
+  const [rulesRecords, setRulesRecords] = useState<Pick<ComplianceRule, 'id' | 'updated_at' | 'created_at' | 'category' | 'sub_category' | 'content'>[]>([]);
+  const [adminPendingRecords, setAdminPendingRecords] = useState<Pick<ChutiRecord, 'id' | 'status' | 'leave_type' | 'reserve_adjustment_status'>[]>([]);
+  const [supervisorPendingRecords, setSupervisorPendingRecords] = useState<ChutiRecordWithProfile[]>([]);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [lastViewedTime, setLastViewedTime] = useState<string>('');
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState<Set<string>>(new Set());
@@ -86,7 +87,7 @@ export function useGlobalNotifications(
         if (profile?.role === 'admin' || profile?.role === 'supervisor') {
           const { data: holidayData, error: holidayError } = await supabase
             .from('govt_holiday_responses')
-            .select('id, user_id, holiday_date, response, created_at')
+            .select('id, user_id, holiday_date, holiday_name, response, created_at')
             .order('created_at', { ascending: false });
 
           if (!holidayError && holidayData) {
@@ -95,7 +96,7 @@ export function useGlobalNotifications(
         } else {
           const { data: holidayData, error: holidayError } = await supabase
             .from('govt_holiday_responses')
-            .select('id, user_id, holiday_date, response, created_at')
+            .select('id, user_id, holiday_date, holiday_name, response, created_at')
             .eq('user_id', sessionUser.id)
             .order('created_at', { ascending: false });
 
@@ -109,7 +110,7 @@ export function useGlobalNotifications(
       if (profile?.has_quotes_access) {
         const { data: rulesData, error: rulesError } = await supabase
           .from('compliance_rules')
-          .select('*')
+          .select('id, updated_at, created_at, category, sub_category, content')
           .eq('is_deleted', false);
 
         if (!rulesError && rulesData) {
@@ -131,7 +132,7 @@ export function useGlobalNotifications(
 
         if (!adminChutiError && adminChutiData) {
           // Partial row (count-only); cast to the state's record type.
-          setAdminPendingRecords(adminChutiData as unknown as ChutiRecord[]);
+          setAdminPendingRecords(adminChutiData as unknown as Pick<ChutiRecord, 'id' | 'status' | 'leave_type' | 'reserve_adjustment_status'>[]);
         }
       } else {
         setAdminPendingRecords([]);
@@ -148,7 +149,7 @@ export function useGlobalNotifications(
 
         if (!supervisorChutiError && supervisorChutiData) {
           // Partial row + profiles join (count-only); cast to the state's record type.
-          setSupervisorPendingRecords(supervisorChutiData as unknown as ChutiRecord[]);
+          setSupervisorPendingRecords(supervisorChutiData as unknown as ChutiRecordWithProfile[]);
         }
       } else {
         setSupervisorPendingRecords([]);
@@ -247,9 +248,9 @@ export function useGlobalNotifications(
 
     // 1. Govt Holiday Notifications
     if (profile.eligible_govt_holiday !== false) {
-      const activeHolidays = (globalSettings.govt_holidays || []).map((h: any) => parseHolidayItem(h));
+      const activeHolidays = (globalSettings.govt_holidays || []).map((h: unknown) => parseHolidayItem(h));
 
-      activeHolidays.forEach((holiday: any) => {
+      activeHolidays.forEach((holiday: { date: string; name: string }) => {
         const response = holidayResponses.find(r => r.user_id === profile.id && r.holiday_date === holiday.date);
         
         if (response) {
@@ -346,7 +347,6 @@ export function useGlobalNotifications(
     userRecords, 
     holidayResponses, 
     rulesRecords, 
-    profilesList, 
     globalSettings.govt_holidays, 
     currentSessionTime, 
     dismissedNotificationIds
@@ -372,7 +372,7 @@ export function useGlobalNotifications(
       const passwordResetCount = profilesList.filter(p => p.password_reset_status === 'pending').length;
       
       // Count govt holiday responses for admin (where user is reserve-enabled)
-      const adminHolidayNotifCount = holidayResponses.filter((r: any) => {
+      const adminHolidayNotifCount = holidayResponses.filter((r: GovtHolidayResponse) => {
         const staff = profilesList.find(p => p.id === r.user_id);
         const isReserveEnabled = staff ? staff.allow_reserve !== false : true;
         if (!isReserveEnabled) return false;
@@ -390,7 +390,7 @@ export function useGlobalNotifications(
 
       const myTeamPendingCount = supervisorPendingRecords.filter(r => {
         // Only count if this supervisor is assigned to the user, or if someone who delegated to them is assigned
-        const userSupervisorIds = (r as any).profiles?.supervisor_ids || [];
+        const userSupervisorIds = r.profiles?.supervisor_ids || [];
         const isSupervised = userSupervisorIds.includes(profile.id) ||
                              userSupervisorIds.some((id: string) => delegatedFromSupervisorIds.includes(id));
         if (!isSupervised) return false;
@@ -487,9 +487,10 @@ export function useGlobalNotifications(
       toast.success(`Choice '${choice === 'paid' ? 'Get Paid' : 'Reserve'}' saved successfully.`);
       await fetchNotificationsData();
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
       console.error('Failed to save holiday choice:', err);
-      toast.error('Failed to save choice: ' + err.message);
+      toast.error('Failed to save choice: ' + errMsg);
       return false;
     }
   }, [profile, fetchNotificationsData]);
