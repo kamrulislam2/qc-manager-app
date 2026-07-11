@@ -4,7 +4,7 @@ import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { DateInput } from '@/components/common/DateInput';
 import { ChutiRecord } from '@/utils/offlineSync';
-import { formatDate, formatTimeToAMPM, formatDaysAndHours, checkIfHolidayOrWeekend, getLeaveValidationError } from '@/utils/dashboardHelpers';
+import { formatDate, formatTimeToAMPM, formatDaysAndHours, checkIfHolidayOrWeekend, getLeaveValidationError, isFriday } from '@/utils/dashboardHelpers';
 import { CustomSelect } from '@/components/common/CustomSelect';
 
 interface AddLeaveFormFieldsProps {
@@ -45,6 +45,8 @@ interface AddLeaveFormFieldsProps {
   workingHours?: number;
   isAdmin?: boolean;
   globalSettings?: any;
+  adjustJummah?: boolean;
+  setAdjustJummah?: (val: boolean) => void;
   onDateErrorChange?: (id: string, hasError: boolean) => void;
 }
 
@@ -86,6 +88,8 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
   isAdmin = false,
   globalSettings,
   onDateErrorChange,
+  adjustJummah = false,
+  setAdjustJummah,
 }) => {
   const isHoliday = globalSettings ? checkIfHolidayOrWeekend(date, globalSettings) : false;
   const validationError = getLeaveValidationError(leaveType, signInTime, signOutTime, workingHours, isHoliday);
@@ -413,6 +417,29 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Jummah Prayer Adjustment Toggle */}
+        {leaveType === 'Short Leave' && isFriday(date) && (
+          <div className="flex items-center justify-between p-3 bg-slate-955/60 rounded-lg border border-slate-800/80 mb-3">
+            <div>
+              <span className="block text-xs font-semibold text-slate-200 font-sans">Adjust with Jummah Prayer?</span>
+              <span className="block text-[10px] text-slate-450 mt-0.5">Deduct 20 minutes from the calculated short leave duration</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAdjustJummah && setAdjustJummah(!adjustJummah)}
+              className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                adjustJummah ? 'bg-indigo-600' : 'bg-slate-800'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  adjustJummah ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
         )}
 

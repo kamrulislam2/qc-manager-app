@@ -13,6 +13,8 @@ import {
   calculateHalfYearlyOfficeLeave,
   checkIfHolidayOrWeekend,
   getLeaveValidationError,
+  isFriday,
+  adjustShortLeaveForJummah
 } from "@/utils/dashboardHelpers";
 import { ChutiRecord, generateUUID } from "@/utils/offlineSync";
 import { sendPushNotification } from "@/utils/webPushHelper";
@@ -49,6 +51,7 @@ export function AdminAddLeaveModal({
   const [signOutTime, setSignOutTime] = useState("22:30");
   const [leaveHour, setLeaveHour] = useState("00:00");
   const [comment, setComment] = useState("");
+  const [adjustJummah, setAdjustJummah] = useState(() => new Date().getDay() === 5);
   const [bulkDates, setBulkDates] = useState<string[]>([]);
   const [bulkAdjustments, setBulkAdjustments] = useState<boolean[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -105,6 +108,13 @@ export function AdminAddLeaveModal({
     }
   }, [showModal, staffProfile]);
 
+  // Sync adjustJummah with date changes
+  useEffect(() => {
+    if (leaveType === 'Short Leave' && date) {
+      setAdjustJummah(isFriday(date));
+    }
+  }, [date, leaveType]);
+
   // Recalculate leave hour when inputs change
   useEffect(() => {
     if (!staffProfile) return;
@@ -121,8 +131,11 @@ export function AdminAddLeaveModal({
       workingHours,
       isHoliday,
     );
-    setLeaveHour(calc);
-  }, [signInTime, signOutTime, leaveType, date, staffProfile, globalSettings]);
+    const finalCalc = (leaveType === 'Short Leave' && isFriday(date))
+      ? adjustShortLeaveForJummah(calc, adjustJummah)
+      : calc;
+    setLeaveHour(finalCalc);
+  }, [signInTime, signOutTime, leaveType, date, staffProfile, globalSettings, adjustJummah]);
 
   // Real-time balance calculations
   const selectedYear = date
@@ -346,6 +359,16 @@ export function AdminAddLeaveModal({
       // Direct Admin bulk insertion (bypasses regular user submission logic)
       const adjustedArr = datesWithAdjustment.map((item) => item.adjustment);
 
+      let finalComment = comment.trim();
+      if (leaveType === 'Short Leave' && isFriday(date) && adjustJummah) {
+        const jummahMsg = '20 Min Adjusted with Jummah Prayer';
+        if (!finalComment) {
+          finalComment = jummahMsg;
+        } else if (!finalComment.includes(jummahMsg)) {
+          finalComment = `${finalComment} | ${jummahMsg}`;
+        }
+      }
+
       const { error: bulkInsertError } = await supabase.rpc(
         "admin_insert_chuti_records_bulk",
         {
@@ -357,7 +380,7 @@ export function AdminAddLeaveModal({
           p_sign_in_time: leaveType === "Full Leave" ? null : signInTime,
           p_sign_out_time: leaveType === "Full Leave" ? null : signOutTime,
           p_leave_hour: leaveType === "Full Leave" ? null : leaveHour,
-          p_comment: comment || null,
+          p_comment: finalComment || null,
           p_reserve_holiday:
             leaveType === "Short Leave"
               ? adjustment
@@ -463,6 +486,8 @@ export function AdminAddLeaveModal({
                   handleUpdateBulkAdjustment={handleUpdateBulkAdjustment}
                   handleRemoveBulkDate={handleRemoveBulkDate}
                   allowOvertime={staffProfile.allow_overtime || false}
+                  adjustJummah={adjustJummah}
+                  setAdjustJummah={setAdjustJummah}
                   adjustment={adjustment}
                   availableOvertimeMins={parseHHMMToMinutes(
                     stats.overtimeHours,

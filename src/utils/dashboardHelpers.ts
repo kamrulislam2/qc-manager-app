@@ -646,3 +646,41 @@ export const getOutstandingOfficeLeave = (
 
   return h1Outstanding + h2Outstanding;
 };
+
+/**
+ * Checks if today is Friday or if the given date string is a Friday.
+ */
+export const isFriday = (dateString?: string): boolean => {
+  // Check if today is Friday
+  const today = new Date();
+  if (today.getDay() === 5) {
+    return true;
+  }
+  // Check if the input date is Friday
+  if (dateString) {
+    const parts = dateString.split('-').map(Number);
+    if (parts.length === 3) {
+      const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+      return dateObj.getDay() === 5;
+    }
+  }
+  return false;
+};
+
+/**
+ * Deducts 20 minutes from the calculated short leave duration string.
+ * Ensures the value never drops below "00:00".
+ */
+export const adjustShortLeaveForJummah = (leaveHourStr: string, enabled: boolean): string => {
+  if (!enabled || !leaveHourStr || leaveHourStr === '00:00') {
+    return leaveHourStr;
+  }
+  if (leaveHourStr.startsWith('-')) {
+    return leaveHourStr; // Ignore negative bounds
+  }
+
+  const mins = parseTimeToMinutes(leaveHourStr);
+  const adjustedMins = Math.max(0, mins - 20);
+  return formatDuration(adjustedMins);
+};
+

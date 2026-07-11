@@ -22,7 +22,7 @@ interface UserLeaveHistoryPanelProps {
   viewingStaffRecords: ChutiRecord[];
   viewingStaffSettlements: LeaveSettlement[];
   viewingStaffHolidayResponses: GovtHolidayResponse[];
-  globalSettings: GlobalSettings | null;
+  globalSettings: GlobalSettings;
   loadingLeaveData: boolean;
   selectedYear: string;
   setSelectedYear: (year: string) => void;
@@ -179,7 +179,7 @@ export const UserLeaveHistoryPanel: React.FC<UserLeaveHistoryPanelProps> = ({
     });
   }, [viewingStaffRecords, selectedYear, leaveFilterType, leaveFilterStartDate, leaveFilterEndDate, leaveSearchQuery]);
 
-  if ((loadingLeaveData && viewingStaffRecords.length === 0) || !globalSettings) {
+  if (loadingLeaveData && viewingStaffRecords.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 bg-slate-900/10 border border-slate-850/50 rounded-2xl">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />

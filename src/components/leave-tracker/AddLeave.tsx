@@ -12,7 +12,9 @@ import {
   getLeaveValidationError,
   calculateLeaveOrOvertime,
   formatDate,
-  getSettlementSplits
+  getSettlementSplits,
+  isFriday,
+  adjustShortLeaveForJummah
 } from '@/utils/dashboardHelpers';
 import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/leave-tracker/useLeaveQuotaStats';
 import { sendPushNotification } from '@/utils/webPushHelper';
@@ -72,6 +74,12 @@ export function AddLeave({
   const [signOutTime, setSignOutTime] = useState(() => editingRecord?.sign_out_time ? editingRecord.sign_out_time.substring(0, 5) : '22:30');
   const [leaveHour, setLeaveHour] = useState(() => editingRecord?.leave_hour ? editingRecord.leave_hour.toString().split('.')[0].substring(0, 5) : '00:00');
   const [comment, setComment] = useState(() => editingRecord?.comment || '');
+  const [adjustJummah, setAdjustJummah] = useState(() => {
+    if (editingRecord) {
+      return !!editingRecord.comment?.includes('20 Min Adjusted with Jummah Prayer');
+    }
+    return new Date().getDay() === 5;
+  });
   const [bulkDates, setBulkDates] = useState<string[]>([]);
   const [bulkAdjustments, setBulkAdjustments] = useState<boolean[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -110,6 +118,13 @@ export function AddLeave({
     }
   }, [targetProfileId, defaultSignIn, defaultSignOut, editingRecord]);
 
+  // Sync adjustJummah with date changes
+  useEffect(() => {
+    if (leaveType === 'Short Leave' && date) {
+      setAdjustJummah(isFriday(date));
+    }
+  }, [date, leaveType]);
+
   // Recalculate leave hour when inputs change
   useEffect(() => {
     if (!targetProfile) return;
@@ -118,8 +133,11 @@ export function AddLeave({
     const workingHours = targetWorkingHours ?? 9.5;
     const isHoliday = checkIfHolidayOrWeekend(date, globalSettings);
     const calc = calculateLeaveOrOvertime(leaveType, signInTime, signOutTime, shiftStart, shiftEnd, workingHours, isHoliday);
-    setLeaveHour(calc);
-  }, [signInTime, signOutTime, leaveType, date, defaultSignIn, defaultSignOut, targetWorkingHours, globalSettings, targetProfile]);
+    const finalCalc = (leaveType === 'Short Leave' && isFriday(date))
+      ? adjustShortLeaveForJummah(calc, adjustJummah)
+      : calc;
+    setLeaveHour(finalCalc);
+  }, [signInTime, signOutTime, leaveType, date, defaultSignIn, defaultSignOut, targetWorkingHours, globalSettings, targetProfile, adjustJummah]);
 
   // Filter records belonging to the target staff member
   const staffRecords = React.useMemo(() => {
@@ -337,10 +355,36 @@ export function AddLeave({
       }
 
       let commentWithCategory = comment.trim();
+      const jummahMsg = '20 Min Adjusted with Jummah Prayer';
+
+      // Pre-process form comment for Jummah adjustment
+      if (leaveType === 'Short Leave' && isFriday(date) && adjustJummah) {
+        if (!commentWithCategory.includes(jummahMsg)) {
+          commentWithCategory = commentWithCategory ? `${commentWithCategory} | ${jummahMsg}` : jummahMsg;
+        }
+      } else {
+        commentWithCategory = commentWithCategory
+          .replace(new RegExp(`\\s*\\|\\s*${jummahMsg}`), '')
+          .replace(jummahMsg, '')
+          .trim();
+      }
+
       let finalStatus = editingRecord.status;
 
       if (adminDirectEdit) {
         // ─── ADMIN DIRECT EDIT — no re-approval, status stays as-is ───
+        let baseComment = editingRecord.comment || '';
+        if (leaveType === 'Short Leave' && isFriday(date) && adjustJummah) {
+          if (!baseComment.includes(jummahMsg)) {
+            baseComment = baseComment ? `${baseComment} | ${jummahMsg}` : jummahMsg;
+          }
+        } else {
+          baseComment = baseComment
+            .replace(new RegExp(`\\s*\\|\\s*${jummahMsg}`), '')
+            .replace(jummahMsg, '')
+            .trim();
+        }
+
         // Build a change log for audit trail
         let changeDescription = '';
         if (editingRecord.date !== date) changeDescription += `Date (${editingRecord.date} -> ${date}), `;
@@ -353,11 +397,25 @@ export function AddLeave({
         if (changeDescription) {
           const adminName = profile?.username?.toUpperCase() || 'ADMIN';
           const editLog = `\n[Admin Edit by ${adminName}: ${changeDescription}]`;
-          commentWithCategory = (editingRecord.comment || '') + editLog;
+          commentWithCategory = baseComment + editLog;
+        } else {
+          commentWithCategory = baseComment;
         }
         // Keep finalStatus unchanged — admin edit doesn't require re-approval
       } else if (needsReapproval) {
         // ─── SUPERVISOR / USER re-approval flow ───
+        let baseComment = editingRecord.comment || '';
+        if (leaveType === 'Short Leave' && isFriday(date) && adjustJummah) {
+          if (!baseComment.includes(jummahMsg)) {
+            baseComment = baseComment ? `${baseComment} | ${jummahMsg}` : jummahMsg;
+          }
+        } else {
+          baseComment = baseComment
+            .replace(new RegExp(`\\s*\\|\\s*${jummahMsg}`), '')
+            .replace(jummahMsg, '')
+            .trim();
+        }
+
         let changeDescription = '';
         if (editingRecord.date !== date) {
           changeDescription += `Date (${editingRecord.date} -> ${date}), `;
@@ -379,7 +437,7 @@ export function AddLeave({
           ? (profile?.username?.toUpperCase() || 'SUPERVISOR') 
           : (profile?.username?.toUpperCase() || 'USER');
         const editLog = `\n[Edited by ${editorName}: ${changeDescription}. Reason: ${editReason}]`;
-        commentWithCategory = (editingRecord.comment || '') + editLog;
+        commentWithCategory = baseComment + editLog;
 
         // Reset status for re-approval
         if (isSupervisorRole) {
@@ -611,6 +669,16 @@ export function AddLeave({
         commentWithCategory = `Adjusted with Short Leave | ${comment.trim()}`;
       } else if (leaveType === 'Overtime' && finalAdjustedHour) {
         commentWithCategory = `Partially Adjusted with Short Leave (${finalAdjustedHour.substring(0, 5)}) | ${comment.trim()}`;
+      }
+
+      // Jummah Prayer Adjustment comment update for insert
+      if (leaveType === 'Short Leave' && isFriday(item.date) && adjustJummah) {
+        const jummahMsg = '20 Min Adjusted with Jummah Prayer';
+        if (!commentWithCategory) {
+          commentWithCategory = jummahMsg;
+        } else if (!commentWithCategory.includes(jummahMsg)) {
+          commentWithCategory = `${commentWithCategory} | ${jummahMsg}`;
+        }
       }
 
       // Prepend admin/supervisor signature
@@ -858,6 +926,8 @@ export function AddLeave({
                 handleUpdateBulkAdjustment={handleUpdateBulkAdjustment}
                 handleRemoveBulkDate={handleRemoveBulkDate}
                 allowOvertime={targetProfile?.allow_overtime || false}
+                adjustJummah={adjustJummah}
+                setAdjustJummah={setAdjustJummah}
                 adjustment={adjustment}
                 availableOvertimeMins={parseHHMMToMinutes(stats.overtimeHours)}
                 availableShortLeaveMins={parseHHMMToMinutes(stats.shortHours)}

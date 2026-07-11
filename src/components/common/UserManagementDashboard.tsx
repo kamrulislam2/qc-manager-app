@@ -37,7 +37,7 @@ import { UserKpiPerformancePanel } from '@/components/common/user-management/Use
 import { AddLeave } from '@/components/leave-tracker/AddLeave';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { LeaveSettlement, GovtHolidayResponse } from '@/types';
-import { GlobalSettings, getGlobalSettingsFromProfile } from '@/utils/dashboardHelpers';
+import { GlobalSettings, getGlobalSettingsFromProfile, defaultGlobalSettings } from '@/utils/dashboardHelpers';
 import { sendPushNotification } from '@/utils/webPushHelper';
 
 
@@ -123,7 +123,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const [viewingStaffRecords, setViewingStaffRecords] = useState<ChutiRecord[]>([]);
   const [viewingStaffSettlements, setViewingStaffSettlements] = useState<LeaveSettlement[]>([]);
   const [viewingStaffHolidayResponses, setViewingStaffHolidayResponses] = useState<GovtHolidayResponse[]>([]);
-  const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(defaultGlobalSettings);
   const [loadingLeaveData, setLoadingLeaveData] = useState(false);
   const [showAddLeaveForStaff, setShowAddLeaveForStaff] = useState(false);
   const [editingLeaveRecord, setEditingLeaveRecord] = useState<ChutiRecord | null>(null);
@@ -352,7 +352,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       if (!apError && adminProfile && adminProfile.global_settings) {
         setGlobalSettings(adminProfile.global_settings);
       } else {
-        setGlobalSettings(prev => prev ?? getGlobalSettingsFromProfile(profile));
+        setGlobalSettings(getGlobalSettingsFromProfile(profile));
       }
     })();
     return () => { cancelled = true; };
