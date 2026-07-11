@@ -1026,6 +1026,11 @@ export const useDashboardData = () => {
         },
         (payload) => {
           console.log('Realtime chuti change received:', payload);
+          // Forward the payload so scoped consumers (e.g. the staff-leave panel) can react
+          // without keeping a duplicate chuti subscription.
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('realtime-table-payload', { detail: { table: 'chuti', payload } }));
+          }
           handleRealtimeChange();
         }
       )
@@ -1039,6 +1044,12 @@ export const useDashboardData = () => {
         },
         (payload) => {
           console.log('Realtime profile change received:', payload);
+          // Forward the raw payload so other workspaces (e.g. quotes) can react without keeping
+          // their own duplicate `profiles` realtime subscription. This hook is always mounted
+          // (ChutiDashboard is never unmounted), so it's a reliable single source for profile events.
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('realtime-profile-payload', { detail: payload }));
+          }
           if (payload.eventType === 'DELETE' && payload.old && payload.old.id === sessionUser.id) {
             console.log('Your profile has been deleted by admin. Logging out...');
             const handleForceLogout = async () => {
@@ -1105,6 +1116,9 @@ export const useDashboardData = () => {
         },
         (payload) => {
           console.log('Realtime settlement change received:', payload);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('realtime-table-payload', { detail: { table: 'leave_settlements', payload } }));
+          }
           handleRealtimeChange();
         }
       )

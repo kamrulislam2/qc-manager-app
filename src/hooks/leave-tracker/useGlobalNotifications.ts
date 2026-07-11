@@ -47,10 +47,10 @@ export function useGlobalNotifications(
     if (!sessionUser || !profile) return;
 
     try {
-      // 1. Fetch user's own chuti records
+      // 1. Fetch user's own chuti records (only columns needed for notification derivation)
       const { data: chutiData, error: chutiError } = await supabase
         .from('chuti')
-        .select('*')
+        .select('id, user_id, date, leave_type, leave_hour, status, comment, adjustment, reserve_holiday, reserve_adjustment_status, admin_edit_request, sign_in_time, sign_out_time, synced, created_at, updated_at')
         .eq('user_id', sessionUser.id)
         .is('deleted_at', null)
         .order('date', { ascending: false });
@@ -63,7 +63,7 @@ export function useGlobalNotifications(
       if (profile?.role === 'admin' || profile?.role === 'supervisor') {
         const { data: holidayData, error: holidayError } = await supabase
           .from('govt_holiday_responses')
-          .select('*')
+          .select('id, user_id, holiday_date, response, created_at')
           .order('created_at', { ascending: false });
 
         if (!holidayError && holidayData) {
@@ -72,7 +72,7 @@ export function useGlobalNotifications(
       } else {
         const { data: holidayData, error: holidayError } = await supabase
           .from('govt_holiday_responses')
-          .select('*')
+          .select('id, user_id, holiday_date, response, created_at')
           .eq('user_id', sessionUser.id)
           .order('created_at', { ascending: false });
 

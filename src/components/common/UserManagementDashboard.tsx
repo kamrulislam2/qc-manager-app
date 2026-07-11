@@ -384,7 +384,13 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     }
   }, [viewingStaff, fetchStaffLeaveData, profile, hasStaffAccess]);
 
-  // Real-time synchronization for viewed staff leave data
+  // Real-time synchronization for viewed staff leave data.
+  //
+  // chuti + leave_settlements changes are already received by the always-mounted leave dashboard
+  // (unfiltered for approvers), which forwards each as a `realtime-table-payload` DOM event.
+  // We consume those (filtered to the viewed staff) instead of opening our own duplicate chuti/
+  // settlements subscriptions. Only govt_holiday_responses — which the dashboard does NOT
+  // subscribe to — keeps a dedicated (staff-filtered) postgres subscription here.
   useEffect(() => {
     if (!viewingStaff) return;
 
@@ -395,20 +401,6 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       .channel(`rt-viewing-staff-${viewingStaff.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'chuti', filter: `user_id=eq.${viewingStaff.id}` },
-        () => {
-          debouncedFetchStaffLeaveData(viewingStaff.id);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'leave_settlements', filter: `user_id=eq.${viewingStaff.id}` },
-        () => {
-          debouncedFetchStaffLeaveData(viewingStaff.id);
-        }
-      )
-      .on(
-        'postgres_changes',
         { event: '*', schema: 'public', table: 'govt_holiday_responses', filter: `user_id=eq.${viewingStaff.id}` },
         () => {
           debouncedFetchStaffLeaveData(viewingStaff.id);
@@ -416,8 +408,20 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       )
       .subscribe();
 
+    // Refetch when a forwarded chuti/settlement change belongs to the staff currently in view.
+    const handleTablePayload = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { table?: string; payload?: any } | undefined;
+      if (!detail || (detail.table !== 'chuti' && detail.table !== 'leave_settlements')) return;
+      const rec = detail.payload?.new || detail.payload?.old;
+      if (rec?.user_id === viewingStaff.id) {
+        debouncedFetchStaffLeaveData(viewingStaff.id);
+      }
+    };
+    window.addEventListener('realtime-table-payload', handleTablePayload);
+
     return () => {
       supabase.removeChannel(staffChannel);
+      window.removeEventListener('realtime-table-payload', handleTablePayload);
     };
   }, [viewingStaff, debouncedFetchStaffLeaveData, profile, hasStaffAccess]);
 

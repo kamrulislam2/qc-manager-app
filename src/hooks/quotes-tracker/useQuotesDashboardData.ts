@@ -892,10 +892,14 @@ export const useQuotesDashboardData = () => {
   const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Real-time Database Subscriptions
+  //
+  // We intentionally do NOT subscribe to `profiles` here. The always-mounted leave dashboard
+  // (useDashboardData) owns the single `profiles` realtime subscription and re-broadcasts each
+  // change as a `realtime-profile-payload` DOM event. Subscribing here too would double every
+  // profile realtime message whenever the quotes workspace is open. We keep only the
+  // quotes-specific `records` subscription and consume profile changes via that event.
   useEffect(() => {
     if (!sessionUser) return;
-
-    const isApprover = profile?.role === 'admin' || profile?.role === 'supervisor';
 
     const quotesChannel = supabase
       .channel(`realtime-quotes-${sessionUser.id}`)
@@ -911,81 +915,85 @@ export const useQuotesDashboardData = () => {
           }, 500);
         }
       )
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'profiles',
-          ...(isApprover ? {} : { filter: `id=eq.${sessionUser.id}` })
-        },
-        (payload) => {
-          if (payload.eventType === 'DELETE' && payload.old && payload.old.id === sessionUser.id) {
-            console.log('User profile deleted. Force logging out...');
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('quotes_sales_profile');
-            }
-            supabase.auth.signOut().then(() => {
-              setSessionUser(null);
-              setProfile(null);
-              router.push('/login');
-              router.refresh();
-            });
-            return;
-          }
-          if (payload.eventType === 'UPDATE' && payload.new) {
-            if (payload.new.id === sessionUser.id) {
-              setProfile(payload.new as Profile);
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('quotes_sales_profile', JSON.stringify(payload.new));
-              }
-            }
+      .subscribe();
 
-            // Refresh profiles list for admin/supervisor only if substantial change occurred
-            if ((profile?.role === 'admin' || profile?.role === 'supervisor')) {
-              const oldUser = profilesListRef.current.find(p => p.id === payload.new.id);
-              const hasSubstantialChange = !oldUser ||
-                oldUser.username !== payload.new.username ||
-                oldUser.role !== payload.new.role ||
-                oldUser.full_name !== payload.new.full_name ||
-                oldUser.job_role !== payload.new.job_role ||
-                oldUser.working_hours !== payload.new.working_hours ||
-                oldUser.break_time !== payload.new.break_time ||
-                oldUser.is_setup_completed !== payload.new.is_setup_completed;
+    // Consume profile changes forwarded by the shared (leave-dashboard) profiles subscription.
+    // Same handling as before — only the event source changed, not the logic.
+    const handleProfilePayload = (e: Event) => {
+      const payload = (e as CustomEvent).detail;
+      if (!payload) return;
 
-              if (hasSubstantialChange) {
-                // Inline-update the changed profile from the realtime payload
-                // instead of refetching the entire profiles list (egress saver).
-                setProfilesList(prev => {
-                  const idx = prev.findIndex(p => p.id === payload.new.id);
-                  if (idx >= 0) {
-                    const updated = [...prev];
-                    updated[idx] = { ...updated[idx], ...payload.new } as Profile;
-                    return updated;
-                  }
-                  return prev;
-                });
-              }
-            }
-          } else {
-            // INSERT or DELETE
-            if ((profile?.role === 'admin' || profile?.role === 'supervisor')) {
-              supabase
-                .from('profiles')
-                .select('*')
-                .order('username', { ascending: true })
-                .then(({ data }) => {
-                  if (data) setProfilesList(data || []);
-                });
-            }
+      if (payload.eventType === 'DELETE' && payload.old && payload.old.id === sessionUser.id) {
+        console.log('User profile deleted. Force logging out...');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('quotes_sales_profile');
+        }
+        supabase.auth.signOut().then(() => {
+          setSessionUser(null);
+          setProfile(null);
+          router.push('/login');
+          router.refresh();
+        });
+        return;
+      }
+      if (payload.eventType === 'UPDATE' && payload.new) {
+        if (payload.new.id === sessionUser.id) {
+          setProfile(payload.new as Profile);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('quotes_sales_profile', JSON.stringify(payload.new));
           }
         }
-      )
-      .subscribe();
+
+        // Refresh profiles list for admin/supervisor only if substantial change occurred
+        if ((profile?.role === 'admin' || profile?.role === 'supervisor')) {
+          const oldUser = profilesListRef.current.find(p => p.id === payload.new.id);
+          const hasSubstantialChange = !oldUser ||
+            oldUser.username !== payload.new.username ||
+            oldUser.role !== payload.new.role ||
+            oldUser.full_name !== payload.new.full_name ||
+            oldUser.job_role !== payload.new.job_role ||
+            oldUser.working_hours !== payload.new.working_hours ||
+            oldUser.break_time !== payload.new.break_time ||
+            oldUser.is_setup_completed !== payload.new.is_setup_completed;
+
+          if (hasSubstantialChange) {
+            // Inline-update the changed profile from the realtime payload
+            // instead of refetching the entire profiles list (egress saver).
+            setProfilesList(prev => {
+              const idx = prev.findIndex(p => p.id === payload.new.id);
+              if (idx >= 0) {
+                const updated = [...prev];
+                updated[idx] = { ...updated[idx], ...payload.new } as Profile;
+                return updated;
+              }
+              return prev;
+            });
+          }
+        }
+      } else {
+        // INSERT, or DELETE of another user's profile
+        if ((profile?.role === 'admin' || profile?.role === 'supervisor')) {
+          supabase
+            .from('profiles')
+            .select('*')
+            .order('username', { ascending: true })
+            .then(({ data }) => {
+              if (data) setProfilesList(data || []);
+            });
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('realtime-profile-payload', handleProfilePayload);
+    }
 
     return () => {
       if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
       supabase.removeChannel(quotesChannel);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('realtime-profile-payload', handleProfilePayload);
+      }
     };
   }, [sessionUser, profile, fetchRecords, fetchAvailableDates, router, setProfile, setProfilesList]);
 
