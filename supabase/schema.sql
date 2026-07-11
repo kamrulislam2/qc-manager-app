@@ -528,7 +528,22 @@ WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Allow supervisors to update chuti status"
 ON public.chuti FOR UPDATE
-USING (public.is_supervisor());
+USING (
+  public.is_supervisor() AND (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = chuti.user_id
+      AND auth.uid() = ANY(supervisor_ids)
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM public.profiles u
+      JOIN public.profiles s ON s.id = ANY(u.supervisor_ids)
+      WHERE u.id = chuti.user_id
+      AND s.delegated_supervisor_id = auth.uid()
+    )
+  )
+);
 
 CREATE POLICY "Allow admins to update all chuti"
 ON public.chuti FOR UPDATE
@@ -540,7 +555,22 @@ USING (auth.uid() = user_id);
 
 CREATE POLICY "Allow supervisors to delete chuti"
 ON public.chuti FOR DELETE
-USING (public.is_supervisor());
+USING (
+  public.is_supervisor() AND (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = chuti.user_id
+      AND auth.uid() = ANY(supervisor_ids)
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM public.profiles u
+      JOIN public.profiles s ON s.id = ANY(u.supervisor_ids)
+      WHERE u.id = chuti.user_id
+      AND s.delegated_supervisor_id = auth.uid()
+    )
+  )
+);
 
 CREATE POLICY "Allow admins to delete chuti"
 ON public.chuti FOR DELETE
@@ -696,7 +726,7 @@ CREATE POLICY "push_sub_select_own"
 
 CREATE POLICY "push_sub_delete_own" 
   ON public.push_subscriptions FOR DELETE 
-  USING (true);
+  USING (auth.uid() = user_id);
 
 CREATE POLICY "push_sub_update_own"
   ON public.push_subscriptions FOR UPDATE
@@ -714,6 +744,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Restrict to service_role only (called from API routes, not client-side)
+REVOKE EXECUTE ON FUNCTION public.get_user_ids_by_roles(TEXT[]) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_user_ids_by_roles(TEXT[]) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_user_ids_by_roles(TEXT[]) FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_user_ids_by_roles(TEXT[]) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.get_push_subscriptions_for_users(p_user_ids UUID[])
 RETURNS TABLE(
   sub_id UUID,
@@ -729,6 +765,12 @@ BEGIN
     WHERE ps.user_id = ANY(p_user_ids);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Restrict to service_role only (called from API routes, not client-side)
+REVOKE EXECUTE ON FUNCTION public.get_push_subscriptions_for_users(UUID[]) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_push_subscriptions_for_users(UUID[]) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_push_subscriptions_for_users(UUID[]) FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_push_subscriptions_for_users(UUID[]) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.delete_push_subscription(p_sub_id UUID)
 RETURNS VOID AS $$
@@ -749,6 +791,12 @@ BEGIN
   DELETE FROM public.push_subscriptions WHERE id = p_sub_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Restrict: block anon, allow authenticated (has internal auth check) and service_role
+REVOKE EXECUTE ON FUNCTION public.delete_push_subscription(UUID) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.delete_push_subscription(UUID) FROM anon;
+GRANT EXECUTE ON FUNCTION public.delete_push_subscription(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_push_subscription(UUID) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.register_push_subscription(
   p_user_id UUID,
@@ -1043,7 +1091,7 @@ CREATE POLICY "Allow admins and supervisors to read all audit logs" ON public.au
   FOR SELECT TO authenticated USING (public.is_admin_or_supervisor());
 
 CREATE POLICY "Allow authenticated users to insert audit logs" ON public.audit_logs
-  FOR INSERT TO authenticated WITH CHECK (auth.role() = 'authenticated');
+  FOR INSERT TO authenticated WITH CHECK (actor_id = auth.uid());
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON public.audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id ON public.audit_logs(actor_id);

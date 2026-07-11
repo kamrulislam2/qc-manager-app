@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
-import { getCorsHeaders } from '@/utils/apiHelpers';
+import { getCorsHeaders, RateLimiter } from '@/utils/apiHelpers';
+
+// Rate limiter: 5 requests per minute per IP (unauthenticated endpoint)
+const rateLimiter = new RateLimiter(60000, 5);
 
 // Initialize web-push
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -37,6 +40,16 @@ export async function POST(request: NextRequest) {
 
     const supabaseServer = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Rate limiting (unauthenticated endpoint — must be protected)
+    const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    if (rateLimiter.isLimited(ip)) {
+      console.warn(`[ForgotPassword] Rate limit hit for IP: ${ip}`);
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a minute and try again.' },
+        { status: 429, headers: getCorsHeaders(request) }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const { username } = body;
 
@@ -71,10 +84,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!profile) {
-      return NextResponse.json(
-        { error: 'Username (codename) not found' },
-        { status: 404, headers: getCorsHeaders(request) }
-      );
+      // Return the same success response to prevent username enumeration.
+      // Do NOT reveal whether the username exists or not.
+      console.log(`[ForgotPassword] Username not found: ${cleanUsername} (silent success)`);
+      return NextResponse.json({ success: true }, { headers: getCorsHeaders(request) });
     }
 
     const currentSettings = (profile as any).global_settings || {};

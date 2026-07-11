@@ -131,10 +131,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Perform the insertion using service role client to bypass RLS
+    // 4. Sanitize payload: whitelist only allowed fields to prevent injection
+    //    of security-sensitive values (status, admin_edit_status, is_edited, etc.)
+    const sanitizedRecords = insertData.map((item: Record<string, unknown>) => ({
+      user_id: item.user_id,
+      date: item.date,
+      leave_type: item.leave_type,
+      adjustment: item.adjustment ?? false,
+      adjusted_hour: item.adjusted_hour ?? null,
+      sign_in_time: item.sign_in_time ?? null,
+      sign_out_time: item.sign_out_time ?? null,
+      leave_hour: item.leave_hour ?? null,
+      reserve_holiday: item.reserve_holiday ?? null,
+      adjust_short_leave: item.adjust_short_leave ?? false,
+      comment: item.comment ?? null,
+      bulk_id: item.bulk_id ?? null,
+      // Server-enforced fields — NOT user-controllable:
+      status: isAdmin ? 'approved' : 'approved_by_supervisor',
+      reserve_adjustment_status: 'none',
+      admin_edit_status: 'none',
+      is_edited: false,
+    }));
+
+    // 5. Perform the insertion using service role client to bypass RLS
     const { data: insertedData, error: insertError } = await supabaseServer
       .from('chuti')
-      .insert(insertData)
+      .insert(sanitizedRecords)
       .select();
 
     if (insertError) {

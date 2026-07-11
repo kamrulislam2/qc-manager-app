@@ -40,7 +40,7 @@ export async function registerAndCheckSession(
   // 1. Get or generate qc_session_id
   let currentSessionId = localStorage.getItem('qc_session_id');
   if (!currentSessionId) {
-    currentSessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    currentSessionId = crypto.randomUUID();
     localStorage.setItem('qc_session_id', currentSessionId);
   }
 
