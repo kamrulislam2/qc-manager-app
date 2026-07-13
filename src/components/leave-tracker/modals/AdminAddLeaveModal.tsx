@@ -17,7 +17,7 @@ import {
   adjustShortLeaveForJummah
 } from "@/utils/dashboardHelpers";
 import { ChutiRecord, generateUUID } from "@/utils/offlineSync";
-import { sendPushNotification } from "@/utils/webPushHelper";
+
 import { toast } from "react-hot-toast";
 import { LeaveUsageSummary } from "@/components/leave-tracker/LeaveUsageSummary";
 
@@ -395,18 +395,7 @@ export function AdminAddLeaveModal({
 
       if (bulkInsertError) throw bulkInsertError;
 
-      // Trigger push notification to user
-      sendPushNotification({
-        userIds: [staffProfile.id],
-        title: "New Leave Entry Completed 📝",
-        body: `Admin has completed a ${leaveType} leave entry for you on ${formatDate(date)}.`,
-        url: "/",
-      }).catch((err) =>
-        console.error(
-          "Error sending push notification for admin added leave:",
-          err,
-        ),
-      );
+
 
       toast.success("Leave successfully added for the user!");
       onSuccess();

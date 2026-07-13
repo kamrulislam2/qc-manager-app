@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { RotateCcw, CheckCircle2, AlertCircle, Send, BellOff, Edit3, HelpCircle, DollarSign, FolderPlus, ArrowRightLeft, Trash2, Download, X } from 'lucide-react';
 import { Profile, LeaveSettlement, GovtHolidayResponse } from '@/types';
-import { sendPushNotification } from '@/utils/webPushHelper';
+
 import { ChutiRecord } from '@/utils/offlineSync';
 import { GlobalSettings, calculateStats, calculateHalfYearlyOfficeLeave, getSettlementSplits, getSettlementLabel } from '@/utils/dashboardHelpers';
 import { AdminSettleUserModal } from '@/components/leave-tracker/modals/AdminSettleUserModal';
@@ -188,18 +188,6 @@ export const AdminSettlementsPanel: React.FC<AdminSettlementsPanelProps> = ({
           return Math.abs(remaining) > 0.01 && !isProcessed;
         });
 
-        if (targetStaff.length > 0) {
-          try {
-            const userIds = targetStaff.map(s => s.id);
-            await sendPushNotification({
-              userIds,
-              title: 'Leave Settlement Preference Required 📣',
-              body: `Admin activated preference review for ${selectedCategory} (${periodLabel}) of ${selectedYear}. Please submit your choices.`,
-              url: '/'
-            });
-          } catch (err) {
-            console.error('Error sending push notification to users:', err);
-          }
         }
       }
     }

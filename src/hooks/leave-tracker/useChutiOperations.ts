@@ -13,7 +13,6 @@ import {
   removeCacheItems
 } from '@/utils/offlineSync';
 import { formatDate, calculateLeaveOrOvertime, getExistingNotifications, createNotification, calculateStats, parseIntervalToMinutes, GlobalSettings, checkIfHolidayOrWeekend, getLeaveValidationError } from '@/utils/dashboardHelpers';
-import { sendPushNotification } from '@/utils/webPushHelper';
 import { toast } from 'react-hot-toast';
 
 interface useChutiOperationsParams {
@@ -415,12 +414,7 @@ export const useChutiOperations = ({
             : ['supervisors', 'admins']);
       const formattedDates = allDates.map(d => formatDate(d)).join(', ');
 
-      sendPushNotification({
-        userIds: targetRoles,
-        title: 'New Leave Request 🔔',
-        body: `${profile?.full_name || profile?.username || 'Staff'} has applied for ${leaveType} (Dates: ${formattedDates})`,
-        url: '/'
-      }).catch(err => console.error('Error triggering push notification:', err));
+
 
       setMessage({ type: 'success', text: 'Your leave application has been successfully submitted!' });
       fetchRecords();
@@ -613,12 +607,7 @@ export const useChutiOperations = ({
         : (profile?.supervisor_ids && profile.supervisor_ids.length > 0
             ? [...profile.supervisor_ids, 'admins'] 
             : ['supervisors', 'admins']);
-      sendPushNotification({
-        userIds: targetRoles,
-        title: 'Revised Leave Request 🔔',
-        body: `${profile?.full_name || profile?.username || 'Staff'} has revised and resubmitted their leave application (${formatDate(revisionDate)})`,
-        url: '/'
-      }).catch(err => console.error('Error triggering push notification for revision:', err));
+
 
       fetchRecords();
       setShowUserRevisionModal(false);
@@ -696,13 +685,7 @@ export const useChutiOperations = ({
 
       if (error) throw error;
 
-      if (adminEditRecord?.user_id) {
-        sendPushNotification({
-          userIds: [adminEditRecord.user_id],
-          title: 'Leave Info Edited ✏️',
-          body: `Admin has edited your leave details for date (${formatDate(adminEditDate)}).`,
-          url: '/'
-        }).catch(err => console.error('Error sending admin edit push:', err));
+
       }
 
       fetchRecords();
@@ -797,14 +780,7 @@ export const useChutiOperations = ({
           }
         }));
 
-        if (user_id) {
-          sendPushNotification({
-            userIds: [user_id],
-            title: 'Leave Revision Request ⚠️',
-            body: `Your ${leave_type} request was sent for revision by supervisor (Date: ${formattedDates}). Reason: ${reasonText}`,
-            url: '/'
-          }).catch(err => console.error('Error sending push:', err));
-        }
+
 
         setMessage({ 
           type: 'success', 
@@ -859,14 +835,7 @@ export const useChutiOperations = ({
           }
         }));
 
-        if (user_id) {
-          sendPushNotification({
-            userIds: [user_id],
-            title: 'Leave Revision Request ⚠️',
-            body: `Your ${leave_type} request was sent for revision by admin (Date: ${formattedDates}). Reason: ${reasonText}`,
-            url: '/'
-          }).catch(err => console.error('Error sending push:', err));
-        }
+
 
         setMessage({ 
           type: 'success', 
@@ -961,23 +930,7 @@ export const useChutiOperations = ({
         }
       }));
 
-      // Trigger Web Push Notification to Admins
-      sendPushNotification({
-        userIds: ['admins'],
-        title: 'Supervisor Approved Request 🔔',
-        body: `${supervisorName} approved the (${leave_type}) request of ${targets[0].profiles?.username ? `@${targets[0].profiles.username.toUpperCase()}` : 'Staff'} (Dates: ${formattedDates})`,
-        url: '/'
-      }).catch(err => console.error('Error triggering push notification for supervisor approval:', err));
 
-      // Trigger Web Push Notification to User
-      if (user_id) {
-        sendPushNotification({
-          userIds: [user_id],
-          title: 'Leave Request Verified by Supervisor ✅',
-          body: `Supervisor approved your ${leave_type} request (Dates: ${formattedDates}) and forwarded it to Admin.`,
-          url: '/'
-        }).catch(err => console.error('Error sending push to staff on supervisor approval:', err));
-      }
 
       const updateLocalState = () => {
         targets.forEach(t => {
@@ -1095,14 +1048,7 @@ export const useChutiOperations = ({
         }
       }));
 
-      if (user_id) {
-        sendPushNotification({
-          userIds: [user_id],
-          title: 'Leave Request Approved ✅',
-          body: `Admin approved your ${leave_type} request (Dates: ${formattedDates}).`,
-          url: '/'
-        }).catch(err => console.error('Error sending push to staff:', err));
-      }
+
 
       const updateLocalState = () => {
         targets.forEach(t => {

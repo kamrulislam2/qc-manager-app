@@ -7,7 +7,7 @@ import { supabase } from '@/utils/supabase';
 import { Profile, ChutiRecordWithProfile, LeaveSettlement, GovtHolidayResponse } from '@/types';
 import { mapProfilePasswordResetStatus } from '@/utils/profileHelpers';
 import { ChutiRecord, SyncConflict, getOfflineRecords, syncOfflineData, getCacheData, setCacheData, mergeCacheData, removeCacheItems, upsertCacheItem, getGlobalSettingsCache, setGlobalSettingsCache, getSyncTimestamp, setSyncTimestamp, purgeStaleCacheData } from '@/utils/offlineSync';
-import { checkSubscriptionStatus, sendPushNotification } from '@/utils/webPushHelper';
+
 import { getGlobalSettingsFromProfile, defaultGlobalSettings, GlobalSettings, formatDate, parseHolidayItem } from '@/utils/dashboardHelpers';
 import { useRealtimeHandler, RealtimePayload } from '@/contexts/RealtimeContext';
 
@@ -20,8 +20,7 @@ export const useDashboardData = () => {
     sessionUserRef.current = sessionUser;
   }, [sessionUser]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
-  const [isPushLoading, setIsPushLoading] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -543,22 +542,7 @@ export const useDashboardData = () => {
               }
             });
 
-          sendPushNotification({
-            userIds: reserveFalseIds,
-            title: 'Govt Holiday Payment Approved 🎉',
-            body: `${h.name} (${formatDate(h.date)}) Govt Holiday payment has been approved to be paid with your salary.`,
-            url: '/'
-          }).catch(err => console.error('Error sending push notification to paid users:', err));
-        }
 
-        if (reserveTrueIds.length > 0) {
-          sendPushNotification({
-            userIds: reserveTrueIds,
-            title: 'Select Govt Holiday Preference 🔔',
-            body: `What would you like to do for this government holiday: ${h.name} (${formatDate(h.date)})?`,
-            url: '/'
-          }).catch(err => console.error('Error sending push notification to reserve-enabled users:', err));
-        }
       });
     }
 
@@ -595,12 +579,7 @@ export const useDashboardData = () => {
       ? `${staffName} (${staffCode}) has requested to reserve the leave for ${holidayName} (${formatDate(holidayDate)}).`
       : `${staffName} (${staffCode}) has requested to get paid for ${holidayName} (${formatDate(holidayDate)}).`;
 
-    sendPushNotification({
-      userIds: ['admins'],
-      title: titleText,
-      body: bodyText,
-      url: '/'
-    }).catch(err => console.error('Error sending push notification to admins for holiday choice:', err));
+
 
     setMessage({ type: 'success', text: 'Your preference has been successfully saved!' });
     setLoading(false);
@@ -704,12 +683,7 @@ export const useDashboardData = () => {
     }
 
     // Trigger push notification to updated user
-    sendPushNotification({
-      userIds: [targetUserId],
-      title: 'Govt Holiday Choice Updated 💸',
-      body: `Admin has updated your preference for ${holidayName} (${formatDate(holidayDate)}) to ${response === 'reserve' ? 'Reserve' : 'Get Paid'}.`,
-      url: '/'
-    }).catch(err => console.error('Error sending push notification to user:', err));
+
 
     setMessage({ type: 'success', text: 'Holiday response updated successfully!' });
     setLoading(false);
@@ -831,33 +805,6 @@ export const useDashboardData = () => {
           return `${s.leave_category}: ${actionText} (${s.remaining_days} days)`;
         }).join(', ');
 
-        if (firstSettle.status === 'processed') {
-          // Notify the user that their choices are processed
-          sendPushNotification({
-            userIds: [targetUserId],
-            title: 'Leave Settlement Processed ✅',
-            body: `Your leave preference/settlement for ${firstSettle.leave_category} (${periodLabel}) has been processed: ${details}.`,
-            url: '/'
-          }).catch(err => console.error('Error sending push notification to user:', err));
-        } else if (firstSettle.status === 'initiated') {
-          // Notify the user that preference is requested
-          sendPushNotification({
-            userIds: [targetUserId],
-            title: 'Leave Preference Required 📥',
-            body: `Admin requested your choice for ${firstSettle.leave_category} (${periodLabel}) leave settlement.`,
-            url: '/'
-          }).catch(err => console.error('Error sending push notification to user:', err));
-        } else if (firstSettle.status === 'responded') {
-          // Notify the admins/supervisors that user submitted preference
-          const adminIds = profilesList.filter(p => p.role === 'admin').map(p => p.id);
-          if (adminIds.length > 0) {
-            sendPushNotification({
-              userIds: adminIds,
-              title: 'Leave Preference Submitted 📥',
-              body: `${staffName} submitted choice for ${firstSettle.leave_category} (${periodLabel}): ${details}.`,
-              url: '/?tab=admin'
-            }).catch(err => console.error('Error sending push notification to admins:', err));
-          }
         }
       }
 
@@ -1336,19 +1283,7 @@ export const useDashboardData = () => {
 
         setProfile(userProfile as Profile);
 
-        // Optimistically restore push preference from localStorage on reload
-        const savedPref = localStorage.getItem('push_subscribed_pref_' + userId);
-        setIsPushSubscribed(savedPref === 'true');
 
-        // Verify actual subscription status asynchronously
-        checkSubscriptionStatus(userId)
-          .then((status) => {
-            setIsPushSubscribed(status.isSubscribed);
-            localStorage.setItem('push_subscribed_pref_' + userId, status.isSubscribed ? 'true' : 'false');
-          })
-          .catch((err) => {
-            console.error('Error verifying push status:', err);
-          });
 
         setLoading(false);
       } catch (err) {
@@ -1469,10 +1404,7 @@ export const useDashboardData = () => {
     sessionUser,
     profile,
     setProfile,
-    isPushSubscribed,
-    setIsPushSubscribed,
-    isPushLoading,
-    setIsPushLoading,
+
     loading,
     setLoading,
     submitting,

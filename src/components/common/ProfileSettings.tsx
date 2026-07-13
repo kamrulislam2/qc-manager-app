@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { User, AlertTriangle, RefreshCw, Lock, Settings, Bell, Key, Layout } from 'lucide-react';
 import { Profile } from '@/types';
-import { subscribeUserToPush, unsubscribeUserFromPush, sendPushNotification } from '@/utils/webPushHelper';
 import { ProfileFields } from '@/components/leave-tracker/ProfileFields';
 import { supabase } from '@/utils/supabase';
 import toast from 'react-hot-toast';
@@ -36,10 +35,7 @@ export function ProfileSettings({
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [showPasswordFields, setShowPasswordFields] = useState(false);
 
-  // Push notifications state
-  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
-  const [isPushLoading, setIsPushLoading] = useState(false);
-  const [testingPush, setTestingPush] = useState(false);
+
 
   // Hidden tabs (for admin menu visibility)
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
@@ -105,11 +101,6 @@ export function ProfileSettings({
       setProfileSignInTime(profile.default_sign_in || '');
       setProfileSignOutTime(profile.default_sign_out || '');
       setHiddenTabs(profile.global_settings?.hidden_tabs || []);
-
-      if (typeof window !== 'undefined' && sessionUser) {
-        const isSubbed = localStorage.getItem('push_subscribed_pref_' + sessionUser.id) === 'true';
-        setIsPushSubscribed(isSubbed);
-      }
     }
   }, [profile, sessionUser]);
 
@@ -135,47 +126,7 @@ export function ProfileSettings({
     }
   }, [profile, editUsername, editFullName, editWorkingHours, editBreakTime, editJobRole, profileSignInTime, profileSignOutTime, hiddenTabs]);
 
-  const handleTestPushNotification = async () => {
-    if (!sessionUser) return;
-    setTestingPush(true);
-    try {
-      const isTauri = typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
-      if (isTauri) {
-        const { isPermissionGranted, requestPermission, sendNotification } = await import('@tauri-apps/plugin-notification');
-        let permissionGranted = await isPermissionGranted();
-        if (!permissionGranted) {
-          const permission = await requestPermission();
-          permissionGranted = permission === 'granted';
-        }
-        if (permissionGranted) {
-          sendNotification({
-            title: 'Notification Test 🧪',
-            body: 'Desktop notifications are working perfectly on this device!'
-          });
-          toast.success('Test notification triggered locally!');
-        } else {
-          toast.error('OS Notification permission denied. Please allow in System Settings.');
-        }
-        return;
-      }
 
-      const success = await sendPushNotification({
-        userIds: [sessionUser.id],
-        title: 'Notification Test 🧪',
-        body: 'Push notifications are working perfectly on this device!',
-        url: '/'
-      });
-      if (success) {
-        toast.success('Test notification sent successfully!');
-      } else {
-        toast.error('Failed to send test notification. Check if subscription is registered.');
-      }
-    } catch (err) {
-      toast.error('Error sending test notification: ' + (err as Error).message);
-    } finally {
-      setTestingPush(false);
-    }
-  };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -464,81 +415,7 @@ export function ProfileSettings({
         {/* Column 2: Notifications & Security */}
         <div className="lg:col-span-5 space-y-6">
 
-          {/* Notifications Panel */}
-          <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4">
-            <h3 className="text-sm font-bold text-theme-text-secondary uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-theme-border-input/40">
-              <Bell className="h-4 w-4 text-blue-400" />
-              Notifications
-            </h3>
 
-            {typeof window !== 'undefined' && (
-              (('serviceWorker' in navigator && 'PushManager' in window) && !(window as any).__TAURI_INTERNALS__) ||
-              (window as any).__TAURI_INTERNALS__
-            ) && (
-              <div className="push-notification-banner flex flex-col gap-3 p-4 bg-blue-955/30 rounded-xl border border-blue-900/20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-theme-text-primary">Desktop Notifications</span>
-                      {isPushSubscribed && (
-                        <button
-                          type="button"
-                          disabled={testingPush}
-                          onClick={handleTestPushNotification}
-                          className="px-2 py-0.5 bg-blue-650 hover:bg-blue-550 text-white rounded text-[10px] font-bold cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1"
-                        >
-                          {testingPush && <RefreshCw className="h-2.5 w-2.5 animate-spin" />}
-                          <span>Test</span>
-                        </button>
-                      )}
-                    </div>
-                    <span className="block text-[10px] text-theme-text-muted mt-1">Receive live alerts and dashboard leave notifications.</span>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={isPushLoading}
-                    onClick={async () => {
-                      if (!sessionUser || isPushLoading) return;
-                      const willSubscribe = !isPushSubscribed;
-                      setIsPushSubscribed(willSubscribe);
-                      localStorage.setItem('push_subscribed_pref_' + sessionUser.id, willSubscribe ? 'true' : 'false');
-
-                      const isTauri = typeof window !== 'undefined' && (
-                        '__TAURI_INTERNALS__' in window ||
-                        (window as any).__TAURI__ !== undefined ||
-                        (window as any).Tauri !== undefined ||
-                        window.location.protocol === 'tauri:'
-                      );
-                      if (isTauri) return;
-
-                      setIsPushLoading(true);
-                      try {
-                        if (!willSubscribe) {
-                          await unsubscribeUserFromPush(sessionUser.id);
-                        } else {
-                          await subscribeUserToPush(sessionUser.id);
-                        }
-                      } catch {
-                        setIsPushSubscribed(!willSubscribe);
-                        localStorage.setItem('push_subscribed_pref_' + sessionUser.id, (!willSubscribe) ? 'true' : 'false');
-                      } finally {
-                        setIsPushLoading(false);
-                      }
-                    }}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      isPushSubscribed ? 'bg-blue-600' : 'bg-theme-border-muted'
-                    } ${isPushLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
-                        isPushSubscribed ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Change Password Panel */}
           <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4">

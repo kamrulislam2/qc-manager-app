@@ -5,7 +5,6 @@ import { supabase } from '@/utils/supabase';
 import { Profile, ChutiRecordWithProfile } from '@/types';
 import { ChutiRecord, saveOfflineUpdate } from '@/utils/offlineSync';
 import { formatDate, formatTimeToAMPM, getDetailedLeaveLabel, getExistingNotifications, createNotification } from '@/utils/dashboardHelpers';
-import { sendPushNotification } from '@/utils/webPushHelper';
 
 interface useAdjustmentOperationsParams {
   profile: Profile | null;
@@ -119,23 +118,6 @@ export const useAdjustmentOperations = ({
 
         if (error) throw error;
 
-        if (isAdmin) {
-          if (record?.user_id) {
-            const actionLabel = 'Leave Adjustment';
-            sendPushNotification({
-              userIds: [record.user_id],
-              title: `${actionLabel} Cancelled ⚠️`,
-              body: `Your adjustment for ${leaveLabel} on date ${dateTimeStr} has been cancelled.`,
-              url: '/'
-            }).catch(err => console.error('Error sending cancel push:', err));
-          }
-        } else {
-          sendPushNotification({
-            userIds: ['admins'],
-            title: 'Leave Adjustment Cancellation Request 🔄',
-            body: `${profile?.full_name || profile?.username || 'Staff'} has requested to cancel leave adjustment for (${record.leave_type}) on date ${formatDate(record.date)}.`,
-            url: '/'
-          }).catch(err => console.error('Error triggering cancel adjustment request push:', err));
         }
       }
       fetchRecords();
@@ -247,27 +229,6 @@ export const useAdjustmentOperations = ({
       }
       fetchRecords();
 
-      if (!isAdmin) {
-        sendPushNotification({
-          userIds: ['admins'],
-          title: 'Leave Adjustment Request 🔄',
-          body: `${profile?.full_name || profile?.username || 'Staff'} has requested leave adjustment for (${record.leave_type}) on date ${formatDate(record.date)}.`,
-          url: '/'
-        }).catch(err => console.error('Error triggering push notification for adjustment:', err));
-      } else if (record?.user_id) {
-        const actionLabel = 'Leave Adjustment';
-        const leaveLabel = getDetailedLeaveLabel(record);
-        const isShortOrOvertime = record.leave_type === 'Short Leave' || record.leave_type === 'Overtime';
-        const dateTimeStr = isShortOrOvertime
-          ? `${formatDate(record.date)} (${formatTimeToAMPM(record.sign_in_time)} - ${formatTimeToAMPM(record.sign_out_time)})`
-          : formatDate(record.date);
-
-        sendPushNotification({
-          userIds: [record.user_id],
-          title: `${actionLabel} Completed ✅`,
-          body: `Your ${leaveLabel} adjustment for date ${dateTimeStr} has been completed.`,
-          url: '/'
-        }).catch(err => console.error('Error sending adjustment push to user:', err));
       }
 
       setMessage({ 
@@ -359,14 +320,7 @@ export const useAdjustmentOperations = ({
       
       if (error) throw error;
 
-      if (record?.user_id) {
-        sendPushNotification({
-          userIds: [record.user_id],
-          title: `${titleLabel} ${approve ? 'Approved ✅' : 'Rejected ❌'}`,
-          body: bodyText,
-          url: '/'
-        }).catch(err => console.error('Error sending adjustment response push:', err));
-      }
+
       
       const updateLocalState = () => {
         setUserRecords(prev => prev.map(r => r.id === record.id ? { ...r, ...updates } : r));

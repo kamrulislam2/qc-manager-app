@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
-import { sendPushNotification } from '@/utils/webPushHelper';
+
 
 interface useAdminStaffOperationsParams {
   sessionUser: any;
@@ -423,12 +423,7 @@ export const useAdminStaffOperations = ({
             console.error('Failed to log SUBMIT_PROFILE_REQUEST:', logErr);
           }
 
-          sendPushNotification({
-            userIds: ['admins'],
-            title: 'Profile Change Request 👤',
-            body: `${profile?.full_name || profile?.username || 'Staff'} has requested a profile information change.`,
-            url: '/'
-          }).catch(err => console.error('Error triggering push notification for profile change:', err));
+
 
           setProfile(prev => prev ? { ...prev, ...updatedProfile } : (updatedProfile as Profile));
           setIsEditRequestMode(false);
@@ -766,12 +761,7 @@ export const useAdminStaffOperations = ({
         console.error('Failed to log profile change request response:', logErr);
       }
 
-      sendPushNotification({
-        userIds: [profileId],
-        title: `Profile Change ${approve ? 'Approved ✅' : 'Rejected ❌'}`,
-        body: `Your profile change request has been ${approve ? 'approved' : 'rejected'} by the admin.`,
-        url: '/'
-      }).catch(err => console.error('Error sending profile change push:', err));
+
 
       const updateLocalState = () => {
         setProfilesList(prev => prev.map(p => {
@@ -899,12 +889,7 @@ export const useAdminStaffOperations = ({
         if (profileError) throw profileError;
       }
 
-      sendPushNotification({
-        userIds: [profileId],
-        title: `Password Reset ${approve ? 'Approved ✅' : 'Denied ❌'}`,
-        body: `Your password reset request has been ${approve ? 'approved. Your temporary password is: 1234' : 'denied by the admin.'}`,
-        url: '/'
-      }).catch(err => console.error('Error sending password reset push:', err));
+
 
       const updateLocalState = () => {
         setProfilesList(prev => prev.map(p => {

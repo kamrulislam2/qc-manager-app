@@ -17,7 +17,7 @@ import {
   adjustShortLeaveForJummah
 } from '@/utils/dashboardHelpers';
 import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/leave-tracker/useLeaveQuotaStats';
-import { sendPushNotification } from '@/utils/webPushHelper';
+
 import { getApiUrl } from '@/utils/apiUrlHelper';
 import { toast } from 'react-hot-toast';
 import { AddLeaveFormFields } from '@/components/leave-tracker/AddLeaveFormFields';
@@ -522,39 +522,7 @@ export function AddLeave({
             : 'Leave updated successfully.'
         );
 
-        // Notify Admin if edit needs re-approval (supervisor/user edit)
-        if (needsReapproval && profile?.role === 'supervisor') {
-          const adminIds = profilesList.filter(p => p.role === 'admin').map(p => p.id);
-          if (adminIds.length > 0) {
-            sendPushNotification({
-              userIds: adminIds,
-              title: 'Approved Leave Edited (Requires Re-approval)',
-              body: `Supervisor ${profile.full_name || profile.username} edited an approved leave for ${targetProfile.full_name || targetProfile.username} on ${formatDate(date)}.`
-            }).catch(err => console.error('Error sending push:', err));
-          }
-        }
 
-        // Notify user's supervisors if user edits and it needs re-approval
-        if (needsReapproval && profile?.role === 'user') {
-          const targetSupervisors = targetProfile.supervisor_ids || [];
-          if (targetSupervisors.length > 0) {
-            sendPushNotification({
-              userIds: targetSupervisors,
-              title: 'Leave Edited (Re-approval Required)',
-              body: `${profile.full_name || profile.username} edited an approved leave on ${formatDate(date)}.`
-            }).catch(err => console.error('Error sending push:', err));
-          } else {
-            // No supervisor assigned — notify admin directly
-            const adminIds = profilesList.filter(p => p.role === 'admin').map(p => p.id);
-            if (adminIds.length > 0) {
-              sendPushNotification({
-                userIds: adminIds,
-                title: 'Leave Edited (Re-approval Required)',
-                body: `${profile.full_name || profile.username} edited an approved leave on ${formatDate(date)}.`
-              }).catch(err => console.error('Error sending push:', err));
-            }
-          }
-        }
 
         onSuccess(updatedData || undefined);
       } catch (err: unknown) {
@@ -792,26 +760,7 @@ export function AddLeave({
 
       toast.success(allDates.length > 1 ? `Successfully added ${allDates.length} bulk leaves!` : 'Leave added successfully!');
 
-      // Notify Admin(s) if added by Supervisor
-      if (profile?.role === 'supervisor') {
-        const adminIds = profilesList.filter(p => p.role === 'admin').map(p => p.id);
-        if (adminIds.length > 0) {
-          sendPushNotification({
-            userIds: adminIds,
-            title: 'New Leave Request (Approved by Supervisor)',
-            body: `Supervisor ${profile.full_name || profile.username} approved a ${leaveType} for ${targetProfile.full_name || targetProfile.username} on ${formatDate(date)}.`
-          }).catch(err => console.error('Error sending push:', err));
-        }
-      }
 
-      // Notify User if added directly by Admin
-      if (profile?.role === 'admin' && targetProfile.id !== profile.id) {
-        sendPushNotification({
-          userIds: [targetProfile.id],
-          title: 'Leave Added by Admin ✅',
-          body: `Admin has added a ${leaveType} for you on ${formatDate(date)}.`
-        }).catch(err => console.error('Error sending push:', err));
-      }
 
       // Send notifications to supervisors if pending approval (normal user request)
       const targetSupervisors = targetProfile.supervisor_ids || [];
@@ -830,12 +779,7 @@ export function AddLeave({
           console.error('Failed to insert fallback notifications:', notifErr);
         }
 
-        // Send web pushes
-        sendPushNotification({
-          userIds: targetSupervisors,
-          title: 'New Leave Request',
-          body: `${targetProfile.full_name || targetProfile.username} submitted a ${leaveType} request for ${formatDate(date)}.`
-        }).catch(err => console.error('Error sending push:', err));
+
       }
 
       onSuccess(data || undefined);

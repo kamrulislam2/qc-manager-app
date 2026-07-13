@@ -40,7 +40,6 @@ import { AddLeave } from '@/components/leave-tracker/AddLeave';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { LeaveSettlement, GovtHolidayResponse } from '@/types';
 import { GlobalSettings, getGlobalSettingsFromProfile, defaultGlobalSettings } from '@/utils/dashboardHelpers';
-import { sendPushNotification } from '@/utils/webPushHelper';
 
 interface UserManagementDashboardProps {
   sessionUser: { id: string } | null;
@@ -467,14 +466,6 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
           .eq('id', record.id);
         if (error) throw error;
         toast.success('Adjustment toggled. Pending admin approval.');
-        // Notify admin
-        const adminIds = profiles.filter(p => p.role === 'admin').map(p => p.id);
-        if (adminIds.length > 0) {
-          sendPushNotification({
-            userIds: adminIds,
-            title: 'Adjustment Changed (Needs Approval)',
-            body: `Supervisor ${profile?.full_name || profile?.username} changed adjustment on a leave for ${viewingStaff?.full_name || viewingStaff?.username}.`
-          }).catch(err => console.error('Error sending push:', err));
         }
         if (viewingStaff) debouncedFetchStaffLeaveData(viewingStaff.id, true);
       } catch (err: unknown) {

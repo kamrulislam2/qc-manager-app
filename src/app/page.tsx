@@ -14,7 +14,6 @@ import { useGlobalNotifications } from "@/hooks/leave-tracker/useGlobalNotificat
 import { UserNotificationsModal } from "@/components/common/modals/UserNotificationsModal";
 import { SkeletonLoader } from "@/components/common/SkeletonLoader";
 import { SkeletonLoader as QuotesSkeletonLoader } from "@/components/quotes-tracker/QuotesSkeletonLoader";
-import { subscribeUserToPush } from "@/utils/webPushHelper";
 import { checkInactivity, registerAndCheckSession } from "@/utils/sessionHelper";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
 
@@ -309,30 +308,7 @@ export default function AppPortal() {
     sharedChutiData.initialFetchDone
   );
 
-  // Background Web Push auto-subscription on load for browser users
-  useEffect(() => {
-    if (sessionUser && profile) {
-      const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-      if (isTauri) return;
 
-      const autoSubscribe = async () => {
-        try {
-          const permission = Notification.permission;
-          if (permission === 'granted' || permission === 'default') {
-            const success = await subscribeUserToPush(sessionUser.id);
-            if (success) {
-              localStorage.setItem('push_subscribed_pref_' + sessionUser.id, 'true');
-            }
-          }
-        } catch (err) {
-          console.error('Failed to auto-subscribe user to push notifications:', err);
-        }
-      };
-
-      const timer = setTimeout(autoSubscribe, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [sessionUser, profile]);
 
   useEffect(() => {
     const handleOfflineCountChange = (e: Event) => {

@@ -76,7 +76,6 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
   );
 
   // Create the single unified channel
-  // Create the single unified channel
   useEffect(() => {
     if (!sessionUser?.id || !profile) return;
 
@@ -89,7 +88,7 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
     if (isTauri) {
       import('@tauri-apps/plugin-notification')
         .then(async ({ isPermissionGranted, requestPermission }) => {
-          let permissionGranted = await isPermissionGranted();
+          const permissionGranted = await isPermissionGranted();
           if (!permissionGranted) {
             await requestPermission();
           }
@@ -207,7 +206,14 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
           if (status === 'SUBSCRIBED') {
             window.dispatchEvent(new CustomEvent('realtime-connection-status', { detail: 'connected' }));
           } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.warn(`[RealtimeProvider] unified channel connection status changed: ${status}`, err);
+            const errStr = err ? (err.message || String(err)) : '';
+            const isAbnormalClose = errStr.includes('1006') || errStr.toLowerCase().includes('abnormal');
+
+            if (process.env.NODE_ENV === 'development' && isAbnormalClose) {
+              console.debug(`[RealtimeProvider] unified channel connection status changed: ${status} (expected abnormal close 1006 during Fast Refresh/Strict Mode)`);
+            } else {
+              console.warn(`[RealtimeProvider] unified channel connection status changed: ${status}`, err);
+            }
             window.dispatchEvent(new CustomEvent('realtime-connection-status', { detail: 'disconnected' }));
           }
         }
