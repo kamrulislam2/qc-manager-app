@@ -1014,14 +1014,15 @@ export default function AppPortal() {
               </div>
             }
           >
-            {(activeTab === "quotes" || activeTab === "analytics" || activeTab === "audit_logs") && (
+            {/* QuotesDashboard: always mounted to prevent duplicate query fetches on tab switches */}
+            <div className={(activeTab !== 'quotes' && activeTab !== 'analytics' && activeTab !== 'audit_logs') ? 'hidden' : undefined}>
               <QuotesDashboard
                 activeTab={
                   activeTab === "quotes" ? activeQuotesTab : (activeTab as any)
                 }
                 onTabChange={handleQuotesTabChange}
               />
-            )}
+            </div>
             {/* ChutiDashboard: always mounted to keep global event listeners (like open-profile-settings) and approval modals active on all tabs */}
             <div className={activeTab !== 'chuti' ? 'hidden' : undefined}>
               <ChutiDashboard
