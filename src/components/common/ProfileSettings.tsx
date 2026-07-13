@@ -48,6 +48,51 @@ export function ProfileSettings({
   const [submitting, setSubmitting] = useState(false);
   const [isCodenameEditable, setIsCodenameEditable] = useState(false);
 
+  // Unified menu authorization rules (synchronized with UnifiedSidebar.tsx)
+  const isSuperAdmin = profile?.codename?.toUpperCase() === 'KAMRUL' || profile?.full_name === 'Kamrul Islam';
+  const showTodoTab = profile?.username?.toUpperCase() === 'KAMRUL' || profile?.full_name === 'Kamrul Islam';
+  const hasChutiAccess = !!profile?.has_chuti_access;
+  const hasQuotesAccess = !!profile?.has_quotes_access;
+
+  const isTabAuthorized = (key: string): boolean => {
+    if (!profile) return false;
+    switch (key) {
+      // Main Sections
+      case 'kpi':
+        return true;
+      case 'todo':
+        return showTodoTab;
+      case 'analytics':
+      case 'audit_logs':
+      case 'user_management':
+        return profile.role === 'admin' || profile.role === 'supervisor';
+
+      // Quotes Tracker Subtabs
+      case 'copy_helper':
+      case 'save_file':
+        return hasQuotesAccess && isSuperAdmin;
+      case 'monthly':
+      case 'rules':
+      case 'ip_checker':
+      case 'login_codes':
+      case 'causality':
+        return hasQuotesAccess;
+
+      // Leave Tracker Subtabs
+      case 'leave_history':
+        return hasChutiAccess;
+      case 'team_leaves':
+        return hasChutiAccess && (profile.role === 'admin' || profile.role === 'supervisor');
+      case 'govt_responses':
+      case 'settlement':
+      case 'leave_settings':
+        return hasChutiAccess && profile.role === 'admin';
+
+      default:
+        return false;
+    }
+  };
+
   // Initialize fields
   useEffect(() => {
     if (profile) {
@@ -584,7 +629,9 @@ export function ProfileSettings({
                 { key: 'settlement', label: 'Settlement Subtab', category: 'Leave Tracker Subtabs' },
                 { key: 'leave_settings', label: 'Leave Settings Subtab', category: 'Leave Tracker Subtabs' },
                 { key: 'team_leaves', label: 'Staff Leaves Subtab', category: 'Leave Tracker Subtabs' },
-              ].filter((opt) => opt.category === category);
+              ].filter((opt) => opt.category === category && isTabAuthorized(opt.key));
+
+              if (options.length === 0) return null;
 
               return (
                 <div key={category} className="space-y-2.5">
