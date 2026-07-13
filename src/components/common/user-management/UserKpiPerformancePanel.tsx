@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
+import { canAccessModule } from '@/utils/permissionService';
 import { 
   FileText, 
   Check, 
@@ -762,21 +763,7 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
         .maybeSingle();
       if (error) throw error;
       if (data) {
-        const isSelf = data.id === currentUser?.id;
-        const isSupervisedDirectly = Array.isArray(data.supervisor_ids) && data.supervisor_ids.includes(currentUser?.id || '');
-        
-        let isSupervisedDelegated = false;
-        if (currentUser && Array.isArray(data.supervisor_ids) && data.supervisor_ids.length > 0) {
-          const { data: supervisorsData } = await supabase
-            .from('profiles')
-            .select('delegated_supervisor_id')
-            .in('id', data.supervisor_ids);
-          if (supervisorsData) {
-            isSupervisedDelegated = supervisorsData.some(s => s.delegated_supervisor_id === currentUser.id);
-          }
-        }
-
-        const hasAccess = currentUser?.role === 'admin' || isSelf || isSupervisedDirectly || isSupervisedDelegated;
+        const hasAccess = canAccessModule(currentUser, data, 'kpi');
         if (!hasAccess) {
           toast.error('You do not have permission to view this KPI sheet.');
           return;

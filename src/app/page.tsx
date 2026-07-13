@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback, lazy, Suspense, useMemo } fro
 import { supabase } from "@/utils/supabase";
 import { Profile } from "@/types";
 import { mapProfilePasswordResetStatus } from '@/utils/profileHelpers';
+import { canAccessModule } from "@/utils/permissionService";
 import { Loader2 } from "lucide-react";
 import LoginPage from "@/app/login/page";
 import { UnifiedSidebar } from "@/components/common/UnifiedSidebar";
@@ -56,18 +57,11 @@ function getInitialState() {
         cachedProfile.full_name === "Kamrul Islam";
       
       let lastActive = localStorage.getItem("last_active_dashboard") as any;
-      if (lastActive === "chuti" && !hasChuti) lastActive = null;
-      if (lastActive === "quotes" && !hasQuotes) lastActive = null;
-      if (
-        lastActive === "user_management" &&
-        !(cachedProfile.role === "admin" || cachedProfile.role === "supervisor")
-      )
+      if (lastActive && !canAccessModule(cachedProfile, null, lastActive)) {
         lastActive = null;
-      if (lastActive === "audit_logs" && cachedProfile.role !== "admin") lastActive = null;
-      if (lastActive === "todo" && !showTodo) lastActive = null;
-
+      }
       if (!lastActive) {
-        lastActive = hasChuti ? "chuti" : "quotes";
+        lastActive = canAccessModule(cachedProfile, null, "leave") ? "chuti" : "quotes";
       }
       return { sessionUser: authUser, profile: cachedProfile, initialTab: lastActive };
     }
@@ -596,26 +590,12 @@ export default function AppPortal() {
       const showTodo =
         userProfile.username?.toUpperCase() === "KAMRUL" ||
         userProfile.full_name === "Kamrul Islam";
-      let lastActive = localStorage.getItem("last_active_dashboard") as
-        | "chuti"
-        | "quotes"
-        | "user_management"
-        | "todo"
-        | "kpi"
-        | "audit_logs"
-        | null;
-      if (lastActive === "chuti" && !hasChuti) lastActive = null;
-      if (lastActive === "quotes" && !hasQuotes) lastActive = null;
-      if (
-        lastActive === "user_management" &&
-        !(userProfile.role === "admin" || userProfile.role === "supervisor")
-      )
+      let lastActive = localStorage.getItem("last_active_dashboard") as any;
+      if (lastActive && !canAccessModule(userProfile, null, lastActive)) {
         lastActive = null;
-      if (lastActive === "audit_logs" && userProfile.role !== "admin") lastActive = null;
-      if (lastActive === "todo" && !showTodo) lastActive = null;
-
+      }
       if (!lastActive) {
-        lastActive = hasChuti ? "chuti" : "quotes";
+        lastActive = canAccessModule(userProfile, null, "leave") ? "chuti" : "quotes";
         localStorage.setItem("last_active_dashboard", lastActive);
       }
 
@@ -726,30 +706,8 @@ export default function AppPortal() {
 
       // Safety check: ensure user has access before switching
       if (profile) {
-        if (targetWorkspace === "chuti" && !profile.has_chuti_access) return;
-        if (targetWorkspace === "quotes" && !profile.has_quotes_access) return;
-        if (targetWorkspace === "kpi" && !profile.has_quotes_access) return;
-        if (
-          targetWorkspace === "user_management" &&
-          !(profile.role === "admin" || profile.role === "supervisor")
-        )
-          return;
-        if (
-          targetWorkspace === "audit_logs" &&
-          profile.role !== "admin"
-        )
-          return;
-        if (
-          targetWorkspace === "analytics" &&
-          !(profile.role === "admin" || profile.role === "supervisor")
-        )
-          return;
-        if (targetWorkspace === "todo") {
-          const showTodo =
-            profile.username?.toUpperCase() === "KAMRUL" ||
-            profile.full_name === "Kamrul Islam";
-          if (!showTodo) return;
-        }
+        const checkModule = targetWorkspace === 'chuti' ? 'leave' : targetWorkspace;
+        if (!canAccessModule(profile, null, checkModule)) return;
       }
 
       setActiveTab(targetWorkspace);

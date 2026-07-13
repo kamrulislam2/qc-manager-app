@@ -220,6 +220,7 @@ export const useAdminActions = ({
   }, [showToast, logActivity, profilesList, setProfilesList, updateLastActivity]);
 
   // Admin/Supervisor: Update user profile details
+
   const adminUpdateUserProfile = useCallback(async (
     userId: string, 
     fullName: string, 
@@ -247,7 +248,9 @@ export const useAdminActions = ({
     department?: string,
     performsOtherDeptTasks?: boolean,
     otherDepartment?: string,
-    kpiOtherDeptIndicators?: string[]
+    kpiOtherDeptIndicators?: string[],
+    delegatedLeaveSupervisorId?: string | null,
+    delegatedKpiSupervisorId?: string | null
   ) => {
     if (!navigator.onLine) {
       showToast('error', 'This action requires an active internet connection.');
@@ -314,6 +317,8 @@ export const useAdminActions = ({
         updatePayload.eligible_office_leave = eligibleOfficeLeave;
         updatePayload.allow_overtime = allowOvertime;
         updatePayload.allow_reserve = allowReserve;
+        updatePayload.delegated_leave_supervisor_id = delegatedLeaveSupervisorId;
+        updatePayload.delegated_kpi_supervisor_id = delegatedKpiSupervisorId;
         
         if (jobRole !== undefined) updatePayload.job_role = jobRole;
         if (workingHours !== undefined) updatePayload.working_hours = workingHours;
@@ -326,6 +331,8 @@ export const useAdminActions = ({
         if (breakTime !== undefined) updatePayload.break_time = breakTime;
         if (defaultSignIn !== undefined) updatePayload.default_sign_in = defaultSignIn;
         if (defaultSignOut !== undefined) updatePayload.default_sign_out = defaultSignOut;
+        if (delegatedLeaveSupervisorId !== undefined) updatePayload.delegated_leave_supervisor_id = delegatedLeaveSupervisorId;
+        if (delegatedKpiSupervisorId !== undefined) updatePayload.delegated_kpi_supervisor_id = delegatedKpiSupervisorId;
       }
 
       const { error } = await supabase

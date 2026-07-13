@@ -5,6 +5,7 @@ import { CategoryCheckboxList } from "@/components/quotes-tracker/CategoryCheckb
 import { Profile } from "@/types";
 import { formatTimeToAMPM } from "@/utils/dashboardHelpers";
 import { supabase } from "@/utils/supabase";
+import { canAccessProfileSection } from "@/utils/permissionService";
 
 interface StaffSettingsFormProps {
   isNewUser: boolean;
@@ -79,6 +80,11 @@ interface StaffSettingsFormProps {
   setKpiOtherDeptIndicators?: (val: string[]) => void;
   viewingStaff?: Profile | null;
   onViewKpiReport?: (periodKey: string) => void;
+  currentUser?: Profile | null;
+  delegatedLeaveSupervisorId?: string | null;
+  setDelegatedLeaveSupervisorId?: (val: string | null) => void;
+  delegatedKpiSupervisorId?: string | null;
+  setDelegatedKpiSupervisorId?: (val: string | null) => void;
 }
 
 export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
@@ -138,7 +144,15 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
   setKpiOtherDeptIndicators,
   viewingStaff = null,
   onViewKpiReport,
+  currentUser,
+  delegatedLeaveSupervisorId,
+  setDelegatedLeaveSupervisorId,
+  delegatedKpiSupervisorId,
+  setDelegatedKpiSupervisorId,
 }) => {
+  const showLeaveSettings = isNewUser ? (isAdmin || isSupervisor) : canAccessProfileSection(currentUser || null, viewingStaff, 'leave_settings', supervisors);
+  const showQuotesSettings = isNewUser ? (isAdmin || isSupervisor) : canAccessProfileSection(currentUser || null, viewingStaff, 'quotes_settings', supervisors);
+  const showKpiSettings = isNewUser ? (isAdmin || isSupervisor) : (canAccessProfileSection(currentUser || null, viewingStaff, 'kpi_settings', supervisors) && !!setKpiSkills);
   const [newSkillText, setNewSkillText] = React.useState("");
   const [newDeptIndicatorText, setNewDeptIndicatorText] = React.useState("");
   const [newOtherDeptIndicatorText, setNewOtherDeptIndicatorText] = React.useState("");
@@ -360,24 +374,25 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
       {/* Workspace Access & Permissions Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Leave Tracker Access Card */}
-        <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${hasChutiAccess ? "bg-emerald-500 shadow-lg shadow-emerald-500/50" : "bg-slate-600"}`}
-              />
-              <h3 className="text-sm font-bold text-white">
-                Leave Tracker Workspace
-              </h3>
+        {showLeaveSettings && (
+          <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${hasChutiAccess ? "bg-emerald-500 shadow-lg shadow-emerald-500/50" : "bg-slate-600"}`}
+                />
+                <h3 className="text-sm font-bold text-white">
+                  Leave Tracker Workspace
+                </h3>
+              </div>
+              {isAdmin && (
+                <Toggle
+                  checked={hasChutiAccess}
+                  onChange={setHasChutiAccess}
+                  label="Access"
+                />
+              )}
             </div>
-            {isAdmin && (
-              <Toggle
-                checked={hasChutiAccess}
-                onChange={setHasChutiAccess}
-                label="Access"
-              />
-            )}
-          </div>
 
           {hasChutiAccess && (
             <div className="space-y-4 text-xs text-slate-350 animate-fade-in">
@@ -672,91 +687,118 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
               This user does not have access to the Leave Tracker workspace.
             </p>
           )}
-        </div>
 
-        {/* Quotes Manager Access Card */}
-        <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${hasQuotesAccess ? "bg-emerald-500 shadow-lg shadow-emerald-500/50" : "bg-slate-600"}`}
-              />
-              <h3 className="text-sm font-bold text-white">
-                Quotes Manager Workspace
-              </h3>
+          {/* Leave History delegation select box */}
+          {delegatedLeaveSupervisorId !== undefined && setDelegatedLeaveSupervisorId && (
+            <div className="mt-4 pt-4 border-t border-slate-800/40">
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Delegate Leave History To
+              </label>
+              <select
+                value={delegatedLeaveSupervisorId || ""}
+                onChange={(e) => setDelegatedLeaveSupervisorId(e.target.value || null)}
+                disabled={!(isAdmin || (currentUser && viewingStaff?.supervisor_ids?.includes(currentUser.id)))}
+                className="block w-full h-[36px] px-3 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:border-blue-500/50 cursor-pointer disabled:opacity-50"
+              >
+                <option value="">No Delegation</option>
+                {supervisors
+                  .filter((s) => s.role === "supervisor" && s.id !== viewingStaff?.id)
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.full_name || s.username}
+                    </option>
+                  ))}
+              </select>
             </div>
-            {(isAdmin || isSupervisor) && (
-              <Toggle
-                checked={hasQuotesAccess}
-                onChange={setHasQuotesAccess}
-                label="Access"
-              />
-            )}
-          </div>
-
-          {hasQuotesAccess ? (
-            <div className="space-y-4 animate-fade-in">
-              {/* Category Checklist */}
-              <CategoryCheckboxList
-                allowedTypes={allowedTypes}
-                onChange={setAllowedTypes}
-                disabled={!isAdmin && !isSupervisor}
-              />
-
-              {/* Can Manage Quote Rules (Only Admin edits) */}
-              <div className="border-t border-slate-850/70 pt-3">
-                <label
-                  className={`flex items-center gap-2.5 select-none ${
-                    isAdmin && role !== "admin"
-                      ? "cursor-pointer group"
-                      : "opacity-70 pointer-events-none"
-                  }`}
-                >
-                  <div className="relative flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={canManageRules || role === "admin"}
-                      disabled={!isAdmin || role === "admin"}
-                      onChange={(e) => setCanManageRules(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`h-4 w-4 rounded-full flex items-center justify-center border transition-all shrink-0 ${
-                        canManageRules || role === "admin"
-                          ? "bg-blue-600 border-blue-500 text-white font-bold"
-                          : "border-slate-700 bg-slate-955 text-transparent"
-                      }`}
-                    >
-                      {(canManageRules || role === "admin") && (
-                        <Check className="h-2.5 w-2.5 stroke-3" />
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
-                    Can Manage Quote Rules?{" "}
-                    {role === "admin" && (
-                      <span className="text-[10px] text-slate-500 font-normal italic ml-1">
-                        (Always Allowed for Admin)
-                      </span>
-                    )}
-                  </span>
-                </label>
-                <p className="text-[10px] text-slate-500 mt-1 ml-6.5">
-                  Allows user to add, edit, or delete compliance rules and view
-                  history.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-500 italic py-4 text-center">
-              This user does not have access to the Quotes Manager workspace.
-            </p>
           )}
         </div>
+        )}
+
+        {/* Quotes Manager Access Card */}
+        {showQuotesSettings && (
+          <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${hasQuotesAccess ? "bg-emerald-500 shadow-lg shadow-emerald-500/50" : "bg-slate-600"}`}
+                />
+                <h3 className="text-sm font-bold text-white">
+                  Quotes Manager Workspace
+                </h3>
+              </div>
+              {(isAdmin || isSupervisor) && (
+                <Toggle
+                  checked={hasQuotesAccess}
+                  onChange={setHasQuotesAccess}
+                  label="Access"
+                />
+              )}
+            </div>
+
+            {hasQuotesAccess ? (
+              <div className="space-y-4 animate-fade-in">
+                {/* Category Checklist */}
+                <CategoryCheckboxList
+                  allowedTypes={allowedTypes}
+                  onChange={setAllowedTypes}
+                  disabled={!isAdmin && !isSupervisor}
+                />
+
+                {/* Can Manage Quote Rules (Only Admin edits) */}
+                <div className="border-t border-slate-850/70 pt-3">
+                  <label
+                    className={`flex items-center gap-2.5 select-none ${
+                      isAdmin && role !== "admin"
+                        ? "cursor-pointer group"
+                        : "opacity-70 pointer-events-none"
+                    }`}
+                  >
+                    <div className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={canManageRules || role === "admin"}
+                        disabled={!isAdmin || role === "admin"}
+                        onChange={(e) => setCanManageRules(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`h-4 w-4 rounded-full flex items-center justify-center border transition-all shrink-0 ${
+                          canManageRules || role === "admin"
+                            ? "bg-blue-600 border-blue-500 text-white font-bold"
+                            : "border-slate-700 bg-slate-955 text-transparent"
+                        }`}
+                      >
+                        {(canManageRules || role === "admin") && (
+                          <Check className="h-2.5 w-2.5 stroke-3" />
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
+                      Can Manage Quote Rules?{" "}
+                      {role === "admin" && (
+                        <span className="text-[10px] text-slate-500 font-normal italic ml-1">
+                          (Always Allowed for Admin)
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                  <p className="text-[10px] text-slate-500 mt-1 ml-6.5">
+                    Allows user to add, edit, or delete compliance rules and view
+                    history.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 italic py-4 text-center">
+                This user does not have access to the Quotes Manager workspace.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* KPI Settings Panel */}
-      {setKpiSkills && (
+      {showKpiSettings && (
           <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl shadow-xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <div className="flex items-center gap-2">
@@ -1147,7 +1189,7 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
                       e.preventDefault();
                       const val = newSkillText.trim();
                       if (val && !kpiSkills.includes(val)) {
-                        setKpiSkills([...kpiSkills, val]);
+                        if (setKpiSkills) setKpiSkills([...kpiSkills, val]);
                         setNewSkillText("");
                       }
                     }
@@ -1159,7 +1201,7 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
                   onClick={() => {
                     const val = newSkillText.trim();
                     if (val && !kpiSkills.includes(val)) {
-                      setKpiSkills([...kpiSkills, val]);
+                      if (setKpiSkills) setKpiSkills([...kpiSkills, val]);
                       setNewSkillText("");
                     }
                   }}
@@ -1183,8 +1225,8 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            setKpiSkills(kpiSkills.filter((s) => s !== skill));
-                          }}
+                             if (setKpiSkills) setKpiSkills(kpiSkills.filter((s) => s !== skill));
+                           }}
                           className="text-blue-500 hover:text-red-400 font-bold transition-colors cursor-pointer text-[10px]"
                         >
                           ✕
@@ -1274,6 +1316,30 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {/* KPI delegation select box */}
+            {delegatedKpiSupervisorId !== undefined && setDelegatedKpiSupervisorId && (
+              <div className="mt-4 pt-4 border-t border-slate-800/40">
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Delegate KPI & Performance To
+                </label>
+                <select
+                  value={delegatedKpiSupervisorId || ""}
+                  onChange={(e) => setDelegatedKpiSupervisorId(e.target.value || null)}
+                  disabled={!(isAdmin || (currentUser && viewingStaff?.supervisor_ids?.includes(currentUser.id)))}
+                  className="block w-full h-[36px] px-3 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:border-blue-500/50 cursor-pointer disabled:opacity-50"
+                >
+                  <option value="">No Delegation</option>
+                  {supervisors
+                    .filter((s) => s.role === "supervisor" && s.id !== viewingStaff?.id)
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name || s.username}
+                      </option>
+                    ))}
+                </select>
               </div>
             )}
           </div>

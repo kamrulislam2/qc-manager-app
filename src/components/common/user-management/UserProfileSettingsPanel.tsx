@@ -74,6 +74,11 @@ interface UserProfileSettingsPanelProps {
   editUserOtherDepartment?: string;
   setEditUserOtherDepartment?: (val: string) => void;
   onViewKpiReport?: (periodKey: string) => void;
+  currentUser?: Profile | null;
+  editDelegatedLeaveSupervisorId: string | null;
+  setEditDelegatedLeaveSupervisorId: (val: string | null) => void;
+  editDelegatedKpiSupervisorId: string | null;
+  setEditDelegatedKpiSupervisorId: (val: string | null) => void;
 }
 
 export const UserProfileSettingsPanel: React.FC<
@@ -139,6 +144,11 @@ export const UserProfileSettingsPanel: React.FC<
   editUserOtherDepartment,
   setEditUserOtherDepartment,
   onViewKpiReport,
+  currentUser,
+  editDelegatedLeaveSupervisorId,
+  setEditDelegatedLeaveSupervisorId,
+  editDelegatedKpiSupervisorId,
+  setEditDelegatedKpiSupervisorId,
 }) => {
   const isTargetAdmin = viewingStaff.role === "admin";
   const showSupervisorWarning = isSupervisor && isTargetAdmin;
@@ -209,6 +219,11 @@ export const UserProfileSettingsPanel: React.FC<
         setOtherDepartment={setEditUserOtherDepartment}
         viewingStaff={viewingStaff}
         onViewKpiReport={onViewKpiReport}
+        currentUser={currentUser}
+        delegatedLeaveSupervisorId={editDelegatedLeaveSupervisorId}
+        setDelegatedLeaveSupervisorId={setEditDelegatedLeaveSupervisorId}
+        delegatedKpiSupervisorId={editDelegatedKpiSupervisorId}
+        setDelegatedKpiSupervisorId={setEditDelegatedKpiSupervisorId}
       />
 
       <div className="bg-slate-900/20 border border-slate-850/60 p-5 rounded-2xl flex flex-wrap justify-between items-center gap-4 mt-6 font-sans">

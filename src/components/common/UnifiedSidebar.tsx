@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Profile } from '@/types';
+import { canAccessModule } from '@/utils/permissionService';
 import {
   PanelLeftOpen,
   PanelLeftClose,
@@ -159,7 +160,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
       {/* Main Workspace Tabs */}
       <div className="space-y-4">
         {/* Workspace 1: Chuti Leave Tracker */}
-        {hasChutiAccess && (
+        {canAccessModule(profile, null, 'leave') && (
           <div className="space-y-1">
             <button
               onClick={handleChutiClick}
@@ -291,7 +292,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace 2: Quotes & Sales Tracker */}
-        {hasQuotesAccess && (
+        {canAccessModule(profile, null, 'quotes') && (
           <div className="space-y-1">
             <button
               onClick={handleQuotesClick}
@@ -460,7 +461,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: KPI & Performance */}
-        {!hiddenTabs.includes('kpi') && (
+        {canAccessModule(profile, null, 'kpi') && !hiddenTabs.includes('kpi') && (
           <div className="space-y-1">
             <button
               onClick={handleKpiNav}
@@ -480,7 +481,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: Todos (Only for superadmin Kamrul) */}
-        {showTodoTab && !hiddenTabs.includes('todo') && (
+        {canAccessModule(profile, null, 'todo') && !hiddenTabs.includes('todo') && (
           <div className="space-y-1">
             <button
               onClick={handleTodoNav}
@@ -500,7 +501,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: Analytics (Admin & Supervisor Only) */}
-        {(profile.role === 'admin' || profile.role === 'supervisor') && !hiddenTabs.includes('analytics') && (
+        {canAccessModule(profile, null, 'analytics') && !hiddenTabs.includes('analytics') && (
           <div className="space-y-1">
             <button
               onClick={handleAnalyticsNav}
@@ -520,7 +521,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: Audit Logs (Admin Only) */}
-        {profile.role === 'admin' && !hiddenTabs.includes('audit_logs') && (
+        {canAccessModule(profile, null, 'audit_logs') && !hiddenTabs.includes('audit_logs') && (
           <div className="space-y-1">
             <button
               onClick={handleAuditLogsNav}
@@ -540,7 +541,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: Profile Settings (All Users) */}
-        {!hiddenTabs.includes('profile_settings') && (
+        {canAccessModule(profile, null, 'profile_settings') && !hiddenTabs.includes('profile_settings') && (
           <div className="space-y-1">
             <button
               onClick={handleProfileSettingsNav}
@@ -560,7 +561,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace 3: User Management (Admin & Supervisor Only) */}
-        {(profile.role === 'admin' || profile.role === 'supervisor') && !hiddenTabs.includes('user_management') && (
+        {canAccessModule(profile, null, 'user_management') && !hiddenTabs.includes('user_management') && (
           <div className="space-y-1">
             <button
               onClick={handleUserManagementNav}

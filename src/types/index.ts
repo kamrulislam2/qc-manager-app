@@ -34,6 +34,8 @@ export interface Profile {
   global_settings?: any;
   supervisor_ids?: string[] | null;
   delegated_supervisor_id?: string | null;
+  delegated_leave_supervisor_id?: string | null;
+  delegated_kpi_supervisor_id?: string | null;
   password_reset_status?: 'none' | 'pending' | 'approved' | 'rejected';
   
   // Quotes & Sales Tracker Integration

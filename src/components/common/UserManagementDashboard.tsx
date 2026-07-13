@@ -6,6 +6,7 @@ import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
 import { mapProfilePasswordResetStatus } from '@/utils/profileHelpers';
 import { useAdminActions } from '@/hooks/leave-tracker/useAdminActions';
+import { canAccessModule } from '@/utils/permissionService';
 import { ConfirmModal } from '@/components/common/modals/ConfirmModal';
 import { Modal } from '@/components/common/Modal';
 import { UserManagementSkeleton } from '@/components/common/skeleton/UserManagementSkeleton';
@@ -104,6 +105,8 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const [editUserDepartment, setEditUserDepartment] = useState('Data Entry');
   const [editUserPerformsOtherDeptTasks, setEditUserPerformsOtherDeptTasks] = useState(false);
   const [editUserOtherDepartment, setEditUserOtherDepartment] = useState('IT');
+  const [editDelegatedLeaveSupervisorId, setEditDelegatedLeaveSupervisorId] = useState<string | null>(null);
+  const [editDelegatedKpiSupervisorId, setEditDelegatedKpiSupervisorId] = useState<string | null>(null);
 
   // Delete User State
   const [deletingUserAccount, setDeletingUserAccount] = useState<{ id: string; username: string } | null>(null);
@@ -192,6 +195,8 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       setEditUserDepartment(viewingStaff.global_settings?.department || 'Data Entry');
       setEditUserPerformsOtherDeptTasks(!!viewingStaff.global_settings?.performs_other_dept_tasks);
       setEditUserOtherDepartment(viewingStaff.global_settings?.other_department || 'IT');
+      setEditDelegatedLeaveSupervisorId(viewingStaff.delegated_leave_supervisor_id || null);
+      setEditDelegatedKpiSupervisorId(viewingStaff.delegated_kpi_supervisor_id || null);
     }
   }, [viewingStaff]);
 
@@ -243,25 +248,22 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewingStaff, isCreatingNewUser]);
 
-  // Fallback if viewingStaff has no quotes access and active tab is quotes
+  // Redirect to an authorized subtab if the current subtab is restricted
   useEffect(() => {
     if (viewingStaff) {
-      const isSupervisedByMe = hasStaffAccess(viewingStaff);
-      if (!viewingStaff.has_quotes_access && activeSubTab === 'quotes') {
-        setActiveSubTab(isSupervisedByMe ? 'leave' : 'profile');
+      const isLeaveAllowed = canAccessModule(profile, viewingStaff, 'leave', profiles);
+      const isKpiAllowed = canAccessModule(profile, viewingStaff, 'kpi', profiles);
+      const isQuotesAllowed = viewingStaff.has_quotes_access && canAccessModule(profile, viewingStaff, 'quotes', profiles);
+      
+      if (activeSubTab === 'leave' && !isLeaveAllowed) {
+        setActiveSubTab(isKpiAllowed ? 'kpi' : isQuotesAllowed ? 'quotes' : 'profile');
+      } else if (activeSubTab === 'kpi' && !isKpiAllowed) {
+        setActiveSubTab(isLeaveAllowed ? 'leave' : isQuotesAllowed ? 'quotes' : 'profile');
+      } else if (activeSubTab === 'quotes' && !isQuotesAllowed) {
+        setActiveSubTab(isLeaveAllowed ? 'leave' : isKpiAllowed ? 'kpi' : 'profile');
       }
     }
-  }, [viewingStaff, activeSubTab, profile, hasStaffAccess]);
-
-  // Enforce access control for Leave History and KPI tabs: redirect if active tab is restricted but supervisor doesn't supervise user
-  useEffect(() => {
-    if (viewingStaff && profile?.role === 'supervisor') {
-      const isSupervisedByMe = hasStaffAccess(viewingStaff);
-      if ((activeSubTab === 'leave' || activeSubTab === 'kpi') && !isSupervisedByMe) {
-        setActiveSubTab(viewingStaff.has_quotes_access ? 'quotes' : 'profile');
-      }
-    }
-  }, [viewingStaff, activeSubTab, profile, hasStaffAccess]);
+  }, [viewingStaff, activeSubTab, profile, profiles]);
 
   // Reset subtab selection to 'leave' when viewingStaff is closed
   useEffect(() => {
@@ -689,8 +691,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const handleUpdateUser = async () => {
     if (!viewingStaff) return;
 
-    const isSupervisedByMe = hasStaffAccess(viewingStaff);
-    const canEdit = isAdmin || (profile?.role === 'supervisor' && isSupervisedByMe);
+    const canEdit = isAdmin || profile?.role === 'supervisor';
     if (!canEdit) {
       toast.error('You do not have permission to update this profile.');
       return;
@@ -733,7 +734,9 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       editUserDepartment,
       editUserPerformsOtherDeptTasks,
       editUserOtherDepartment,
-      editUserKpiOtherDeptIndicators
+      editUserKpiOtherDeptIndicators,
+      editDelegatedLeaveSupervisorId,
+      editDelegatedKpiSupervisorId
     );
 
     setSubmitting(false);
@@ -767,13 +770,9 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     }
   };
 
-  // Filter visible profiles based on supervisor access constraint
   const visibleProfiles = profiles
     .filter((u) => {
-      if (profile?.role === 'supervisor') {
-        // Supervisor sees users they supervise (direct/delegated), themselves, OR users who have quotes access
-        return hasStaffAccess(u) || !!u.has_quotes_access;
-      }
+      // Supervisors and Admins can see all users in the list
       return true;
     })
     .filter((u) => {
@@ -844,7 +843,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
             {/* Employee 360 Hub Subtabs (Horizontal Top Tabs) */}
             {!isCreatingNewUser && viewingStaff && (
               <div className="flex border-b border-slate-800 gap-1 mt-2">
-                {(profile?.role === 'admin' || (profile?.role === 'supervisor' && viewingStaff && (viewingStaff.id === profile.id || (Array.isArray(viewingStaff.supervisor_ids) && viewingStaff.supervisor_ids.includes(profile.id))))) && (
+                {canAccessModule(profile, viewingStaff, 'leave', profiles) && (
                   <button
                     type="button"
                     onClick={() => {
@@ -860,7 +859,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                     <Calendar className="h-3.5 w-3.5" /> Leave History
                   </button>
                 )}
-                {viewingStaff.has_quotes_access && (
+                {viewingStaff.has_quotes_access && canAccessModule(profile, viewingStaff, 'quotes', profiles) && (
                   <button
                     type="button"
                     onClick={() => {
@@ -876,7 +875,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                     <FileText className="h-3.5 w-3.5 text-purple-400" /> Quotes History
                   </button>
                 )}
-                {(profile?.role === 'admin' || hasStaffAccess(viewingStaff)) && (
+                {canAccessModule(profile, viewingStaff, 'kpi', profiles) && (
                   <button
                     type="button"
                     onClick={() => {
@@ -990,6 +989,11 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                   setEditUserPerformsOtherDeptTasks={setEditUserPerformsOtherDeptTasks}
                   editUserOtherDepartment={editUserOtherDepartment}
                   setEditUserOtherDepartment={setEditUserOtherDepartment}
+                  currentUser={profile}
+                  editDelegatedLeaveSupervisorId={editDelegatedLeaveSupervisorId}
+                  setEditDelegatedLeaveSupervisorId={setEditDelegatedLeaveSupervisorId}
+                  editDelegatedKpiSupervisorId={editDelegatedKpiSupervisorId}
+                  setEditDelegatedKpiSupervisorId={setEditDelegatedKpiSupervisorId}
                   onViewKpiReport={(periodKey) => {
                     setPreSelectedKpiPeriodKey(periodKey);
                     setActiveSubTab('kpi');
@@ -997,7 +1001,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                 />
               )}
 
-              {activeSubTab === 'leave' && viewingStaff && (
+              {activeSubTab === 'leave' && viewingStaff && canAccessModule(profile, viewingStaff, 'leave', profiles) && (
                 (showAddLeaveForStaff || editingLeaveRecord) && (profile?.role === 'supervisor' || profile?.role === 'admin') && globalSettings ? (
                   // Full-page AddLeave view for supervisor/admin adding on behalf or editing
                   <div className="space-y-4">
@@ -1090,11 +1094,11 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                 )
               )}
 
-              {activeSubTab === 'quotes' && viewingStaff && viewingStaff.has_quotes_access && (
+              {activeSubTab === 'quotes' && viewingStaff && canAccessModule(profile, viewingStaff, 'quotes', profiles) && (
                 <UserQuotesHistoryPanel viewingStaff={viewingStaff} />
               )}
 
-              {activeSubTab === 'kpi' && viewingStaff && (
+              {activeSubTab === 'kpi' && viewingStaff && canAccessModule(profile, viewingStaff, 'kpi', profiles) && (
                 <UserKpiPerformancePanel
                   viewingStaff={viewingStaff}
                   preSelectedPeriodKey={preSelectedKpiPeriodKey}
