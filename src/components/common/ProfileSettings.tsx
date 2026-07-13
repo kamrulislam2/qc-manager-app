@@ -78,16 +78,14 @@ export function ProfileSettings({
     const isSignInChanged = (profileSignInTime || '') !== (profile.default_sign_in || '');
     const isSignOutChanged = (profileSignOutTime || '') !== (profile.default_sign_out || '');
 
-    const isHiddenTabsChanged = profile.role === 'admin' && (
-      JSON.stringify([...hiddenTabs].sort()) !== JSON.stringify([...(profile.global_settings?.hidden_tabs || [])].sort())
-    );
+    const isHiddenTabsChanged = JSON.stringify([...hiddenTabs].sort()) !== JSON.stringify([...(profile.global_settings?.hidden_tabs || [])].sort());
 
     if (profile.role === 'admin') {
       return isUsernameChanged || isFullNameChanged || isWorkingHoursChanged || isBreakTimeChanged || 
              isJobRoleChanged || isSignInChanged || isSignOutChanged || isHiddenTabsChanged;
     } else {
       return isFullNameChanged || isWorkingHoursChanged || isBreakTimeChanged || 
-             isJobRoleChanged || isSignInChanged || isSignOutChanged;
+             isJobRoleChanged || isSignInChanged || isSignOutChanged || isHiddenTabsChanged;
     }
   }, [profile, editUsername, editFullName, editWorkingHours, editBreakTime, editJobRole, profileSignInTime, profileSignOutTime, hiddenTabs]);
 
@@ -201,6 +199,11 @@ export function ProfileSettings({
         window.dispatchEvent(new CustomEvent("profile-updated", { detail: { ...profile, ...updatedProfile } }));
         toast.success('Your profile settings successfully updated!');
       } else {
+        const globalSettingsUpdate = {
+          ...(profile.global_settings || {}),
+          hidden_tabs: hiddenTabs
+        };
+
         if (!profile.has_edited_profile) {
           const updates = {
             full_name: editFullName,
@@ -209,7 +212,8 @@ export function ProfileSettings({
             job_role: editJobRole,
             default_sign_in: profileSignInTime,
             default_sign_out: profileSignOutTime,
-            has_edited_profile: true
+            has_edited_profile: true,
+            global_settings: globalSettingsUpdate
           };
 
           const { data: updatedProfile, error } = await supabase
@@ -239,16 +243,28 @@ export function ProfileSettings({
           window.dispatchEvent(new CustomEvent("profile-updated", { detail: { ...profile, ...updatedProfile } }));
           toast.success('Your profile settings successfully updated!');
         } else {
-          // Submit request for approval
-          const updates = {
-            requested_full_name: editFullName,
-            requested_working_hours: parseFloat(editWorkingHours) || 9.5,
-            requested_break_time: parseInt(editBreakTime) || 0,
-            requested_job_role: editJobRole,
-            requested_default_sign_in: profileSignInTime,
-            requested_default_sign_out: profileSignOutTime,
-            profile_change_status: 'pending'
+          // Check if profile fields (that require approval) changed
+          const hasProfileFieldChanges = 
+            editFullName.trim() !== (profile.full_name || '').trim() ||
+            (parseFloat(editWorkingHours) || 9.5) !== (profile.working_hours ?? 9.5) ||
+            (parseInt(editBreakTime) || 0) !== (profile.break_time ?? 0) ||
+            editJobRole.trim() !== (profile.job_role || '').trim() ||
+            (profileSignInTime || '') !== (profile.default_sign_in || '') ||
+            (profileSignOutTime || '') !== (profile.default_sign_out || '');
+
+          const updates: any = {
+            global_settings: globalSettingsUpdate
           };
+
+          if (hasProfileFieldChanges) {
+            updates.requested_full_name = editFullName;
+            updates.requested_working_hours = parseFloat(editWorkingHours) || 9.5;
+            updates.requested_break_time = parseInt(editBreakTime) || 0;
+            updates.requested_job_role = editJobRole;
+            updates.requested_default_sign_in = profileSignInTime;
+            updates.requested_default_sign_out = profileSignOutTime;
+            updates.profile_change_status = 'pending';
+          }
 
           const { data: updatedProfile, error } = await supabase
             .from('profiles')
@@ -259,30 +275,45 @@ export function ProfileSettings({
 
           if (error) throw error;
 
-          // Log request in audit logs
+          // Log request or update in audit logs
           try {
-            await supabase.from('audit_logs').insert({
-              actor_id: sessionUser.id,
-              actor_codename: profile.username || 'SYSTEM',
-              action_type: 'SUBMIT_PROFILE_REQUEST',
-              target_id: sessionUser.id,
-              details: `User submitted a profile change request. Requested Name: "${editFullName}", Job Role: "${editJobRole}", Working Hours: ${editWorkingHours}, Break: ${editBreakTime}m, Sign In: ${profileSignInTime}, Sign Out: ${profileSignOutTime}`
-            });
-          } catch (logErr) {
-            console.error('Failed to log SUBMIT_PROFILE_REQUEST:', logErr);
-          }
+            if (hasProfileFieldChanges) {
+              await supabase.from('audit_logs').insert({
+                actor_id: sessionUser.id,
+                actor_codename: profile.username || 'SYSTEM',
+                action_type: 'SUBMIT_PROFILE_REQUEST',
+                target_id: sessionUser.id,
+                details: `User submitted a profile change request. Requested Name: "${editFullName}", Job Role: "${editJobRole}", Working Hours: ${editWorkingHours}, Break: ${editBreakTime}m, Sign In: ${profileSignInTime}, Sign Out: ${profileSignOutTime}`
+              });
 
-          sendPushNotification({
-            userIds: ['admins'],
-            title: 'Profile Change Request 👤',
-            body: `${profile.full_name || profile.username || 'Staff'} has requested a profile information change.`,
-            url: '/'
-          }).catch(err => console.error('Error triggering push notification:', err));
+              sendPushNotification({
+                userIds: ['admins'],
+                title: 'Profile Change Request 👤',
+                body: `${profile.full_name || profile.username || 'Staff'} has requested a profile information change.`,
+                url: '/'
+              }).catch(err => console.error('Error triggering push notification:', err));
+            } else {
+              await supabase.from('audit_logs').insert({
+                actor_id: sessionUser.id,
+                actor_codename: profile.username || 'SYSTEM',
+                action_type: 'UPDATE_PROFILE',
+                target_id: sessionUser.id,
+                details: `User updated their own menu visibility settings.`
+              });
+            }
+          } catch (logErr) {
+            console.error('Failed to log profile update:', logErr);
+          }
 
           setProfile({ ...profile, ...updatedProfile });
           localStorage.setItem(`cached_profile_${sessionUser.id}`, JSON.stringify({ ...profile, ...updatedProfile }));
           window.dispatchEvent(new CustomEvent("profile-updated", { detail: { ...profile, ...updatedProfile } }));
-          toast.success('Profile change request has been sent to the admin.');
+          
+          if (hasProfileFieldChanges) {
+            toast.success('Profile change request has been sent to the admin.');
+          } else {
+            toast.success('Your menu visibility settings successfully updated!');
+          }
         }
       }
     } catch (err: any) {
@@ -518,8 +549,8 @@ export function ProfileSettings({
         </div>
       </div>
 
-      {/* Admin Menu Visibility Configuration */}
-      {profile?.role === 'admin' && (
+      {/* Menu Visibility Configuration */}
+      {profile && (
         <div className="bg-slate-900/40 rounded-2xl border border-slate-800/60 p-6 space-y-4 max-w-4xl">
           <div>
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-slate-800/40">
