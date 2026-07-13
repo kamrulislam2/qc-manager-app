@@ -689,7 +689,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   const handleUpdateUser = async () => {
     if (!viewingStaff) return;
 
-    const isSupervisedByMe = hasStaffAccess(viewingStaff) && viewingStaff.id !== profile?.id;
+    const isSupervisedByMe = hasStaffAccess(viewingStaff);
     const canEdit = isAdmin || (profile?.role === 'supervisor' && isSupervisedByMe);
     if (!canEdit) {
       toast.error('You do not have permission to update this profile.');
@@ -965,7 +965,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                   }}
                   onDeleteAccountClick={() => setDeletingUserAccount({ id: viewingStaff.id, username: viewingStaff.username })}
                   onSaveProfileClick={handleUpdateUser}
-                  isSupervisor={profile?.role === 'supervisor' && hasStaffAccess(viewingStaff) && viewingStaff.id !== profile.id}
+                  isSupervisor={profile?.role === 'supervisor' && hasStaffAccess(viewingStaff)}
                   editUserJobRole={editUserJobRole}
                   setEditUserJobRole={setEditUserJobRole}
                   editUserWorkingHours={editUserWorkingHours}

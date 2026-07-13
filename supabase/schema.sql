@@ -165,6 +165,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION public.is_supervisor_of(supervisor_id UUID, employee_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = employee_id
+    AND supervisor_id = ANY(supervisor_ids)
+  ) OR EXISTS (
+    SELECT 1 FROM public.profiles u
+    JOIN public.profiles s ON s.id = ANY(u.supervisor_ids)
+    WHERE u.id = employee_id
+    AND s.delegated_supervisor_id = supervisor_id
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 CREATE OR REPLACE FUNCTION public.is_admin_or_supervisor()
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -425,9 +441,19 @@ CREATE POLICY "Allow users to read their own profile"
 ON public.profiles FOR SELECT
 USING (auth.uid() = id);
 
-CREATE POLICY "Allow admin/supervisor to read all profiles"
+CREATE POLICY "Allow admin to read all profiles"
 ON public.profiles FOR SELECT
-USING (public.is_admin_or_supervisor());
+USING (public.is_admin());
+
+CREATE POLICY "Allow supervisor to read supervised profiles"
+ON public.profiles FOR SELECT
+USING (
+  public.is_supervisor() 
+  AND (
+    id = auth.uid() 
+    OR public.is_supervisor_of(auth.uid(), id)
+  )
+);
 
 CREATE POLICY "Allow authenticated users to read supervisor profiles"
 ON public.profiles FOR SELECT
@@ -454,10 +480,10 @@ USING (public.is_admin());
 CREATE POLICY "Allow supervisors to update supervised profiles"
 ON public.profiles FOR UPDATE
 USING (
-  public.is_supervisor() AND auth.uid() = ANY(supervisor_ids)
+  public.is_supervisor() AND public.is_supervisor_of(auth.uid(), id)
 )
 WITH CHECK (
-  public.is_supervisor() AND auth.uid() = ANY(supervisor_ids)
+  public.is_supervisor() AND public.is_supervisor_of(auth.uid(), id)
 );
 
 CREATE POLICY "Allow admins to delete profiles"
@@ -1123,21 +1149,22 @@ CREATE TABLE public.kpi_assessments (
 
 ALTER TABLE public.kpi_assessments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow select for all authenticated users" 
+CREATE POLICY "Allow select for owner, admin, or assigned supervisor" 
 ON public.kpi_assessments FOR SELECT 
 TO authenticated 
-USING (true);
+USING (
+  auth.uid() = user_id 
+  OR public.is_admin() 
+  OR (public.is_supervisor() AND public.is_supervisor_of(auth.uid(), user_id))
+);
 
-CREATE POLICY "Allow insert/update/delete for admin, supervisor, or self" 
+CREATE POLICY "Allow insert/update/delete for owner, admin, or assigned supervisor" 
 ON public.kpi_assessments FOR ALL 
 TO authenticated 
 USING (
   auth.uid() = user_id 
-  OR EXISTS (
-    SELECT 1 FROM public.profiles 
-    WHERE id = auth.uid() 
-    AND (role = 'admin' OR role = 'supervisor')
-  )
+  OR public.is_admin() 
+  OR (public.is_supervisor() AND public.is_supervisor_of(auth.uid(), user_id))
 );
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.kpi_assessments;

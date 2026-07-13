@@ -224,6 +224,7 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
     
     // For supervisor, they can edit if they are a direct supervisor OR the manually designated appraiser
     if (currentUser.role === 'supervisor') {
+      if (targetStaff.id === currentUser.id) return true; // Supervisor has full access to their own sheet
       const supervisorIds = targetStaff.supervisor_ids || [];
       const isDirectSupervisor = supervisorIds.includes(currentUser.id);
       
@@ -236,7 +237,7 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
     }
     
     return false;
-  }, [currentUser, evaluatorModeProfile, targetStaff.supervisor_ids, appraiserName]);
+  }, [currentUser, evaluatorModeProfile, targetStaff.id, targetStaff.supervisor_ids, appraiserName]);
 
   // Is current viewer the appraisee (the user themselves)?
   const isAppraisee = useMemo(() => {
@@ -761,6 +762,26 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
         .maybeSingle();
       if (error) throw error;
       if (data) {
+        const isSelf = data.id === currentUser?.id;
+        const isSupervisedDirectly = Array.isArray(data.supervisor_ids) && data.supervisor_ids.includes(currentUser?.id || '');
+        
+        let isSupervisedDelegated = false;
+        if (currentUser && Array.isArray(data.supervisor_ids) && data.supervisor_ids.length > 0) {
+          const { data: supervisorsData } = await supabase
+            .from('profiles')
+            .select('delegated_supervisor_id')
+            .in('id', data.supervisor_ids);
+          if (supervisorsData) {
+            isSupervisedDelegated = supervisorsData.some(s => s.delegated_supervisor_id === currentUser.id);
+          }
+        }
+
+        const hasAccess = currentUser?.role === 'admin' || isSelf || isSupervisedDirectly || isSupervisedDelegated;
+        if (!hasAccess) {
+          toast.error('You do not have permission to view this KPI sheet.');
+          return;
+        }
+
         setEvaluatorModeProfile(data);
         setShowViewKpiModal(false);
         toast.success(`Loaded KPI sheet for ${data.full_name || data.username} in Evaluator Mode.`);
@@ -1375,7 +1396,7 @@ USING (auth.uid() = user_id OR EXISTS (
           {/* Appraiser's Name */}
           <div className="flex items-center border-b border-slate-900 pb-2 print:border-neutral-200">
             <span className="w-32 font-semibold text-slate-400 shrink-0 print:text-black">Appraiser's Name</span>
-            {!hasSupervisors && currentUser?.role === 'admin' ? (
+            {(!hasSupervisors && currentUser?.role === 'admin') || (currentUser?.role === 'supervisor' && targetStaff.id === currentUser.id) ? (
               <div className="relative">
                 <input
                   type="text"
