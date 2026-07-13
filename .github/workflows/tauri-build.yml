@@ -121,14 +121,14 @@ jobs:
           releaseBody: |
             ### QC App v__VERSION__ 🚀
 
-            **v__VERSION__** is a patch release addressing badge sync triggers, settings access rules, cost optimizations, and client safeguards.
+            **v__VERSION__** delivers the latest 4.5.0 release for deployment, focusing on quote rule management, smoother admin workflows, and improved release readiness.
 
             #### 🛠 What's New in v__VERSION__:
 
-            - **Top Performer Badge Sync (Security Fix)** — Resolves the trigger exception `"Unauthorized profile modification."` when client page loads attempt to execute badge sync on behalf of other users. Implemented transaction-local security bypasses inside the postgres RPC function.
-            - **Self-Profile Settings Tab Access Fix** — Resolves a permission boundary check where regular users were blocked from opening their own Settings workspace due to targetUser constraints.
-            - **Supabase Cost Optimizations** — Replaced conditional dashboard panel mounting with hidden DOM containers to eliminate duplicate database select queries and realtime channel re-subscriptions when switching workspace tabs.
-            - **Clock Skew Protection & Concurrency Safeguards** — Restores authentications from negative clock skews and blocks concurrent duplicate database submissions.
+            - **Quote Rules Edit & Update Support** — Existing compliance rules can now be edited in place, with category/sub-category changes, company name/title updates, tag edits, rule detail updates, and immediate UI refreshes.
+            - **Reusable Rule Management Modal** — Create and edit flows now use the same modal, with prefilled values, updated action buttons, and preserved rule identity on save.
+            - **Audit Logging & Persistence** — Updates keep the original rule ID and creation timestamp while refreshing the modified timestamp and recording meaningful field changes for auditing.
+            - **Permission-Safe Updates** — Rule edits remain restricted to authorized users through the existing quote rules permission model.
 
             #### 📦 Installation Instructions:
             - **Windows (64-bit)**: Download the `x86_64` `.exe` or `.msi` installer.
