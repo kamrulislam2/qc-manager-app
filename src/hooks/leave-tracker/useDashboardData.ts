@@ -666,9 +666,6 @@ export const useDashboardData = () => {
       }
     }
 
-    // Trigger push notification to updated user
-
-
     setMessage({ type: 'success', text: 'Holiday response updated successfully!' });
     setLoading(false);
     fetchRecords();
@@ -749,9 +746,6 @@ export const useDashboardData = () => {
         });
 
       if (error) throw error;
-
-      // Trigger push notifications conditionally based on status
-
 
       const isInitiated = formatted.every(s => s.status === 'initiated');
       const isResponded = formatted.every(s => s.status === 'responded');

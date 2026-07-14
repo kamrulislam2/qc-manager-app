@@ -4,6 +4,7 @@ import PWARegister from "./pwa-register";
 import AppUpdater from "@/components/common/AppUpdater";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import { NetworkProvider } from "@/providers/NetworkProvider";
 
 export const metadata: Metadata = {
   title: "QC App",
@@ -61,7 +62,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-theme-page-bg text-theme-text-primary">
         <PWARegister />
         <AppUpdater />
-        {children}
+        <NetworkProvider>
+          {children}
+        </NetworkProvider>
         <SpeedInsights />
         <Analytics />
       </body>
