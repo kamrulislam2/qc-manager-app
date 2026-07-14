@@ -6,6 +6,7 @@ import { GlobalSettings, formatDate } from '@/utils/dashboardHelpers';
 import { DateInput } from '@/components/common/DateInput';
 import { supabase } from '@/utils/supabase';
 import { toast } from 'react-hot-toast';
+import { DeleteGovtHolidayModal } from '@/components/common/modals/DeleteGovtHolidayModal';
 
 interface AdminLeaveSettingsProps {
   globalSettings: GlobalSettings;
@@ -102,10 +103,63 @@ export function AdminLeaveSettings({
     setNewName('');
   };
 
-  // Remove Govt Holiday from local list
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [holidayToDelete, setHolidayToDelete] = useState<{ date: string; name: string } | null>(null);
+
+  // Remove Govt Holiday
   const handleRemoveGovtDate = (dateToRemove: string, nameToRemove: string) => {
-    if (confirm(`Are you sure you want to remove the government holiday "${nameToRemove}" on ${formatDate(dateToRemove)}?\nThis will clear responses from all employees for this date.`)) {
+    const isSaved = (globalSettings.govt_holidays || []).some((h: any) => {
+      const d = (h && typeof h === 'object') ? h.date : String(h);
+      return d === dateToRemove;
+    });
+
+    if (isSaved) {
+      setHolidayToDelete({ date: dateToRemove, name: nameToRemove });
+      setShowDeleteModal(true);
+    } else {
       setGovtHolidays(prev => prev.filter(h => h.date !== dateToRemove));
+      toast.success('Unsaved holiday removed from list.');
+    }
+  };
+
+  const handleConfirmDeleteGovtDate = async () => {
+    if (!holidayToDelete) return;
+    try {
+      const dateToRemove = holidayToDelete.date;
+      const updatedHolidays = govtHolidays.filter(h => h.date !== dateToRemove);
+      const activeDates = updatedHolidays.map(h => h.date);
+
+      if (activeDates.length === 0) {
+        const { error: deleteError } = await supabase
+          .from('govt_holiday_responses')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+        if (deleteError) throw deleteError;
+      } else {
+        const { error: deleteError } = await supabase
+          .from('govt_holiday_responses')
+          .delete()
+          .not('holiday_date', 'in', `(${activeDates.join(',')})`);
+        if (deleteError) throw deleteError;
+      }
+
+      const success = await onSaveGlobalSettings({
+        ...globalSettings,
+        govt_holidays: updatedHolidays,
+      }, { silent: true });
+
+      if (!success) {
+        throw new Error('Failed to update global settings.');
+      }
+
+      setGovtHolidays(updatedHolidays);
+      toast.success('Government Holiday deleted successfully!');
+      setShowDeleteModal(false);
+      setHolidayToDelete(null);
+    } catch (err: any) {
+      console.error('Failed to delete government holiday:', err);
+      toast.error(`Failed to delete holiday: ${err?.message || err}`);
+      throw err;
     }
   };
 
@@ -348,6 +402,18 @@ export function AdminLeaveSettings({
         </div>
 
       </div>
+      {holidayToDelete && (
+        <DeleteGovtHolidayModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setHolidayToDelete(null);
+          }}
+          holidayName={holidayToDelete.name}
+          holidayDate={formatDate(holidayToDelete.date)}
+          onConfirm={handleConfirmDeleteGovtDate}
+        />
+      )}
     </div>
   );
 }
