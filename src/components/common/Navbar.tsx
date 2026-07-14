@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   LogOut,
-  User,
   Sun,
   Moon,
   Download,
@@ -15,7 +14,6 @@ import {
 import { Profile } from '@/types';
 import { downloadLatestRelease, DownloadPlatform } from '@/utils/downloadHelper';
 
-import { VerifiedBadge } from '@/components/common/VerifiedBadge';
 import { UserDisplayName } from '@/components/common/UserDisplayName';
 import { BadgeInfo } from '@/utils/leaderboardHelper';
 
@@ -42,7 +40,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   offlineCount = 0,
   onManualSync,
 }) => {
-
   const formatWorkingHours = (hours: number | string) => {
     const h = parseFloat(String(hours));
     if (isNaN(h)) return '9 hours 30 mins';
@@ -60,8 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isTauri, setIsTauri] = React.useState(false);
   const [downloadLoading, setDownloadLoading] = React.useState(false);
   const [showDownloadDropdown, setShowDownloadDropdown] = React.useState(false);
-  const [showNameTooltip, setShowNameTooltip] = React.useState(false);
-  const nameHoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
 
   React.useEffect(() => {
     const isTauriEnv = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || (window as any).__TAURI__ !== undefined);

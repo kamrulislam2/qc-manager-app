@@ -474,18 +474,11 @@ function AppPortalInner({
     sessionStorage.setItem("adminActiveTab", tab);
   };
 
-  const [isOnline, setIsOnline] = useState(true);
   const [isUserManagementFullView, setIsUserManagementFullView] = useState(false);
   const [profilesList, setProfilesList] = useState<Profile[]>([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setIsOnline(navigator.onLine);
-      const onlineHandler = () => setIsOnline(true);
-      const offlineHandler = () => setIsOnline(false);
-      window.addEventListener("online", onlineHandler);
-      window.addEventListener("offline", offlineHandler);
-
       const handleReloadShortcut = (e: KeyboardEvent) => {
         if (
           (e.key === "r" && (e.metaKey || e.ctrlKey)) ||
@@ -498,8 +491,6 @@ function AppPortalInner({
       window.addEventListener("keydown", handleReloadShortcut);
 
       return () => {
-        window.removeEventListener("online", onlineHandler);
-        window.removeEventListener("offline", offlineHandler);
         window.removeEventListener("keydown", handleReloadShortcut);
       };
     }
