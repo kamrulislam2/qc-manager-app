@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   LogOut,
   Sun,
@@ -10,17 +10,20 @@ import {
   Coffee,
   Bell,
   RefreshCw,
-  Menu
-} from 'lucide-react';
-import { Profile } from '@/types';
-import { downloadLatestRelease, DownloadPlatform } from '@/utils/downloadHelper';
+  Menu,
+} from "lucide-react";
+import { Profile } from "@/types";
+import {
+  downloadLatestRelease,
+  DownloadPlatform,
+} from "@/utils/downloadHelper";
 
-import { UserDisplayName } from '@/components/common/UserDisplayName';
-import { BadgeInfo } from '@/utils/leaderboardHelper';
+import { UserDisplayName } from "@/components/common/UserDisplayName";
+import { BadgeInfo } from "@/utils/leaderboardHelper";
 
 interface NavbarProps {
   profile: Profile | null;
-  theme: 'dark' | 'light';
+  theme: "dark" | "light";
   onThemeToggle: () => void;
   onLogout: () => void;
   badges?: Record<string, BadgeInfo>;
@@ -45,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const formatWorkingHours = (hours: number | string) => {
     const h = parseFloat(String(hours));
-    if (isNaN(h)) return '9 hours 30 mins';
+    if (isNaN(h)) return "9 hours 30 mins";
     const wholeHours = Math.floor(h);
     const fraction = h - wholeHours;
     if (fraction === 0.5) {
@@ -61,9 +64,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [downloadLoading, setDownloadLoading] = React.useState(false);
   const [showDownloadDropdown, setShowDownloadDropdown] = React.useState(false);
 
-
   React.useEffect(() => {
-    const isTauriEnv = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || (window as any).__TAURI__ !== undefined);
+    const isTauriEnv =
+      typeof window !== "undefined" &&
+      ("__TAURI_INTERNALS__" in window ||
+        (window as any).__TAURI__ !== undefined);
     setIsTauri(isTauriEnv);
   }, []);
 
@@ -71,11 +76,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   React.useEffect(() => {
     if (!showDownloadDropdown) return;
     const handleOutsideClick = () => setShowDownloadDropdown(false);
-    window.addEventListener('click', handleOutsideClick);
-    return () => window.removeEventListener('click', handleOutsideClick);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
   }, [showDownloadDropdown]);
 
-  const handleDownload = async (platform: DownloadPlatform, e: React.MouseEvent) => {
+  const handleDownload = async (
+    platform: DownloadPlatform,
+    e: React.MouseEvent,
+  ) => {
     e.stopPropagation(); // Prevent dropdown from closing immediately
     setDownloadLoading(true);
     try {
@@ -113,16 +121,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </span>
             </h1>
-            <p className="text-xs text-theme-text-muted mt-0.5">Quotes, Sales & Chuti Management Dashboard</p>
+            <p className="text-xs text-theme-text-muted mt-0.5">
+              Quotes, Sales & Chuti Management Dashboard
+            </p>
             {profile && (
               <div className="flex flex-wrap gap-2 mt-2">
                 <div className="bg-theme-card-bg/60 border border-theme-border-input/80 rounded-lg px-2.5 py-1 text-[11px] text-theme-text-secondary flex items-center gap-1.5 shadow-sm">
                   <Clock className="h-3.5 w-3.5 text-blue-400" />
-                  <span>Working Hours: <strong className="text-theme-text-primary">{formatWorkingHours(profile.working_hours || 9.5)}</strong></span>
+                  <span>
+                    Working Hours:{" "}
+                    <strong className="text-theme-text-primary">
+                      {formatWorkingHours(profile.working_hours || 9.5)}
+                    </strong>
+                  </span>
                 </div>
                 <div className="bg-theme-card-bg/60 border border-theme-border-input/80 rounded-lg px-2.5 py-1 text-[11px] text-theme-text-secondary flex items-center gap-1.5 shadow-sm">
                   <Coffee className="h-3.5 w-3.5 text-purple-400" />
-                  <span>Break Time: <strong className="text-theme-text-primary">{profile.break_time || 0} Mins</strong></span>
+                  <span>
+                    Break Time:{" "}
+                    <strong className="text-theme-text-primary">
+                      {profile.break_time || 0} Mins
+                    </strong>
+                  </span>
                 </div>
               </div>
             )}
@@ -130,8 +150,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-
-
           {/* Offline Sync Area */}
           {offlineCount > 0 && onManualSync && (
             <button
@@ -147,9 +165,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onThemeToggle}
             className="p-2 bg-theme-card-bg border border-theme-border-input hover:bg-theme-border-input text-theme-text-secondary hover:text-theme-text-primary rounded-lg cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-all flex items-center justify-center shrink-0"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={
+              theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"
+            }
           >
-            {theme === 'dark' ? (
+            {theme === "dark" ? (
               <Sun className="h-4.5 w-4.5 text-purple-500" />
             ) : (
               <Moon className="h-4.5 w-4.5 text-indigo-400" />
@@ -186,8 +206,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-theme-card-bg border border-theme-border-input hover:bg-theme-border-input text-theme-text-secondary hover:text-theme-text-primary rounded-lg text-xs font-semibold cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                 title="Download Desktop App"
               >
-                <Download className={`h-4 w-4 ${downloadLoading ? 'animate-bounce' : ''}`} />
-                <span>Get App</span>
+                <Download
+                  className={`h-4 w-4 ${downloadLoading ? "animate-bounce" : ""}`}
+                />
               </button>
 
               {showDownloadDropdown && (
@@ -196,24 +217,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="px-2.5 py-1.5 border-b border-theme-card-bg/10 mb-1">
-                    <p className="text-[10px] text-theme-text-muted uppercase tracking-wider font-semibold">Download Platform</p>
+                    <p className="text-[10px] text-theme-text-muted uppercase tracking-wider font-semibold">
+                      Download Platform
+                    </p>
                   </div>
                   <button
-                    onClick={(e) => handleDownload('windows', e)}
+                    onClick={(e) => handleDownload("windows", e)}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-theme-card-bg text-theme-text-secondary hover:text-theme-text-primary rounded-lg text-xs font-medium text-left transition-colors cursor-pointer"
                   >
                     <Monitor className="h-4 w-4 text-blue-400" />
                     Windows (.exe)
                   </button>
                   <button
-                    onClick={(e) => handleDownload('macos-silicon', e)}
+                    onClick={(e) => handleDownload("macos-silicon", e)}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-theme-card-bg text-theme-text-secondary hover:text-theme-text-primary rounded-lg text-xs font-medium text-left transition-colors cursor-pointer"
                   >
                     <Apple className="h-4 w-4 text-indigo-400" />
                     macOS (Apple Silicon)
                   </button>
                   <button
-                    onClick={(e) => handleDownload('macos-intel', e)}
+                    onClick={(e) => handleDownload("macos-intel", e)}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-theme-card-bg text-theme-text-secondary hover:text-theme-text-primary rounded-lg text-xs font-medium text-left transition-colors cursor-pointer"
                   >
                     <Apple className="h-4 w-4 text-theme-text-muted" />
