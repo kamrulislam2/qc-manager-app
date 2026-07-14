@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { REPO } from "@/config/downloads";
+import { REPO, VERSION } from "@/config/downloads";
 
 export interface ReleaseLinks {
   windows: string;
@@ -9,7 +9,7 @@ export interface ReleaseLinks {
   version: string;
 }
 
-const DEFAULT_VERSION = "1.0.0";
+const DEFAULT_VERSION = VERSION;
 
 export function useAppReleaseLinks(): ReleaseLinks {
   const [links, setLinks] = useState<ReleaseLinks>({
