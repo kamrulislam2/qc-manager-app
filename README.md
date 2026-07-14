@@ -1,4 +1,4 @@
-# 🌟 QC App — Unified Office Leave Tracker & Quotes Manager
+# 🌟 QC Manager — Unified Office Leave Tracker & Quotes Manager
 
 **Version 4.6.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
@@ -6,7 +6,7 @@
 
 ## 🚀 Workspace Ecosystem
 
-The QC App consists of two primary corporate workspaces, accessible dynamically based on administrator-configured employee access permissions:
+The QC Manager consists of two primary corporate workspaces, accessible dynamically based on administrator-configured employee access permissions:
 
 ### 1. 📅 Leave Tracker Workspace (Chuti)
 

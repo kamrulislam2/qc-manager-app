@@ -16,7 +16,7 @@ import {
   LogOut,
   Monitor,
   Apple,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 import {
   downloadLatestRelease,
@@ -1126,7 +1126,7 @@ function AppPortalInner({
         <div className="flex justify-between items-center mb-4 pb-2 border-b border-theme-border-input/30 shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold tracking-wider text-theme-text-primary">
-              QC App
+              QC Manager
             </span>
             {/* Quick Toggle Actions next to Title */}
             <div className="flex items-center gap-1.5">
@@ -1135,7 +1135,11 @@ function AppPortalInner({
                 onClick={handleThemeToggle}
                 type="button"
                 className="p-1.5 bg-theme-card-bg border border-theme-border-input hover:bg-theme-border-input text-theme-text-secondary hover:text-theme-text-primary rounded-lg transition-all flex items-center justify-center cursor-pointer"
-                title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                title={
+                  theme === "dark"
+                    ? "Switch to Light Mode"
+                    : "Switch to Dark Mode"
+                }
               >
                 {theme === "dark" ? (
                   <Sun className="h-4 w-4 text-purple-500" />
@@ -1150,16 +1154,24 @@ function AppPortalInner({
                   onClick={() => {
                     setIsMobileDrawerOpen(false);
                     if (profile.role === "admin") {
-                      const mode = sessionStorage.getItem("adminNotificationMode") || "user";
+                      const mode =
+                        sessionStorage.getItem("adminNotificationMode") ||
+                        "user";
                       if (mode === "admin") {
-                        window.dispatchEvent(new CustomEvent("open-admin-approvals-modal"));
+                        window.dispatchEvent(
+                          new CustomEvent("open-admin-approvals-modal"),
+                        );
                       } else {
                         setShowNotificationsModal(true);
                       }
                     } else if (profile.role === "supervisor") {
-                      const mode = sessionStorage.getItem("supervisorNotificationMode") || "user";
+                      const mode =
+                        sessionStorage.getItem("supervisorNotificationMode") ||
+                        "user";
                       if (mode === "supervisor") {
-                        window.dispatchEvent(new CustomEvent("open-supervisor-approvals-modal"));
+                        window.dispatchEvent(
+                          new CustomEvent("open-supervisor-approvals-modal"),
+                        );
                       } else {
                         setShowNotificationsModal(true);
                       }
@@ -1259,7 +1271,9 @@ function AppPortalInner({
                   className="w-full flex items-center justify-between px-3.5 py-2.5 bg-theme-card-bg border border-theme-border-input hover:bg-theme-border-input text-theme-text-secondary hover:text-theme-text-primary rounded-xl cursor-pointer transition-all disabled:opacity-50"
                 >
                   <span className="text-xs font-semibold">Get Desktop App</span>
-                  <Download className={`h-4 w-4 ${downloadLoading ? "animate-bounce" : ""}`} />
+                  <Download
+                    className={`h-4 w-4 ${downloadLoading ? "animate-bounce" : ""}`}
+                  />
                 </button>
 
                 {showDownloadDropdown && (

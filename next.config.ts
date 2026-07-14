@@ -1,15 +1,15 @@
 import type { NextConfig } from "next";
 
-const isTauri = process.env.IS_TAURI_BUILD === 'true';
+const isStaticBuild = process.env.IS_TAURI_BUILD === 'true' || process.env.IS_CAPACITOR_BUILD === 'true';
 
 const nextConfig: NextConfig = {
-  ...(isTauri ? { output: 'export' } : {}),
+  ...(isStaticBuild ? { output: 'export' } : {}),
   images: {
     unoptimized: true,
   },
   async rewrites() {
-    // Disable rewrites during static Tauri exports
-    if (isTauri) return [];
+    // Disable rewrites during static exports
+    if (isStaticBuild) return [];
     return [
       {
         source: '/api-proxy/ip2location',
@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
-    if (isTauri) return [];
+    if (isStaticBuild) return [];
     return [
       {
         source: '/(.*)',

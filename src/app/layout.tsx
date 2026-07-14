@@ -7,13 +7,13 @@ import { Analytics } from "@vercel/analytics/next";
 import { NetworkProvider } from "@/providers/NetworkProvider";
 
 export const metadata: Metadata = {
-  title: "QC App",
+  title: "QC Manager",
   description: "Secure leave tracking system for office staff",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "QC App",
+    title: "QC Manager",
   },
 };
 
@@ -62,9 +62,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-theme-page-bg text-theme-text-primary">
         <PWARegister />
         <AppUpdater />
-        <NetworkProvider>
-          {children}
-        </NetworkProvider>
+        <NetworkProvider>{children}</NetworkProvider>
         <SpeedInsights />
         <Analytics />
       </body>

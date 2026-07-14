@@ -23,7 +23,7 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            
+
             // Set up default application menu for macOS so copy, paste, and reload shortcuts work
             #[cfg(target_os = "macos")]
             {
@@ -31,7 +31,7 @@ pub fn run() {
                 let _ = app.set_menu(app_menu);
             }
             // Set up system tray menu
-            let open_item = MenuItem::with_id(app, "open", "Open QC App", true, None::<&str>)?;
+            let open_item = MenuItem::with_id(app, "open", "Open QC Manager", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Exit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open_item, &quit_item])?;
 
@@ -56,21 +56,21 @@ pub fn run() {
                                 window.hide().unwrap();
                                 #[cfg(target_os = "macos")]
                                 let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-                                
-                                // Update menu text to "Open QC App"
+
+                                // Update menu text to "Open QC Manager"
                                 let state: State<TrayMenuState> = app.state();
-                                let _ = state.open_item.set_text("Open QC App");
+                                let _ = state.open_item.set_text("Open QC Manager");
                             } else {
                                 // Show the window
                                 #[cfg(target_os = "macos")]
                                 let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
-                                
+
                                 window.show().unwrap();
                                 window.set_focus().unwrap();
-                                
-                                // Update menu text to "Close QC App"
+
+                                // Update menu text to "Close QC Manager"
                                 let state: State<TrayMenuState> = app.state();
-                                let _ = state.open_item.set_text("Close QC App");
+                                let _ = state.open_item.set_text("Close QC Manager");
                             }
                         }
                     }
@@ -87,16 +87,16 @@ pub fn run() {
                             if let Some(window) = app.get_webview_window("main") {
                                 window.show().unwrap();
                                 window.set_focus().unwrap();
-                                
-                                // Update menu text to "Close QC App"
+
+                                // Update menu text to "Close QC Manager"
                                 let state: State<TrayMenuState> = app.state();
-                                let _ = state.open_item.set_text("Close QC App");
+                                let _ = state.open_item.set_text("Close QC Manager");
                             }
                         }
                     }
                 })
                 .build(app)?;
-                
+
             Ok(())
         })
         .on_window_event(|window, event| match event {
@@ -105,14 +105,14 @@ pub fn run() {
                 api.prevent_close();
                 // Hide it to the system tray
                 window.hide().unwrap();
-                
+
                 // Hide dock icon on macOS
                 #[cfg(target_os = "macos")]
                 let _ = window.app_handle().set_activation_policy(tauri::ActivationPolicy::Accessory);
-                
-                // Update menu text to "Open QC App"
+
+                // Update menu text to "Open QC Manager"
                 let state: State<TrayMenuState> = window.state();
-                let _ = state.open_item.set_text("Open QC App");
+                let _ = state.open_item.set_text("Open QC Manager");
             }
             _ => {}
         })
@@ -126,10 +126,10 @@ pub fn run() {
                 let _ = _app_handle.set_activation_policy(tauri::ActivationPolicy::Regular);
                 window.show().unwrap();
                 let _ = window.set_focus();
-                
-                // Update menu text to "Close QC App"
+
+                // Update menu text to "Close QC Manager"
                 let state: State<TrayMenuState> = _app_handle.state();
-                let _ = state.open_item.set_text("Close QC App");
+                let _ = state.open_item.set_text("Close QC Manager");
             }
         }
         _ => {}

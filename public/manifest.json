@@ -1,6 +1,6 @@
 {
-  "name": "QC App",
-  "short_name": "QC App",
+  "name": "QC Manager",
+  "short_name": "QC Manager",
   "description": "Secure attendance and leave tracking system for office staff",
   "start_url": "/",
   "display": "standalone",

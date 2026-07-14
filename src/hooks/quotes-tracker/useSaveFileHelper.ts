@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { RecordItem, SavedDocument } from '@/types';
 import { isTauriApp } from '@/utils/apiUrlHelper';
 import { asBlob } from 'html-docx-ts';
+import { Capacitor } from '@capacitor/core';
 
 interface UseSaveFileHelperOptions {
   showToast: (type: 'success' | 'error', text: string) => void;
@@ -113,6 +114,11 @@ export const useSaveFileHelper = ({ showToast }: UseSaveFileHelperOptions) => {
   // ── Handlers ───────────────────────────────────────────────────────
   const handleChooseDirectory = async () => {
     try {
+      if (Capacitor.isNativePlatform()) {
+        showToast("success", "Using system share sheet for files saving");
+        return "Capacitor_Cache";
+      }
+
       const isTauri = isTauriApp();
       const todayDate = new Date().toDateString();
 
@@ -213,7 +219,38 @@ export const useSaveFileHelper = ({ showToast }: UseSaveFileHelperOptions) => {
       const docxBlob = (await asBlob(wrappedHtml)) as Blob;
       let savedPath = "";
 
-      if (isTauri) {
+      if (Capacitor.isNativePlatform()) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+
+        // Convert Blob to Base64
+        const reader = new FileReader();
+        const base64Data = await new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const base64String = reader.result as string;
+            const base64Clean = base64String.split(',')[1];
+            resolve(base64Clean);
+          };
+          reader.readAsDataURL(docxBlob);
+        });
+
+        // Write to native cache directory
+        const writeResult = await Filesystem.writeFile({
+          path: generatedFileName,
+          data: base64Data,
+          directory: Directory.Cache,
+        });
+
+        savedPath = writeResult.uri;
+
+        // Open native sharing sheet so user can copy/save/send
+        await Share.share({
+          title: 'Save Word Document',
+          text: `Save or share ${generatedFileName}`,
+          url: writeResult.uri,
+          dialogTitle: 'Save Word Document',
+        });
+      } else if (isTauri) {
         const arrayBuffer = await docxBlob.arrayBuffer();
         const bytes = new Uint8Array(arrayBuffer);
         const { join } = await import('@tauri-apps/api/path');
@@ -306,7 +343,36 @@ export const useSaveFileHelper = ({ showToast }: UseSaveFileHelperOptions) => {
       const wrappedHtml = wrapHtmlForDocx(editorHtml);
       const docxBlob = (await asBlob(wrappedHtml)) as Blob;
 
-      if (isTauri) {
+      if (Capacitor.isNativePlatform()) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+
+        const reader = new FileReader();
+        const base64Data = await new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const base64String = reader.result as string;
+            const base64Clean = base64String.split(',')[1];
+            resolve(base64Clean);
+          };
+          reader.readAsDataURL(docxBlob);
+        });
+
+        const filename = savedFilePath.split("/").pop() || "document.docx";
+
+        const writeResult = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: Directory.Cache,
+        });
+
+        await Share.share({
+          title: 'Update Word Document',
+          text: `Update or share ${filename}`,
+          url: writeResult.uri,
+          dialogTitle: 'Update Word Document',
+        });
+        showToast("success", `File updated successfully!`);
+      } else if (isTauri) {
         const arrayBuffer = await docxBlob.arrayBuffer();
         const bytes = new Uint8Array(arrayBuffer);
         const { writeFile } = await import('@tauri-apps/plugin-fs');

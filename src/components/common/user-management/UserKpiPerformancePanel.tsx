@@ -20,6 +20,8 @@ import {
   Target
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
+import { isTauriApp } from '@/utils/apiUrlHelper';
 import { Modal } from '@/components/common/Modal';
 import { KpiSkeleton } from '@/components/common/skeleton/KpiSkeleton';
 
@@ -914,7 +916,7 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
   };
 
   // Excel export trigger
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const headers = [
       "Serial No",
       "Key Result Area",
@@ -1084,14 +1086,71 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
     `;
 
     const blob = new Blob([htmlContent], { type: "application/vnd.ms-excel;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `KPI_Assessment_${targetStaff.username || 'user'}_${monthYearKey}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("KPI sheet exported to Excel format!");
+    const fileName = `KPI_Assessment_${targetStaff.username || 'user'}_${monthYearKey}.xls`;
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+
+        const reader = new FileReader();
+        const base64Data = await new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const base64String = reader.result as string;
+            const base64Clean = base64String.split(',')[1];
+            resolve(base64Clean);
+          };
+          reader.readAsDataURL(blob);
+        });
+
+        const writeResult = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache,
+        });
+
+        await Share.share({
+          title: 'Save Excel Document',
+          text: `Save or share ${fileName}`,
+          url: writeResult.uri,
+          dialogTitle: 'Save Excel Document',
+        });
+        toast.success("KPI sheet exported successfully!");
+      } catch (err) {
+        console.error("Failed to share Excel on mobile:", err);
+        toast.error("Failed to export Excel document.");
+      }
+    } else if (isTauriApp()) {
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        
+        const { save } = await import('@tauri-apps/plugin-dialog');
+        const { writeFile } = await import('@tauri-apps/plugin-fs');
+
+        const selectedPath = await save({
+          defaultPath: fileName,
+          filters: [{ name: "Excel Spreadsheet", extensions: ["xls"] }]
+        });
+
+        if (selectedPath) {
+          await writeFile(selectedPath, bytes);
+          toast.success("KPI sheet saved successfully!");
+        }
+      } catch (err) {
+        console.error("Failed to save Excel in Tauri:", err);
+        toast.error("Failed to save file.");
+      }
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("KPI sheet exported to Excel format!");
+    }
   };
 
   // Weightage adjustment triggers

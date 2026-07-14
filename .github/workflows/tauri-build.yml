@@ -115,9 +115,9 @@ jobs:
           NEXT_PUBLIC_SCAMALYTICS_KEY: ${{ secrets.NEXT_PUBLIC_SCAMALYTICS_KEY }}
         with:
           tagName: v__VERSION__
-          releaseName: "QC App v__VERSION__"
+          releaseName: "QC Manager v__VERSION__"
           releaseBody: |
-            ### QC App v__VERSION__ 🚀
+            ### QC Manager v__VERSION__ 🚀
 
             **v__VERSION__** delivers the latest 4.6.0 release for deployment, focusing on the custom Government Holiday confirmation modal and fixing startup race conditions.
 
