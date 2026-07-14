@@ -61,7 +61,7 @@ async function main() {
       body: JSON.stringify({
         tag_name: tag,
         name: `QC Manager v${version}`,
-        body: `### QC Manager v${version} (Major Release)\n\nWelcome to the new major release of **QC Manager**!\n\n- **macOS Apple Silicon & Intel Native Builds:** Optimized builds for maximum performance.\n- **macOS Universal Fallback:** Universal package to guarantee chipset compatibility.\n- **Android APK Installer:** Synced native wrappers.\n- **Decommissioned iOS support:** The iOS build pipeline has been completely removed.\n- **Web & Desktop Optimization:** Cleaned up downloads promo on native app wrappers.`,
+        body: `### QC Manager v${version} (Patch Release)\n\nWelcome to the patch release of **QC Manager**!\n\nThis release includes the following fixes and enhancements:\n\n- **Smart Download File Names Alignment:** Decoupled config metadata and aligned all fallback URLs with Tauri release filenames (\`QC.Manager_\${version}_*\`) to eliminate 404 download errors.\n- **macOS Apple Silicon M4 Detection:** Refined device detector to correctly map Chromium 'arm' architecture reports to 'Apple Silicon' recommendation targets.\n- **Universal Android APK Naming:** Renamed native Android APK to follow standard naming formatting (\`QC.Manager_\${version}.apk\`).`,
         draft: false,
         prerelease: false
       })

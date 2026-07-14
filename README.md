@@ -1,6 +1,6 @@
 # 🌟 QC Manager — Unified Office Leave Tracker & Quotes Manager
 
-**Version 5.0.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 5.0.1** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -116,7 +116,13 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v5.0.0 — Major Release (Current)
+### 🚀 v5.0.1 — Patch Release (Current)
+
+- **Smart Download File Names Alignment:** Decoupled config metadata and aligned all fallback URLs with Tauri release filenames (`QC.Manager_${VERSION}_*`) to eliminate 404 download errors.
+- **macOS Apple Silicon M4 Detection:** Refined device detector to correctly map Chromium 'arm' architecture reports to 'Apple Silicon' recommendation targets.
+- **Universal Android APK Naming:** Renamed native Android APK to follow standard naming formatting (`QC.Manager_${VERSION}.apk`).
+
+### 🚀 v5.0.0 — Major Release
 
 - **macOS Triple Target Build System:** Implemented a new parallel compilation matrix in GHA generating three separate macOS desktop installers (macOS Apple Silicon, macOS Intel, and macOS Universal).
 - **Intelligent Download Routing:** Configured client-side device GPU and browser detection to recommend the specific CPU build, falling back safely to the macOS Universal binary only when architecture cannot be confidently determined.
