@@ -809,7 +809,6 @@ function AppPortalInner({
       {/* Shared Unified Navbar */}
       <Navbar
         profile={profile}
-        isOnline={isOnline}
         theme={theme}
         onThemeToggle={handleThemeToggle}
         onLogout={handleLogout}

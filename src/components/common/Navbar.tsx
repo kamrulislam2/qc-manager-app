@@ -2,8 +2,6 @@ import React from 'react';
 import {
   LogOut,
   User,
-  Wifi,
-  WifiOff,
   Sun,
   Moon,
   Download,
@@ -23,7 +21,6 @@ import { BadgeInfo } from '@/utils/leaderboardHelper';
 
 interface NavbarProps {
   profile: Profile | null;
-  isOnline: boolean;
   theme: 'dark' | 'light';
   onThemeToggle: () => void;
   onLogout: () => void;
@@ -36,7 +33,6 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   profile,
-  isOnline,
   theme,
   onThemeToggle,
   onLogout,
@@ -46,20 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   offlineCount = 0,
   onManualSync,
 }) => {
-  const [isRealtimeConnected, setIsRealtimeConnected] = React.useState(true);
 
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handler = (e: Event) => {
-        const detail = (e as CustomEvent).detail;
-        setIsRealtimeConnected(detail === 'connected');
-      };
-      window.addEventListener('realtime-connection-status', handler);
-      return () => {
-        window.removeEventListener('realtime-connection-status', handler);
-      };
-    }
-  }, []);
   const formatWorkingHours = (hours: number | string) => {
     const h = parseFloat(String(hours));
     if (isNaN(h)) return '9 hours 30 mins';
@@ -138,28 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Online/Offline Badge */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium ${
-            !isOnline
-              ? 'bg-purple-950/50 border-purple-800/80 text-purple-400'
-              : !isRealtimeConnected
-                ? 'bg-amber-950/50 border-amber-800/80 text-amber-400 animate-pulse'
-                : 'bg-emerald-950/50 border-emerald-800/80 text-emerald-400'
-          }`}>
-            {!isOnline ? (
-              <>
-                <WifiOff className="h-4 w-4" /> Offline
-              </>
-            ) : !isRealtimeConnected ? (
-              <>
-                <Wifi className="h-4 w-4 text-amber-400" /> Connecting Live...
-              </>
-            ) : (
-              <>
-                <Wifi className="h-4 w-4" /> Online
-              </>
-            )}
-          </div>
+
 
           {/* Offline Sync Area */}
           {offlineCount > 0 && onManualSync && (
