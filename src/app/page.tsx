@@ -16,7 +16,7 @@ import { MandatoryGovtHolidayModal } from "@/components/common/modals/MandatoryG
 import { SkeletonLoader } from "@/components/common/SkeletonLoader";
 import { SkeletonLoader as QuotesSkeletonLoader } from "@/components/quotes-tracker/QuotesSkeletonLoader";
 import { checkInactivity, registerAndCheckSession } from "@/utils/sessionHelper";
-import { RealtimeProvider } from "@/contexts/RealtimeContext";
+import { RealtimeProvider, useRealtimeHandler } from "@/contexts/RealtimeContext";
 
 import { UserKpiPerformancePanel } from "@/components/common/user-management/UserKpiPerformancePanel";
 import ChutiDashboard from "@/app/chuti/page";
@@ -75,6 +75,308 @@ export default function AppPortal() {
   const [profile, setProfile] = useState<Profile | null>(() => _cachedInitialState?.profile ?? null);
   const [loading, setLoading] = useState(() => !_cachedInitialState?.sessionUser || !_cachedInitialState?.profile);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const fetchingRef = useRef<string | null>(null);
+  const sessionUserRef = useRef<any>(null);
+
+  useEffect(() => {
+    sessionUserRef.current = sessionUser;
+  }, [sessionUser]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const addLog = (msg: string) => {
+    console.log(`[AppPortal] ${msg}`);
+  };
+
+  const loadUserProfile = useCallback(async (userId: string) => {
+    if (fetchingRef.current === userId) {
+      addLog(`loadUserProfile duplicate call skipped for ${userId}`);
+      return;
+    }
+
+    addLog(`loadUserProfile started for ${userId}`);
+
+    // Try loading from localStorage cache first (Stale-While-Revalidate pattern)
+    const cacheKey = `cached_profile_${userId}`;
+    let cachedProfile: Profile | null = null;
+    try {
+      const cachedStr = localStorage.getItem(cacheKey);
+      if (cachedStr) {
+        cachedProfile = JSON.parse(cachedStr);
+        addLog(`Restoring profile from localStorage cache...`);
+      }
+    } catch (e) {
+      addLog(`Failed to parse cached profile: ${e}`);
+    }
+
+    // Apply cache immediately if found to hide loading spinner instantly
+    if (cachedProfile) {
+      setProfile(cachedProfile);
+      addLog(`[SWR] Restored cache. Hiding spinner.`);
+      setErrorMsg(null);
+      setLoading(false);
+    }
+
+    // Fetch fresh profile in the background
+    fetchingRef.current = userId;
+    try {
+      const fetchPromise = supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Database query timed out")), 5000),
+      );
+
+      addLog("Background query to profiles table started...");
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+
+      const { data: profileData, error: profileError } = result as {
+        data: any;
+        error: any;
+      };
+      addLog(`Background query completed (hasProfileData: ${!!profileData})`);
+
+      if (profileError) {
+        addLog(`Query error: ${profileError.message}`);
+        const errMsg = profileError.message || '';
+        if (errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('jwt') || profileError.status === 401) {
+          addLog("Auth token invalid or expired. Performing force logout...");
+          localStorage.removeItem(cacheKey);
+          await supabase.auth.signOut();
+          return;
+        }
+        if (!cachedProfile) {
+          setErrorMsg(
+            "Profile settings not found. Please contact administrator.",
+          );
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (!profileData) {
+        addLog("No profile record returned");
+        if (!cachedProfile) {
+          setErrorMsg(
+            "Profile settings not found. Please contact administrator.",
+          );
+          setLoading(false);
+        }
+        return;
+      }
+
+      const userProfile = mapProfilePasswordResetStatus(profileData) as Profile;
+
+      const isLoggedOut = await checkInactivity(userId);
+      if (isLoggedOut) return;
+
+      const isValidSession = await registerAndCheckSession(userId, userProfile, setProfile);
+      if (!isValidSession) return;
+
+      // Update cache
+      localStorage.setItem(cacheKey, JSON.stringify(userProfile));
+
+      // Update state
+      setProfile(userProfile);
+
+      const hasChuti = !!userProfile.has_chuti_access;
+      const hasQuotes = !!userProfile.has_quotes_access;
+
+      if (!hasChuti && !hasQuotes) {
+        setErrorMsg(
+          "You do not have access to any workspace. Please contact your manager.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      setErrorMsg(null);
+      setLoading(false);
+    } catch (err: any) {
+      addLog(`Background fetch error: ${err?.message || err}`);
+      if (!cachedProfile) {
+        setErrorMsg("Error loading profile settings.");
+        setLoading(false);
+      }
+    } finally {
+      if (fetchingRef.current === userId) {
+        fetchingRef.current = null;
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    addLog("AppPortal: Mounted");
+    let active = true;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      addLog(`onAuthStateChange event: ${event} (hasSession: ${!!session})`);
+      if (!active) return;
+
+      if (event === 'USER_UPDATED') {
+        addLog('onAuthStateChange: USER_UPDATED skipped (password change, no reload needed)');
+        if (session) {
+          setSessionUser(session.user);
+          sessionUserRef.current = session.user;
+        }
+        return;
+      }
+
+      if (event === 'TOKEN_REFRESHED') {
+        addLog('onAuthStateChange: TOKEN_REFRESHED event received. Updating token only.');
+        if (session) {
+          setSessionUser(session.user);
+          sessionUserRef.current = session.user;
+        }
+        return;
+      }
+
+      if (session) {
+        const currentUserId = sessionUserRef.current?.id;
+        if (currentUserId === session.user.id) {
+          addLog("onAuthStateChange: Same user session already active. Skipping profile fetch.");
+          setSessionUser(session.user);
+          sessionUserRef.current = session.user;
+          return;
+        }
+
+        setSessionUser(session.user);
+        sessionUserRef.current = session.user;
+        await loadUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        addLog("onAuthStateChange SIGNED_OUT, clearing profile and setting loading to false");
+        setSessionUser(null);
+        sessionUserRef.current = null;
+        setProfile(null);
+        setLoading(false);
+      } else {
+        addLog(`onAuthStateChange transient event ${event} without session, skipping unmount`);
+        if (loading) {
+          setLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [loadUserProfile]);
+
+  const handleLogout = async () => {
+    setLoading(true);
+    await supabase.auth.signOut();
+  };
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-theme-page-bg" />;
+  }
+
+  if (loading && !sessionUser) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-radial from-theme-card-bg via-theme-card-container to-black text-theme-text-primary p-4">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-pulse delay-700" />
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <div className="relative flex items-center justify-center">
+            <div className="h-20 w-20 border-2 border-purple-500/20 rounded-full absolute" />
+            <Loader2 className="h-12 w-12 text-purple-400 animate-spin" />
+          </div>
+          <h1 className="text-2xl font-bold bg-linear-to-r from-purple-400 via-blue-400 to-purple-300 bg-clip-text text-transparent">
+            QC Manager
+          </h1>
+          <p className="text-sm text-theme-text-muted tracking-wide animate-pulse">
+            Configuring your workspaces...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-radial from-theme-card-bg via-theme-card-container to-black text-theme-text-primary p-4">
+        <div className="w-full max-w-md relative z-10">
+          <div className="bg-theme-card-bg/60 backdrop-blur-xl border border-theme-border-input/80 rounded-3xl p-8 shadow-2xl text-center flex flex-col items-center">
+            <div className="space-y-4">
+              <div className="h-16 w-16 bg-red-950/40 border border-red-500/20 text-red-400 rounded-2xl flex items-center justify-center text-2xl mx-auto shadow-inner animate-bounce">
+                ⚠️
+              </div>
+              <h2 className="text-xl font-semibold text-theme-text-primary">
+                Access Restricted
+              </h2>
+              <p className="text-sm text-theme-text-muted leading-relaxed px-2">
+                {errorMsg}
+              </p>
+              <button
+                onClick={handleLogout}
+                className="mt-6 px-6 py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-medium rounded-xl transition-all shadow-lg shadow-red-600/20 cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!sessionUser) {
+    return <LoginPage />;
+  }
+
+  if (!profile) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-radial from-theme-card-bg via-theme-card-container to-black text-theme-text-primary p-4">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-pulse delay-700" />
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <div className="relative flex items-center justify-center">
+            <div className="h-20 w-20 border-2 border-purple-500/20 rounded-full absolute" />
+            <Loader2 className="h-12 w-12 text-purple-400 animate-spin" />
+          </div>
+          <h1 className="text-2xl font-bold bg-linear-to-r from-purple-400 via-blue-400 to-purple-300 bg-clip-text text-transparent">
+            QC Manager
+          </h1>
+          <p className="text-sm text-theme-text-muted tracking-wide animate-pulse">
+            Configuring your workspaces...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <RealtimeProvider sessionUser={sessionUser} profile={profile}>
+      <AppPortalInner
+        sessionUser={sessionUser}
+        profile={profile}
+        setProfile={setProfile}
+        handleLogout={handleLogout}
+      />
+    </RealtimeProvider>
+  );
+}
+
+
+function AppPortalInner({
+  sessionUser,
+  profile,
+  setProfile,
+  handleLogout,
+}: {
+  sessionUser: any;
+  profile: Profile;
+  setProfile: React.Dispatch<React.SetStateAction<Profile | null>>;
+  handleLogout: () => Promise<void>;
+}) {
   const [activeTab, setActiveTab] = useState<
     | "chuti"
     | "quotes"
@@ -85,26 +387,30 @@ export default function AppPortal() {
     | "kpi"
     | "profile_settings"
     | null
-  >(() => (_cachedInitialState?.initialTab as any) ?? "chuti");
-  const fetchingRef = useRef<string | null>(null);
-  const sessionUserRef = useRef<any>(null);
-  useEffect(() => {
-    sessionUserRef.current = sessionUser;
-  }, [sessionUser]);
-  // Always-current ref for activeTab — used inside async callbacks to avoid stale closures
-  const activeTabRef = useRef<string>(activeTab);
+  >(() => {
+    if (typeof window !== "undefined") {
+      const cached = _cachedInitialState?.initialTab;
+      if (cached) return cached as any;
+    }
+    return "chuti";
+  });
+
+  const activeTabRef = useRef<string>(activeTab || "chuti");
   const [previousTab, setPreviousTab] = useState<string>("chuti");
   const prevTabRef = useRef<string>("chuti");
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    activeTabRef.current = activeTab || "chuti";
+  }, [activeTab]);
 
   const [activeQuotesTab, setActiveQuotesTab] = useState<
     "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "causality" | "copy_helper" | "save_file"
   >(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("quotes_sales_active_tab");
+      if (saved === "asitis_causality" || saved === "eui_causality" || saved === "causality") {
+        return "causality";
+      }
       if (
         saved === "entry" ||
         saved === "monthly" ||
@@ -113,25 +419,10 @@ export default function AppPortal() {
         saved === "rules" ||
         saved === "ip_checker" ||
         saved === "login_codes" ||
-        saved === "asitis_causality" ||
-        saved === "eui_causality" ||
-        saved === "causality" ||
         saved === "copy_helper" ||
         saved === "save_file"
       ) {
-        // Migrate legacy tab names to unified causality
-        const migratedTab = (saved === "asitis_causality" || saved === "eui_causality") ? "causality" : saved;
-        return migratedTab as
-          | "entry"
-          | "monthly"
-          | "analytics"
-          | "audit_logs"
-          | "rules"
-          | "ip_checker"
-          | "login_codes"
-          | "causality"
-          | "copy_helper"
-          | "save_file";
+        return saved;
       }
     }
     return "entry";
@@ -150,7 +441,7 @@ export default function AppPortal() {
         saved === "leave_settings" ||
         saved === "team_leaves"
       ) {
-        return saved as "add_leave" | "leave_history" | "govt_responses" | "settlement" | "leave_settings" | "team_leaves";
+        return saved as any;
       }
     }
     return "add_leave";
@@ -177,11 +468,6 @@ export default function AppPortal() {
     sessionStorage.setItem("adminActiveTab", tab);
   };
 
-  const handleLogout = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-  };
-
   const [isOnline, setIsOnline] = useState(true);
   const [isUserManagementFullView, setIsUserManagementFullView] = useState(false);
   const [profilesList, setProfilesList] = useState<Profile[]>([]);
@@ -194,7 +480,6 @@ export default function AppPortal() {
       window.addEventListener("online", onlineHandler);
       window.addEventListener("offline", offlineHandler);
 
-      // Handle Cmd+R, Ctrl+R, F5 reload in Tauri and browser
       const handleReloadShortcut = (e: KeyboardEvent) => {
         if (
           (e.key === "r" && (e.metaKey || e.ctrlKey)) ||
@@ -235,7 +520,6 @@ export default function AppPortal() {
       fetchProfiles();
     }, 3000);
 
-    // Call the database function to calculate and sync badges once on mount/login
     const triggerBadgeSync = async () => {
       try {
         const { error } = await supabase.rpc("sync_top_performer_badges");
@@ -243,7 +527,6 @@ export default function AppPortal() {
           console.error("Failed to sync top performer badges from DB:", error.message);
           fetchProfiles();
         } else {
-          // Re-fetch profiles after sync to get the latest updated badge settings
           fetchProfiles();
         }
       } catch (err) {
@@ -263,7 +546,6 @@ export default function AppPortal() {
 
   const [topPerformerBadges, setTopPerformerBadges] = useState<Record<string, any>>({});
 
-  // Synchronize display badges directly from profilesList (database values) for all roles
   useEffect(() => {
     const loadedBadges: Record<string, any> = {};
     profilesList.forEach((p) => {
@@ -276,13 +558,12 @@ export default function AppPortal() {
 
   const [chutiOfflineCount, setChutiOfflineCount] = useState(0);
 
-  // R2: Shared data from the always-mounted ChutiDashboard, passed to
-  // useGlobalNotifications so it skips its own duplicate fetches.
   const [sharedChutiData, setSharedChutiData] = useState<{ userRecords: any[]; holidayResponses: any[]; initialFetchDone: boolean }>({
     userRecords: [],
     holidayResponses: [],
     initialFetchDone: false
   });
+
   const handleChutiDataReady = useCallback((data: { userRecords: any[]; holidayResponses: any[]; initialFetchDone?: boolean }) => {
     setSharedChutiData({
       userRecords: data.userRecords,
@@ -309,8 +590,6 @@ export default function AppPortal() {
     sharedChutiData.holidayResponses,
     sharedChutiData.initialFetchDone
   );
-
-
 
   useEffect(() => {
     const handleOfflineCountChange = (e: Event) => {
@@ -363,16 +642,13 @@ export default function AppPortal() {
     };
   }, [activeTab, activeChutiTab]);
 
-  // Keep activeTabRef in sync so async callbacks don't use stale closures
   useEffect(() => {
-    activeTabRef.current = activeTab ?? '';
-    if (activeTab !== "kpi" && activeTab !== null) {
-      prevTabRef.current = activeTab;
+    if (activeTab && activeTab !== "kpi" && activeTab !== "profile_settings") {
       setPreviousTab(activeTab);
+      prevTabRef.current = activeTab;
     }
   }, [activeTab]);
 
-  // Backspace key event listener when in KPI tab to go back
   useEffect(() => {
     if (activeTab !== "kpi") return;
 
@@ -438,264 +714,16 @@ export default function AppPortal() {
     });
   };
 
-  const addLog = (msg: string) => {
-    console.log(`[AppPortal] ${msg}`);
-  };
-
-  const loadUserProfile = useCallback(async (userId: string) => {
-    if (fetchingRef.current === userId) {
-      addLog(`loadUserProfile duplicate call skipped for ${userId}`);
-      return;
-    }
-
-    addLog(`loadUserProfile started for ${userId}`);
-
-    // Try loading from localStorage cache first (Stale-While-Revalidate pattern)
-    const cacheKey = `cached_profile_${userId}`;
-    let cachedProfile: Profile | null = null;
-    try {
-      const cachedStr = localStorage.getItem(cacheKey);
-      if (cachedStr) {
-        cachedProfile = JSON.parse(cachedStr);
-        addLog(`Restoring profile from localStorage cache...`);
-      }
-    } catch (e) {
-      addLog(`Failed to parse cached profile: ${e}`);
-    }
-
-    // Apply cache immediately if found to hide loading spinner instantly
-    if (cachedProfile) {
-      setProfile(cachedProfile);
-      const hasChuti = !!cachedProfile.has_chuti_access;
-      const hasQuotes = !!cachedProfile.has_quotes_access;
-
-      const showTodo =
-        cachedProfile.username?.toUpperCase() === "KAMRUL" ||
-        cachedProfile.full_name === "Kamrul Islam";
-       let lastActive = localStorage.getItem("last_active_dashboard") as
-        | "chuti"
-        | "quotes"
-        | "user_management"
-        | "todo"
-        | "kpi"
-        | "audit_logs"
-        | null;
-      if (lastActive === "chuti" && !hasChuti) lastActive = null;
-      if (lastActive === "quotes" && !hasQuotes) lastActive = null;
-      if (
-        lastActive === "user_management" &&
-        !(cachedProfile.role === "admin" || cachedProfile.role === "supervisor")
-      )
-        lastActive = null;
-      if (lastActive === "audit_logs" && cachedProfile.role !== "admin") lastActive = null;
-      if (lastActive === "todo" && !showTodo) lastActive = null;
-
-      if (!lastActive) {
-        lastActive = hasChuti ? "chuti" : "quotes";
-        localStorage.setItem("last_active_dashboard", lastActive);
-      }
-
-      addLog(`[SWR] Restored cache, activeTab: ${lastActive}. Hiding spinner.`);
-      setActiveTab(lastActive);
-      setErrorMsg(null);
-      setLoading(false);
-    }
-
-    // Fetch fresh profile in the background
-    fetchingRef.current = userId;
-    try {
-      // 5-second timeout safeguard for the database query
-      const fetchPromise = supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Database query timed out")), 5000),
-      );
-
-      addLog("Background query to profiles table started...");
-      const result = await Promise.race([fetchPromise, timeoutPromise]);
-
-      // Promise.race might return the result of the fetchPromise directly
-      const { data: profileData, error: profileError } = result as {
-        data: any;
-        error: any;
-      };
-      addLog(`Background query completed (hasProfileData: ${!!profileData})`);
-
-      if (profileError) {
-        addLog(`Query error: ${profileError.message}`);
-        const errMsg = profileError.message || '';
-        if (errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('jwt') || profileError.status === 401) {
-          addLog("Auth token invalid or expired. Performing force logout...");
-          localStorage.removeItem(cacheKey);
-          await supabase.auth.signOut();
-          return;
-        }
-        if (!cachedProfile) {
-          setErrorMsg(
-            "Profile settings not found. Please contact administrator.",
-          );
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (!profileData) {
-        addLog("No profile record returned");
-        if (!cachedProfile) {
-          setErrorMsg(
-            "Profile settings not found. Please contact administrator.",
-          );
-          setLoading(false);
-        }
-        return;
-      }
-
-      const userProfile = mapProfilePasswordResetStatus(profileData) as Profile;
-
-      // Perform inactivity and concurrent session checks
-      const isLoggedOut = await checkInactivity(userId);
-      if (isLoggedOut) return;
-
-      const isValidSession = await registerAndCheckSession(userId, userProfile, setProfile);
-      if (!isValidSession) return;
-
-      // Update cache
-      localStorage.setItem(cacheKey, JSON.stringify(userProfile));
-
-      // Update state
-      setProfile(userProfile);
-
-      const hasChuti = !!userProfile.has_chuti_access;
-      const hasQuotes = !!userProfile.has_quotes_access;
-
-      if (!hasChuti && !hasQuotes) {
-        setErrorMsg(
-          "You do not have access to any workspace. Please contact your manager.",
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Choose active workspace tab
-      let lastActive = localStorage.getItem("last_active_dashboard") as any;
-      if (lastActive && !canAccessModule(userProfile, null, lastActive)) {
-        lastActive = null;
-      }
-      if (!lastActive) {
-        lastActive = canAccessModule(userProfile, null, "leave") ? "chuti" : "quotes";
-        localStorage.setItem("last_active_dashboard", lastActive);
-      }
-
-      setActiveTab(lastActive);
-      setErrorMsg(null);
-      setLoading(false);
-    } catch (err: any) {
-      addLog(`Background fetch error: ${err?.message || err}`);
-      if (!cachedProfile) {
-        setErrorMsg("Error loading profile settings.");
-        setLoading(false);
-      }
-    } finally {
-      if (fetchingRef.current === userId) {
-        fetchingRef.current = null;
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    addLog("AppPortal: Mounted");
-    let active = true;
-
-    // Listen for auth state changes to dynamically switch rendering between Login and App Dashboard
-    // onAuthStateChange fires automatically on subscribe with the current session (if any).
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      addLog(`onAuthStateChange event: ${event} (hasSession: ${!!session})`);
-      if (!active) return;
-
-      // Skip full reload on USER_UPDATED (e.g. password change via supabase.auth.updateUser).
-      // The session remains valid — no re-fetch needed, and re-fetching can falsely trigger
-      // the quotes RECOVERY system while the new auth token is being applied.
-      if (event === 'USER_UPDATED') {
-        addLog('onAuthStateChange: USER_UPDATED skipped (password change, no reload needed)');
-        if (session) {
-          setSessionUser(session.user);
-          sessionUserRef.current = session.user;
-        }
-        return;
-      }
-
-      if (event === 'TOKEN_REFRESHED') {
-        addLog('onAuthStateChange: TOKEN_REFRESHED event received. Updating token only.');
-        if (session) {
-          setSessionUser(session.user);
-          sessionUserRef.current = session.user;
-        }
-        return;
-      }
-
-      if (session) {
-        const currentUserId = sessionUserRef.current?.id;
-        if (currentUserId === session.user.id) {
-          addLog("onAuthStateChange: Same user session already active. Skipping profile fetch.");
-          setSessionUser(session.user);
-          sessionUserRef.current = session.user;
-          return;
-        }
-
-        setSessionUser(session.user);
-        sessionUserRef.current = session.user;
-        await loadUserProfile(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
-        addLog("onAuthStateChange SIGNED_OUT, clearing profile and setting loading to false");
-        setSessionUser(null);
-        sessionUserRef.current = null;
-        setProfile(null);
-        setActiveTab(null);
-        setLoading(false);
-      } else {
-        addLog(`onAuthStateChange transient event ${event} without session, skipping unmount`);
-        if (loading) {
-          setLoading(false);
-        }
-      }
-    });
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, [loadUserProfile]);
-
-
-
-  // Listen for custom workspace-change event dispatched by sidebar
   useEffect(() => {
     const handleWorkspaceChange = (e: Event) => {
-      const targetWorkspace = (e as CustomEvent).detail as
-        | "chuti"
-        | "quotes"
-        | "user_management"
-        | "todo"
-        | "kpi"
-        | "audit_logs"
-        | "analytics"
-        | "profile_settings";
-      addLog(`custom workspace-change event detected: ${targetWorkspace}`);
+      const targetWorkspace = (e as CustomEvent).detail as any;
 
-      // Clear flag when navigating to any workspace from the sidebar
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('viewingStaffFromUserManagement');
         sessionStorage.removeItem('viewingStaffId');
         window.dispatchEvent(new CustomEvent('trigger-viewing-staff', { detail: null }));
       }
 
-      // Safety check: ensure user has access before switching
       if (profile) {
         const checkModule = targetWorkspace === 'chuti' ? 'leave' : targetWorkspace;
         if (!canAccessModule(profile, null, checkModule)) return;
@@ -719,96 +747,29 @@ export default function AppPortal() {
     window.addEventListener("profile-updated", handleProfileUpdated);
     return () =>
       window.removeEventListener("profile-updated", handleProfileUpdated);
-  }, []);
+  }, [setProfile]);
 
-  if (!mounted) {
-    return <div className="min-h-screen bg-theme-page-bg" />;
-  }
+  // Register realtime handler inside AppPortalInner under RealtimeProvider
+  useRealtimeHandler(
+    'profiles',
+    useCallback(
+      (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          if (payload.new.id === sessionUser.id) {
+            const updatedProfile = mapProfilePasswordResetStatus(payload.new) as unknown as Profile;
+            setProfile(updatedProfile);
+            localStorage.setItem(`cached_profile_${sessionUser.id}`, JSON.stringify(updatedProfile));
+          }
+          setProfilesList((prev) =>
+            prev.map((p) => (p.id === payload.new.id ? (mapProfilePasswordResetStatus(payload.new) as unknown as Profile) : p))
+          );
+        }
+      },
+      [sessionUser.id, setProfile, setProfilesList]
+    )
+  );
 
-  if (loading && !sessionUser) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-radial from-theme-card-bg via-theme-card-container to-black text-theme-text-primary p-4">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-pulse delay-700" />
-        <div className="relative z-10 flex flex-col items-center gap-4">
-          <div className="relative flex items-center justify-center">
-            <div className="h-20 w-20 border-2 border-purple-500/20 rounded-full absolute" />
-            <Loader2 className="h-12 w-12 text-purple-400 animate-spin" />
-          </div>
-          <h1 className="text-2xl font-bold bg-linear-to-r from-purple-400 via-blue-400 to-purple-300 bg-clip-text text-transparent">
-            QC Manager
-          </h1>
-          <p className="text-sm text-theme-text-muted tracking-wide animate-pulse">
-            Configuring your workspaces...
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  if (errorMsg) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-radial from-theme-card-bg via-theme-card-container to-black text-theme-text-primary p-4">
-        <div className="w-full max-w-md relative z-10">
-          <div className="bg-theme-card-bg/60 backdrop-blur-xl border border-theme-border-input/80 rounded-3xl p-8 shadow-2xl text-center flex flex-col items-center">
-            <div className="space-y-4">
-              <div className="h-16 w-16 bg-red-950/40 border border-red-500/20 text-red-400 rounded-2xl flex items-center justify-center text-2xl mx-auto shadow-inner animate-bounce">
-                ⚠️
-              </div>
-              <h2 className="text-xl font-semibold text-theme-text-primary">
-                Access Restricted
-              </h2>
-              <p className="text-sm text-theme-text-muted leading-relaxed px-2">
-                {errorMsg}
-              </p>
-              <button
-                onClick={async () => {
-                  setErrorMsg(null);
-                  setLoading(true);
-                  await supabase.auth.signOut();
-                }}
-                className="mt-6 px-6 py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-medium rounded-xl transition-all shadow-lg shadow-red-600/20 cursor-pointer"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  // Unauthenticated -> Render Login Page
-  if (!sessionUser) {
-    console.log("[AppPortal] Rendering LoginPage");
-    return <LoginPage />;
-  }
-
-  // Session exists but Profile is loading -> Show splash screen
-  if (!profile) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-radial from-theme-card-bg via-theme-card-container to-black text-theme-text-primary p-4">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-pulse delay-700" />
-        <div className="relative z-10 flex flex-col items-center gap-4">
-          <div className="relative flex items-center justify-center">
-            <div className="h-20 w-20 border-2 border-purple-500/20 rounded-full absolute" />
-            <Loader2 className="h-12 w-12 text-purple-400 animate-spin" />
-          </div>
-          <h1 className="text-2xl font-bold bg-linear-to-r from-purple-400 via-blue-400 to-purple-300 bg-clip-text text-transparent">
-            QC Manager
-          </h1>
-          <p className="text-sm text-theme-text-muted tracking-wide animate-pulse">
-            Configuring your workspaces...
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  // Authenticated -> Render single layout shell wrapping active workspace component
   return (
-    <RealtimeProvider sessionUser={sessionUser} profile={profile}>
     <div className="flex-1 min-h-screen flex flex-col bg-theme-page-bg relative overflow-hidden pb-12 text-white selection:bg-purple-650 selection:text-white">
       <Toaster
         position="top-right"
@@ -1069,6 +1030,5 @@ export default function AppPortal() {
         />
       )}
     </div>
-    </RealtimeProvider>
   );
 }

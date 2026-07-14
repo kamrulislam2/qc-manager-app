@@ -84,12 +84,12 @@ export function useGlobalNotifications(
   const hasSharedUserRecords = !!sharedUserRecords && (sharedUserRecords.length > 0 || !!initialFetchDone);
   const hasSharedHolidayResponses = !!sharedHolidayResponses && (sharedHolidayResponses.length > 0 || !!initialFetchDone);
 
-  const fetchNotificationsData = useCallback(async () => {
+  const fetchNotificationsData = useCallback(async (force = false) => {
     if (!sessionUser || !profile || !isChutiLoaded) return;
 
     try {
       // 1. Fetch user's own chuti records — SKIP if shared data from ChutiDashboard is available
-      if (!hasSharedUserRecords) {
+      if (!hasSharedUserRecords || force) {
         const { data: chutiData, error: chutiError } = await supabase
           .from('chuti')
           .select('id, user_id, date, leave_type, leave_hour, status, comment, adjustment, reserve_holiday, reserve_adjustment_status, admin_edit_request, sign_in_time, sign_out_time, synced, created_at, updated_at')
@@ -103,7 +103,7 @@ export function useGlobalNotifications(
       }
 
       // 2. Fetch holiday responses — SKIP if shared data from ChutiDashboard is available
-      if (!hasSharedHolidayResponses) {
+      if (!hasSharedHolidayResponses || force) {
         if (profile?.role === 'admin' || profile?.role === 'supervisor') {
           const { data: holidayData, error: holidayError } = await supabase
             .from('govt_holiday_responses')
@@ -604,7 +604,7 @@ export function useGlobalNotifications(
         throw error;
       }
       toast.success(`Choice '${choice === 'paid' ? 'Get Paid' : 'Reserve'}' saved successfully.`);
-      await fetchNotificationsData();
+      await fetchNotificationsData(true);
       return true;
     } catch (err: unknown) {
       const pgErr = err as { message?: string; code?: string; details?: string; hint?: string; status?: number } | null;
