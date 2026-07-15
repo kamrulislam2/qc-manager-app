@@ -182,8 +182,27 @@ export const LeavesRecordsTable: React.FC<LeavesRecordsTableProps> = ({
 
   const handleRowContextMenu = (e: React.MouseEvent, record: ChutiRecord) => {
     e.preventDefault();
-    const x = e.clientX;
-    const y = e.clientY;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    const menuWidth = 144; // w-36 = 144px
+    const menuHeight = 135; // estimated height for 3 menu items with padding
+
+    let x = clientX;
+    let y = clientY;
+
+    if (typeof window !== "undefined") {
+      x = clientX + menuWidth > window.innerWidth
+        ? clientX - menuWidth
+        : clientX;
+      y = clientY + menuHeight > window.innerHeight
+        ? clientY - menuHeight
+        : clientY;
+    }
+
+    // Ensure menu doesn't go off the top/left of the page
+    x = Math.max(10, x);
+    y = Math.max(10, y);
 
     setContextMenu({
       x,

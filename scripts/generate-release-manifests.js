@@ -55,7 +55,7 @@ async function main() {
       body: JSON.stringify({
         tag_name: tag,
         name: `QC Manager v${version}`,
-        body: `### QC Manager v${version} (Patch Release)\n\nWelcome to the patch release of **QC Manager**!\n\nThis release includes the following fixes and enhancements:\n\n- **Native Interactions Integration:** Added swipe-to-refresh gesture listeners and a custom hardware back button app exit confirmation prompt on native mobile platforms.\n- **Visual Status Bar & Spacing Optimization:** Restructured layout headers and sidebar drawer padding with custom safe-area top offset classes, and replaced dark backgrounds with transparent status bar overlays.\n- **OTA Updates Progress Visibility:** Configured a visible progress indicator card for background mobile OTA updates at the bottom of the screen.`,
+        body: `### QC Manager v${version} (Patch Release)\n\nWelcome to the patch release of **QC Manager**!\n\nThis release includes the following fixes and enhancements:\n\n- **Context Menu Viewport Bounding:** Implemented dynamic window viewport collision detection for the leave tracker table's context menu, positioning it upwards/leftwards when long-pressed on trailing or bottom rows to prevent overflow cropping.`,
         draft: false,
         prerelease: false
       })
