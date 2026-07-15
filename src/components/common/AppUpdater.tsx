@@ -134,31 +134,27 @@ export default function AppUpdater() {
           if (queryError) throw queryError;
 
           if (data && data.version) {
-            const currentAppVersion = "4.6.0"; // Current local package.json version
-            if (data.version !== currentAppVersion) {
-              setNewVersion(data.version);
-              setUpdateAvailable(true);
-              setDownloading(true);
-              setDownloadProgress(30); // Initial download mock progress
-              setError(null);
+            const { VERSION } = await import("@/config/downloads");
+            const currentAppVersion = VERSION;
 
+            if (data.version !== currentAppVersion) {
+              console.log(`[AppUpdater] New mobile OTA version ${data.version} available (current: ${currentAppVersion}). Downloading silently...`);
               const { CapacitorUpdater } = await import("@capgo/capacitor-updater");
 
-              // Download the update zip bundle
+              // Download the update zip bundle silently in the background
               const update = await CapacitorUpdater.download({
                 url: data.zip_url,
                 version: data.version,
               });
 
-              downloadedUpdateRef.current = update;
-              setDownloadProgress(100);
-              setDownloading(false);
-              setReadyToRestart(true);
+              // Apply the update silently (it will load seamlessly on next app startup or reload)
+              console.log(`[AppUpdater] Applying mobile OTA update ${data.version} silently...`);
+              await CapacitorUpdater.set(update);
+              console.log(`[AppUpdater] Mobile OTA update ${data.version} applied successfully!`);
             }
           }
         } catch (err: any) {
           console.warn("[AppUpdater] Mobile check failed:", err);
-          setDownloading(false);
         } finally {
           isCheckingRef.current = false;
         }
