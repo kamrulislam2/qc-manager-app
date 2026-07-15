@@ -1,6 +1,6 @@
 # 🌟 QC Manager — Unified Office Leave Tracker & Quotes Manager
 
-**Version 5.0.10** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 5.0.11** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -116,7 +116,13 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v5.0.10 — Patch Release (Current)
+### 🚀 v5.0.11 — Patch Release (Current)
+
+- **Clean Recommended Installer Button Labels:** Standardized the download button text to clean, minimal OS and Distro names (e.g., "Download for macOS", "Download for Windows", "Download for Android", "Download for Ubuntu", "Download for Fedora"), removing cluttered hardware and architecture info (like Apple Silicon/Intel/64-bit) from the main button.
+- **Dynamic GitHub Asset Size Resolution:** Implemented real-time release size and download URL fetching from the GitHub Releases API (falling back to the latest public release if the current tag isn't yet published), guaranteeing that sizes are accurately populated.
+- **Broadened Apple Silicon Architecture Descriptions:** Explicitly documented support for Apple Silicon (M1/M2/M3/M4/M5 & newer) and future M-series chips on both the download button metadata and the "All Available Releases" list.
+
+### 🚀 v5.0.10 — Patch Release
 
 - **Removed Global Body Safe-Area Spacing:** Removed top, bottom, left, and right safe-area paddings from the global `body` style in `globals.css` to prevent double spacing / blank white gaps below the status bar on mobile platforms.
 

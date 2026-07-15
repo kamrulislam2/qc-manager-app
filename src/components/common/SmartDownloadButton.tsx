@@ -22,20 +22,32 @@ export default function SmartDownloadButton({ className = "" }: SmartDownloadBut
     return <Monitor className="w-4 h-4 shrink-0 text-blue-400 group-hover:scale-110 transition-transform" />;
   };
 
+
+
   const getButtonText = () => {
     if (loading) return "Detecting your device...";
     if (!recommendation) return "Download for Your Device";
 
     const osLabel = recommendation.platform;
-    const archLabel = recommendation.architecture.includes("Universal")
-      ? ""
-      : ` (${recommendation.architecture})`;
 
+    if (osLabel === "macOS") {
+      return "Download for macOS";
+    }
+    if (osLabel === "Windows") {
+      return "Download for Windows";
+    }
     if (osLabel === "Android") {
-      return "Download Android APK";
+      return "Download for Android";
+    }
+    if (osLabel === "Linux") {
+      const distro = deviceInfo?.linuxDistro;
+      if (distro && distro !== "Unknown") {
+        return `Download for ${distro}`;
+      }
+      return "Download for Linux";
     }
 
-    return `Download for ${osLabel}${archLabel}`;
+    return `Download for ${osLabel}`;
   };
 
   const handleMainClick = (e: React.MouseEvent) => {

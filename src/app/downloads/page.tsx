@@ -185,12 +185,12 @@ export default function DownloadsPage() {
               <div className="flex flex-col gap-3">
                 {renderBuildRow(
                   downloads.macos.appleSilicon,
-                  "Apple Silicon (M1/M2/M3/M4)",
+                  "Apple Silicon (M1/M2/M3/M4/M5 & newer)",
                 )}
                 {renderBuildRow(downloads.macos.intel, "Intel Processor Mac")}
                 {renderBuildRow(
                   downloads.macos.universal,
-                  "Universal Binary (Intel & Apple Silicon)",
+                  "Universal Binary (Intel & Apple Silicon M-Series)",
                 )}
               </div>
             </div>

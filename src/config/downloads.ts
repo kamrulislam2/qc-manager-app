@@ -51,7 +51,7 @@ export const DOWNLOADS = {
   macos: {
     universal: {
       platform: "macOS",
-      architecture: "Universal Binary (Intel & Apple Silicon)",
+      architecture: "Universal Binary (Intel & Apple Silicon M-Series)",
       version: VERSION,
       build: VERSION.replace(/\./g, "") + "0",
       url: getReleaseUrl(`QC.Manager_${VERSION}_universal.dmg`),
@@ -62,7 +62,7 @@ export const DOWNLOADS = {
     } as DownloadInfo,
     appleSilicon: {
       platform: "macOS",
-      architecture: "Apple Silicon (M1/M2/M3/M4)",
+      architecture: "Apple Silicon (M1/M2/M3/M4/M5 & newer)",
       version: VERSION,
       build: VERSION.replace(/\./g, "") + "0",
       url: getReleaseUrl(`QC.Manager_${VERSION}_aarch64.dmg`),

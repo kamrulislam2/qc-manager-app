@@ -55,7 +55,7 @@ async function main() {
       body: JSON.stringify({
         tag_name: tag,
         name: `QC Manager v${version}`,
-        body: `### QC Manager v${version} (Patch Release)\n\nWelcome to the patch release of **QC Manager**!\n\nThis release includes the following fixes and enhancements:\n\n- **Removed Global Body Safe-Area Spacing:** Removed top, bottom, left, and right safe-area paddings from the global \`body\` style in \`globals.css\` to prevent double spacing / blank white gaps below the status bar on mobile platforms.`,
+        body: `### QC Manager v${version} (Patch Release)\n\nWelcome to the patch release of **QC Manager**!\n\nThis release includes the following fixes and enhancements:\n\n- **Clean Recommended Installer Button Labels:** Standardized the download button text to clean, minimal OS and Distro names, removing cluttered hardware and architecture info (like Apple Silicon/Intel/64-bit) from the main button.\n- **Dynamic GitHub Asset Size Resolution:** Implemented real-time release size and download URL fetching from the GitHub Releases API (falling back to the latest public release if the current tag isn't yet published), guaranteeing that sizes are accurately populated.\n- **Broadened Apple Silicon Architecture Descriptions:** Explicitly documented support for Apple Silicon (M1/M2/M3/M4/M5 & newer) and future M-series chips on both the download button metadata and the "All Available Releases" list.`,
         draft: false,
         prerelease: false
       })
