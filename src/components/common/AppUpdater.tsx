@@ -117,6 +117,8 @@ export default function AppUpdater() {
     }
 
     if (isMobile) {
+      if (process.env.NODE_ENV === "development") return;
+
       const checkMobileUpdates = async () => {
         if (isCheckingRef.current) return;
         isCheckingRef.current = true;

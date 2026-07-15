@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { detectDevice, getAsyncArchitecture, DeviceInfo } from '@/utils/deviceDetection';
 import { DOWNLOADS, DownloadInfo, MANIFEST_URL } from '@/config/downloads';
 
+let hasLoggedFallbackWarning = false;
+
 export interface UseDeviceInfoResult {
   deviceInfo: DeviceInfo;
   recommendation: DownloadInfo | null;
@@ -31,14 +33,25 @@ export function useDeviceInfo(): UseDeviceInfoResult {
     setDeviceInfo(info);
     setLoading(false);
 
+    // If in development mode (localhost), use local downloads config only and skip remote manifest fetching
+    if (process.env.NODE_ENV === 'development') {
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
     // 2. Fetch latest release manifest asynchronously to override URLs, sizes, and hashes
     const fetchManifest = async () => {
       try {
-        const res = await fetch(MANIFEST_URL, { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to fetch manifest');
+        const res = await fetch(MANIFEST_URL, { 
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 
-        if (data && data.version && data.downloads) {
+        if (active && data && data.version && data.downloads) {
           const notesText = data.notes || data.body || "";
           const dateStr = data.releaseDate || data.pub_date 
             ? new Date(data.releaseDate || data.pub_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
@@ -120,8 +133,16 @@ export function useDeviceInfo(): UseDeviceInfoResult {
           };
           setDownloads(mergedDownloads);
         }
-      } catch (err) {
-        console.warn('[useDeviceInfo] Failed to fetch latest.json, using local fallback downloads config:', err);
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // Ignore aborted requests
+        
+        // Log fallback warning at most once in non-production environments
+        if (process.env.NODE_ENV !== 'production') {
+          if (!hasLoggedFallbackWarning) {
+            console.warn('[useDeviceInfo] Failed to fetch latest.json, using local fallback downloads config:', err.message || err);
+            hasLoggedFallbackWarning = true;
+          }
+        }
       }
     };
 
@@ -129,10 +150,15 @@ export function useDeviceInfo(): UseDeviceInfoResult {
 
     // 3. Query async high entropy values (for Windows/Chromium architecture refinements)
     getAsyncArchitecture(info).then((refinedArch) => {
-      if (refinedArch !== info.architecture) {
+      if (active && refinedArch !== info.architecture) {
         setDeviceInfo(prev => ({ ...prev, architecture: refinedArch }));
       }
     });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
 
   return {
