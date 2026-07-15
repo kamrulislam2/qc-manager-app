@@ -1,6 +1,6 @@
 # 🌟 QC Manager — Unified Office Leave Tracker & Quotes Manager
 
-**Version 5.0.3** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 5.0.4** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -116,7 +116,14 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v5.0.3 — Patch Release (Current)
+### 🚀 v5.0.4 — Patch Release (Current)
+
+- **Android Safe-Zone Adaptive Icon Pipeline:** Implemented an automated app icon pipeline using `npm run generate-icons` and native `sips` commands, scaling the adaptive foreground layer to 65% safe zone area and transparently padding it to prevent circular mask cropping.
+- **Auto-Updater Bypass Prevention:** Configured a non-dismissible download progress bar for desktop (Tauri) updates by removing close buttons and interactive restart prompts, forcing a clean auto-relaunch upon 100% download completion.
+- **Safe Area Top Offset Overlap Fix:** Integrated a dynamic `SafeAreaProvider` that measures screen safe area top inset heights in pixels, pushing headers and drawer blocks below the native system status bar.
+- **Capacitor Theme-Aware StatusBar Sync:** Added dynamic web theme-to-native status bar color synchronization (`#0f172a` in dark mode, `#ffffff` in light mode), updating background and text styles on theme toggle.
+
+### 🚀 v5.0.3 — Patch Release
 
 - **Platform-Aware Auto-Updater UI & Silent Background Updates:** Restricted the visible update notification card and "Restart Application" button exclusively to native desktop apps (Tauri). Mobile applications (Capacitor/APK) now fetch, download, and apply OTA updates silently in the background.
 - **GitHub Actions Debug APK Build Fallback:** Configured GHA workflow to automatically compile and verify a debug APK if release signing keystore secrets are missing from repository variables, preventing build failures.
