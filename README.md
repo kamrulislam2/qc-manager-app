@@ -1,6 +1,6 @@
 # 🌟 QC Manager — Unified Office Leave Tracker & Quotes Manager
 
-**Version 5.0.4** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 5.0.5** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -116,7 +116,12 @@ npm run tauri build
 
 ## 📜 Version History / Changelog
 
-### 🚀 v5.0.4 — Patch Release (Current)
+### 🚀 v5.0.5 — Patch Release (Current)
+
+- **Auto-Updater Progress Bar Alignment:** Restored the non-dismissible updates card layout with center-aligned download percentage bar for native desktop (Tauri) applications.
+- **OTA Updates Workflow Integration:** Synchronized and tested Capacitor OTA update check and download workflow.
+
+### 🚀 v5.0.4 — Patch Release
 
 - **Android Safe-Zone Adaptive Icon Pipeline:** Implemented an automated app icon pipeline using `npm run generate-icons` and native `sips` commands, scaling the adaptive foreground layer to 65% safe zone area and transparently padding it to prevent circular mask cropping.
 - **Auto-Updater Bypass Prevention:** Configured a non-dismissible download progress bar for desktop (Tauri) updates by removing close buttons and interactive restart prompts, forcing a clean auto-relaunch upon 100% download completion.
