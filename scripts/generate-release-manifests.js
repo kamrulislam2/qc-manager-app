@@ -55,7 +55,7 @@ async function main() {
       body: JSON.stringify({
         tag_name: tag,
         name: `QC Manager v${version}`,
-        body: `### QC Manager v${version} (Patch Release)\n\nWelcome to the patch release of **QC Manager**!\n\nThis release includes the following fixes and enhancements:\n\n- **Centered Responsive Filters on Mobile:** Repositioned and centered the Month and Year selector inputs directly underneath the Yearly/Monthly toggle switcher on mobile viewports for full layout alignment.\n- **Supervisor Read-Only Profile Permissions:** Supervisors can now read the leave tracker workspace settings of all team members while keeping it secure and read-only.\n- **Improved Navbar Padding:** Removed extra safe-area status bar spacing for native app headers.\n- **Button Styling Alignment:** Updated exit app modals and connection error overlays to align with the premium blue/indigo gradient styling.`,
+        body: `### QC Manager v${version} (Patch Release)\n\nWelcome to the patch release of **QC Manager**!\n\nThis release includes the following fixes and enhancements:\n\n- **Removed Global Body Safe-Area Spacing:** Removed top, bottom, left, and right safe-area paddings from the global \`body\` style in \`globals.css\` to prevent double spacing / blank white gaps below the status bar on mobile platforms.`,
         draft: false,
         prerelease: false
       })
