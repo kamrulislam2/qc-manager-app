@@ -41,12 +41,9 @@ export function getApiUrl(path: string): string {
 
     if (isLocalDev) {
       return `http://localhost:3000${path}`;
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://qc-manager-y4bzh900h-kamrul-projects.vercel.app';
+    }    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://qc-manager-app.vercel.app';
     return `${baseUrl.replace(/\/$/, '')}${path}`;
   }
   
   return path;
 }
-

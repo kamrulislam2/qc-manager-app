@@ -61,23 +61,30 @@ export async function POST(request: NextRequest) {
       .select('id, username, full_name, global_settings')
       .eq('username', cleanUsername)
       .maybeSingle();
-
     if (profileError) {
       console.error('[ForgotPassword] Error searching profile:', profileError.message);
       return NextResponse.json(
-        { error: 'Server error processing request' },
+        { error: 'Database unavailable' },
         { status: 500, headers: getCorsHeaders(request) }
       );
     }
 
     if (!profile) {
-      // Return the same success response to prevent username enumeration.
-      // Do NOT reveal whether the username exists or not.
-      console.log(`[ForgotPassword] Username not found: ${cleanUsername} (silent success)`);
-      return NextResponse.json({ success: true }, { headers: getCorsHeaders(request) });
+      console.log(`[ForgotPassword] Username not found: ${cleanUsername}`);
+      return NextResponse.json(
+        { error: 'Codename not found.' },
+        { status: 404, headers: getCorsHeaders(request) }
+      );
     }
 
     const currentSettings = (profile as any).global_settings || {};
+    if (currentSettings.password_reset_status === 'pending') {
+      return NextResponse.json(
+        { error: 'Request already submitted.' },
+        { status: 400, headers: getCorsHeaders(request) }
+      );
+    }
+
     const updatedSettings = {
       ...currentSettings,
       password_reset_status: 'pending'
@@ -92,11 +99,10 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('[ForgotPassword] Error updating profile status:', updateError.message);
       return NextResponse.json(
-        { error: 'Failed to request password reset' },
+        { error: 'Database unavailable' },
         { status: 500, headers: getCorsHeaders(request) }
       );
     }
-
     // 3. Find admins to notify
     const { data: admins, error: adminsError } = await supabaseServer
       .from('profiles')

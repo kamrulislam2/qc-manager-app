@@ -1,45 +1,12 @@
 import { NextRequest } from 'next/server';
 
-/**
- * Allowed CORS origins for API routes.
- * - tauri://localhost and https://tauri.localhost for Tauri desktop app
- * - localhost variants for development
- * - Production domain (add your deployment URL here)
- */
-const ALLOWED_ORIGINS = [
-  'tauri://localhost',
-  'https://tauri.localhost',
-  'http://tauri.localhost',
-  'http://localhost:3000',
-  'http://localhost:1420',
-  'http://localhost',
-  'capacitor://localhost',
-];
 
-/**
- * Returns validated CORS headers for API route responses.
- * Only reflects the request Origin if it matches the allowlist.
- * Falls back to the first allowed origin for non-matching requests.
- */
+
 export function getCorsHeaders(request: NextRequest): Record<string, string> {
-  const origin = request.headers.get('origin') || '';
-  
-  let isAllowed = false;
-  if (!origin) {
-    isAllowed = true;
-  } else {
-    const isLocalhost = /^https?:\/\/localhost(:\d+)?$/.test(origin);
-    const isTauri = /^tauri:\/\//.test(origin) || /^https?:\/\/tauri\.localhost$/.test(origin);
-    const isCapacitor = /^capacitor:\/\//.test(origin);
-    const isVercel = /\.vercel\.app$/.test(origin);
-    
-    isAllowed = isLocalhost || isTauri || isCapacitor || isVercel || ALLOWED_ORIGINS.includes(origin);
-  }
-
-  const allowedOrigin = isAllowed ? origin : ALLOWED_ORIGINS[0];
+  const origin = request.headers.get('origin') || '*';
 
   return {
-    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };

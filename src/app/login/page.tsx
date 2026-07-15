@@ -38,7 +38,6 @@ export default function LoginPage() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState(false);
   const [forgotError, setForgotError] = useState("");
-
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotUsername.trim()) {
@@ -50,29 +49,60 @@ export default function LoginPage() {
     setForgotError("");
     setForgotSuccess(false);
 
+    const endpoint = getApiUrl("/api/forgot-password");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+
     try {
-      const res = await fetch(getApiUrl("/api/forgot-password"), {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: forgotUsername.trim() }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         setForgotSuccess(true);
         setForgotUsername("");
       } else {
         const errData = await res.json().catch(() => ({}));
-        setForgotError(
-          errData.error || "Failed to submit password reset request",
-        );
+        const status = res.status;
+        const message = errData.error || "Failed to submit password reset request";
+        
+        console.error("[ForgotPassword] Request failed:", {
+          endpoint,
+          status,
+          message
+        });
+
+        if (status === 404) {
+          setForgotError("Codename not found.");
+        } else if (status === 400) {
+          setForgotError(message);
+        } else if (status === 500) {
+          setForgotError("Database unavailable.");
+        } else {
+          setForgotError(message);
+        }
       }
-    } catch {
-      setForgotError("Network error submitting request");
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      const isTimeout = error.name === "AbortError";
+      const message = isTimeout ? "Network timeout" : "Network error submitting request";
+      
+      console.error("[ForgotPassword] Unexpected exception:", {
+        endpoint,
+        message,
+        error: error.message || error
+      });
+      
+      setForgotError(message);
     } finally {
       setForgotLoading(false);
     }
   };
-
   // Load theme on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
