@@ -38,46 +38,60 @@ export function useDeviceInfo(): UseDeviceInfoResult {
 
     // 2. Fetch latest release manifest asynchronously to override URLs, sizes, and hashes
     const fetchManifest = async () => {
-      try {
-        // Try fetching latest.json first
-        const res = await fetch(MANIFEST_URL, { 
-          cache: 'no-store',
-          signal: controller.signal
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (active && data && data.version && data.downloads) {
-            const notesText = data.notes || data.body || "";
-            const dateStr = data.releaseDate || data.pub_date 
-              ? new Date(data.releaseDate || data.pub_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
-              : DOWNLOADS.windows.x64.releaseDate;
+      const isTauri =
+        typeof window !== 'undefined' &&
+        ((window as any).__TAURI_INTERNALS__ !== undefined ||
+          window.location.protocol === 'tauri:');
 
-            const mergedDownloads = {
-              windows: {
-                x64: { ...DOWNLOADS.windows.x64, ...data.downloads.windows?.x64, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
-                arm64: { ...DOWNLOADS.windows.arm64, ...data.downloads.windows?.arm64, version: data.version, releaseDate: dateStr, releaseNotes: notesText }
-              },
-              macos: {
-                universal: { ...DOWNLOADS.macos.universal, ...data.downloads.macos?.universal, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
-                appleSilicon: { ...DOWNLOADS.macos.appleSilicon, ...data.downloads.macos?.appleSilicon, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
-                intel: { ...DOWNLOADS.macos.intel, ...data.downloads.macos?.intel, version: data.version, releaseDate: dateStr, releaseNotes: notesText }
-              },
-              linux: {
-                deb: { ...DOWNLOADS.linux.deb, ...data.downloads.linux?.deb, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
-                appimage: { ...DOWNLOADS.linux.appimage, ...data.downloads.linux?.appimage, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
-                rpm: { ...DOWNLOADS.linux.rpm, ...data.downloads.linux?.rpm, version: data.version, releaseDate: dateStr, releaseNotes: notesText }
-              },
-              android: {
-                apk: { ...DOWNLOADS.android.apk, ...data.downloads.android?.apk, version: data.version, releaseDate: dateStr, releaseNotes: notesText }
-              }
-            };
-            setDownloads(mergedDownloads);
-            return;
+      const isMobileDevice =
+        typeof window !== 'undefined' &&
+        ((window as any).Capacitor !== undefined ||
+          window.location.protocol === 'capacitor:');
+
+      const isNative = isTauri || isMobileDevice;
+
+      if (isNative) {
+        try {
+          // Try fetching latest.json first
+          const res = await fetch(MANIFEST_URL, { 
+            cache: 'no-store',
+            signal: controller.signal
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (active && data && data.version && data.downloads) {
+              const notesText = data.notes || data.body || "";
+              const dateStr = data.releaseDate || data.pub_date 
+                ? new Date(data.releaseDate || data.pub_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
+                : DOWNLOADS.windows.x64.releaseDate;
+
+              const mergedDownloads = {
+                windows: {
+                  x64: { ...DOWNLOADS.windows.x64, ...data.downloads.windows?.x64, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
+                  arm64: { ...DOWNLOADS.windows.arm64, ...data.downloads.windows?.arm64, version: data.version, releaseDate: dateStr, releaseNotes: notesText }
+                },
+                macos: {
+                  universal: { ...DOWNLOADS.macos.universal, ...data.downloads.macos?.universal, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
+                  appleSilicon: { ...DOWNLOADS.macos.appleSilicon, ...data.downloads.macos?.appleSilicon, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
+                  intel: { ...DOWNLOADS.macos.intel, ...data.downloads.macos?.intel, version: data.version, releaseDate: dateStr, releaseNotes: notesText }
+                },
+                linux: {
+                  deb: { ...DOWNLOADS.linux.deb, ...data.downloads.linux?.deb, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
+                  appimage: { ...DOWNLOADS.linux.appimage, ...data.downloads.linux?.appimage, version: data.version, releaseDate: dateStr, releaseNotes: notesText },
+                  rpm: { ...DOWNLOADS.linux.rpm, ...data.downloads.linux?.rpm, version: data.version, releaseDate: dateStr, releaseNotes: notesText }
+                },
+                android: {
+                  apk: { ...DOWNLOADS.android.apk, ...data.downloads.android?.apk, version: data.version, releaseDate: dateStr, releaseNotes: notesText }
+                }
+              };
+              setDownloads(mergedDownloads);
+              return;
+            }
           }
+        } catch (err: any) {
+          if (err.name === 'AbortError') return;
+          console.warn('[useDeviceInfo] Failed to fetch latest.json, trying GitHub API fallback:', err);
         }
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        console.warn('[useDeviceInfo] Failed to fetch latest.json, trying GitHub API fallback:', err);
       }
 
       // GitHub API Fallback
