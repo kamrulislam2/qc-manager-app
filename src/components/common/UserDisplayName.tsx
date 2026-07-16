@@ -99,7 +99,7 @@ export const UserDisplayName: React.FC<UserDisplayNameProps> = ({
   const displayRank = rankProp !== undefined ? rankProp : (rank !== null ? rank : (badge ? badge.rank : null));
 
   return (
-    <span className="inline-flex items-center align-middle whitespace-nowrap">
+    <span className="inline-flex items-center align-middle flex-wrap gap-y-1">
       <span
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

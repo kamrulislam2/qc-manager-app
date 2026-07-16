@@ -822,21 +822,21 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
         <div className="space-y-6 animate-modal-content">
           {/* Header/Top Box */}
           <div className="bg-theme-card-bg/40 backdrop-blur-xl border border-theme-border-muted shadow-2xl rounded-2xl p-6 flex flex-col gap-4">
-            <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-6 w-full">
-              <div className="flex items-center gap-4">
+            <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-6 w-full max-w-full overflow-hidden">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-4 max-w-full overflow-hidden">
                 <button
                   id="user-manage-detail-back"
                   onClick={() => {
                     updateViewingStaff(null);
                     setIsCreatingNewUser(false);
                   }}
-                  className="p-2.5 bg-theme-border-muted border border-theme-border-active text-theme-text-secondary rounded-xl hover:bg-theme-border-active transition-all cursor-pointer"
+                  className="p-2.5 bg-theme-border-muted border border-theme-border-active text-theme-text-secondary rounded-xl hover:bg-theme-border-active transition-all cursor-pointer shrink-0 mt-0.5 sm:mt-0"
                   title="Go Back"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
-                <div>
-                  <h2 className="text-xl font-bold text-theme-text-primary flex items-center">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg sm:text-xl font-bold text-theme-text-primary flex items-center flex-wrap gap-y-1 break-words max-w-full">
                     {isCreatingNewUser ? (
                       'Add New Staff'
                     ) : (
@@ -850,7 +850,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                     )}
                   </h2>
                   {!isCreatingNewUser && viewingStaff && (
-                    <div className="flex flex-wrap gap-4 mt-2 text-xs text-theme-text-muted">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-theme-text-muted">
                       <div>Working Hours: <strong className="text-theme-text-primary">{viewingStaff.working_hours || 9.5} hrs</strong></div>
                       <div>Break Time: <strong className="text-theme-text-primary">{viewingStaff.break_time || 0} mins</strong></div>
                     </div>
@@ -861,7 +861,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
 
             {/* Employee 360 Hub Subtabs (Horizontal Top Tabs) */}
             {!isCreatingNewUser && viewingStaff && (
-              <div className="flex border-b border-theme-border-input gap-1 mt-2">
+              <div className="flex border-b border-theme-border-input gap-1 mt-2 overflow-x-auto whitespace-nowrap scrollbar-none pb-px max-w-full">
                 {canAccessModule(profile, viewingStaff, 'leave', profiles) && (
                   <button
                     type="button"
