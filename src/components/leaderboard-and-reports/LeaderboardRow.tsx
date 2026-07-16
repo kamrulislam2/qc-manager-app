@@ -1,6 +1,7 @@
 import React from 'react';
 import { LeaderboardUser } from '@/hooks/quotes-tracker/useLeaderboardData';
 import { UserDisplayName } from '@/components/common/UserDisplayName';
+import { Trophy, Award } from 'lucide-react';
 
 interface LeaderboardRowProps {
   user: LeaderboardUser;
@@ -20,13 +21,58 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, isCurrentU
     }
   }), [user]);
 
+  // Premium badge rendering for the top 5 staff in the Current Rank column
+  const renderRankBadge = (rank: number) => {
+    if (rank === 1) {
+      return (
+        <div className="inline-flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/25 text-yellow-400 px-2.5 py-1 rounded-xl text-xs font-bold shadow-sm shadow-yellow-950/20">
+          <Trophy className="h-3.5 w-3.5 fill-yellow-400/10 shrink-0" />
+          <span>#01</span>
+        </div>
+      );
+    }
+    if (rank === 2) {
+      return (
+        <div className="inline-flex items-center gap-1 bg-slate-300/10 border border-slate-400/20 text-slate-200 px-2.5 py-1 rounded-xl text-xs font-bold shadow-sm shadow-slate-900/10">
+          <Trophy className="h-3.5 w-3.5 text-slate-350 fill-slate-300/10 shrink-0" />
+          <span>#02</span>
+        </div>
+      );
+    }
+    if (rank === 3) {
+      return (
+        <div className="inline-flex items-center gap-1 bg-amber-600/10 border border-amber-650/20 text-amber-500 px-2.5 py-1 rounded-xl text-xs font-bold shadow-sm shadow-amber-950/10">
+          <Trophy className="h-3.5 w-3.5 text-amber-500 fill-amber-500/10 shrink-0" />
+          <span>#03</span>
+        </div>
+      );
+    }
+    if (rank === 4) {
+      return (
+        <div className="inline-flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-1 rounded-xl text-xs font-bold">
+          <Award className="h-3.5 w-3.5 shrink-0" />
+          <span>#04</span>
+        </div>
+      );
+    }
+    if (rank === 5) {
+      return (
+        <div className="inline-flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-1 rounded-xl text-xs font-bold">
+          <Award className="h-3.5 w-3.5 shrink-0" />
+          <span>#05</span>
+        </div>
+      );
+    }
+    return <span className="text-slate-450 font-bold">#{String(rank).padStart(2, '0')}</span>;
+  };
+
   return (
     <tr
       className={`border-b border-slate-850/20 hover:bg-slate-900/10 text-xs transition-colors ${
         isCurrentUser ? 'bg-blue-950/10 border-l-2 border-l-blue-600' : ''
       }`}
     >
-      {/* 1. Employee Name (uses UserDisplayName for consistent spacing, visual badge checkmark, and rank #) */}
+      {/* 1. Employee Name (uses UserDisplayName for consistent spacing and visual badge checkmark) */}
       <td className="p-4 pl-6 font-semibold text-slate-200 text-left">
         <div className="flex flex-col min-w-0">
           <div className="inline-flex items-center gap-1.5 flex-wrap">
@@ -46,9 +92,11 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ user, isCurrentU
         </div>
       </td>
 
-      {/* 2. Current Rank (placeholder column, but rank is already displayed next to name. We render the rank badge/bubble or rank text) */}
+      {/* 2. Current Rank (renders premium badge for top 5, otherwise formatted text) */}
       <td className="p-4 text-center font-bold text-slate-400 text-sm">
-        #{String(user.rank).padStart(2, '0')}
+        <div className="flex justify-center">
+          {renderRankBadge(user.rank)}
+        </div>
       </td>
 
       {/* 3. Today's Submissions */}
