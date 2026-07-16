@@ -13,6 +13,7 @@ interface CustomSelectProps {
   options: Option[];
   className?: string;
   disabled?: boolean;
+  buttonClassName?: string;
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -21,6 +22,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   options,
   className = '',
   disabled = false,
+  buttonClassName,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -98,7 +100,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-2 bg-theme-card-bg border border-theme-border-input text-theme-text-primary rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[32px] select-none"
+        className={buttonClassName || "w-full flex items-center justify-between gap-2 bg-theme-card-bg border border-theme-border-input text-theme-text-primary rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed text-left min-h-[32px] select-none"}
       >
         <span className="truncate">{activeOption ? activeOption.label : value}</span>
         <svg

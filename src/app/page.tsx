@@ -1434,7 +1434,7 @@ function AppPortalInner({
           />
         </div>
 
-        <section className="flex-1 min-w-0 w-full bg-theme-card-bg/50 backdrop-blur-xl border border-theme-border-input/80 rounded-2xl p-6 shadow-xl min-h-125">
+        <section className="flex-1 min-w-0 w-full bg-theme-card-bg/50 md:backdrop-blur-xl border border-theme-border-input/80 rounded-2xl p-6 shadow-xl min-h-125">
           <Suspense
             fallback={
               <div className="w-full">

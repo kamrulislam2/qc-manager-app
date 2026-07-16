@@ -1,12 +1,12 @@
 "use client";
-
+ 
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
 import { useQuotesDashboardData } from "@/hooks/quotes-tracker/useQuotesDashboardData";
 import { useSaveFileHelper } from "@/hooks/quotes-tracker/useSaveFileHelper";
 import { useCopyHelper } from "@/hooks/quotes-tracker/useCopyHelper";
-
+ 
 import { StatsGrid } from "@/components/common/StatsGrid";
 import { RecordsTable } from "@/components/quotes-tracker/RecordsTable";
 import { DailyEntryForm } from "@/components/leave-tracker/DailyEntryForm";
@@ -23,6 +23,7 @@ import { AuditLogsPanel } from "@/components/common/AuditLogsPanel";
 import { QuoteRulesPanel } from "@/components/quotes-tracker/QuoteRulesPanel";
 import { CopyHelperPanel } from "@/components/quotes-tracker/CopyHelperPanel";
 import { SaveFileHelperPanel } from "@/components/quotes-tracker/SaveFileHelperPanel";
+import { CustomSelect } from "@/components/common/CustomSelect";
 import { IPChecker } from "@/components/leave-tracker/IPChecker";
 import { LoginCodesPanel } from "@/components/quotes-tracker/LoginCodesPanel";
 import { CausalityPanel } from "@/components/quotes-tracker/CausalityPanel";
@@ -1332,18 +1333,16 @@ export default function Dashboard({
                         )}
                       </div>
 
-                      <select
+                      <CustomSelect
                         value={todaySelectedBranch}
-                        onChange={(e) => setTodaySelectedBranch(e.target.value)}
-                        className="block w-full sm:w-44 px-3 py-1 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer h-8"
-                      >
-                        <option value="">All Branches</option>
-                        {uniqueBranches.map((b) => (
-                          <option key={b} value={b}>
-                            {b}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setTodaySelectedBranch}
+                        options={[
+                          { value: "", label: "All Branches" },
+                          ...uniqueBranches.map((b) => ({ value: b, label: b })),
+                        ]}
+                        buttonClassName="w-full sm:w-44 px-3 py-1 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer h-8 flex items-center justify-between gap-2 text-left font-semibold select-none"
+                        className="w-full sm:w-44"
+                      />
 
                       {(todaySearchQuery || todaySelectedBranch) && (
                         <button
@@ -1460,18 +1459,16 @@ export default function Dashboard({
                     <label className="block text-[11px] font-semibold text-theme-text-secondary mb-1">
                       Branch
                     </label>
-                    <select
+                    <CustomSelect
                       value={selectedBranch}
-                      onChange={(e) => setSelectedBranch(e.target.value)}
-                      className="block w-full px-3 py-2 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer h-9"
-                    >
-                      <option value="">All Branches</option>
-                      {uniqueBranches.map((b) => (
-                        <option key={b} value={b}>
-                          {b}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setSelectedBranch}
+                      options={[
+                        { value: "", label: "All Branches" },
+                        ...uniqueBranches.map((b) => ({ value: b, label: b })),
+                      ]}
+                      buttonClassName="w-full px-3 py-2 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer h-9 flex items-center justify-between gap-2 text-left font-semibold select-none"
+                      className="w-full"
+                    />
                   </div>
 
                   {/* 2. Year Selection */}
@@ -1479,21 +1476,20 @@ export default function Dashboard({
                     <label className="block text-[11px] font-semibold text-theme-text-secondary mb-1">
                       Year
                     </label>
-                    <select
+                    <CustomSelect
                       value={selectedYear}
                       disabled={!!selectedDate}
-                      onChange={(e) => {
-                        setSelectedYear(e.target.value);
+                      onChange={(val) => {
+                        setSelectedYear(val);
                         setSelectedDate(""); // Reset specific date filter
                       }}
-                      className="block w-full px-3 py-2 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-theme-card-bg/30 h-9"
-                    >
-                      {dynamicYears.map((year) => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </select>
+                      options={dynamicYears.map((year) => ({
+                        value: year,
+                        label: year,
+                      }))}
+                      buttonClassName="w-full px-3 py-2 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-theme-card-bg/30 h-9 flex items-center justify-between gap-2 text-left font-semibold select-none"
+                      className="w-full"
+                    />
                   </div>
 
                   {/* 3. Month Selection */}
@@ -1501,21 +1497,20 @@ export default function Dashboard({
                     <label className="block text-[11px] font-semibold text-theme-text-secondary mb-1">
                       Month
                     </label>
-                    <select
+                    <CustomSelect
                       value={selectedMonth}
                       disabled={!!selectedDate}
-                      onChange={(e) => {
-                        setSelectedMonth(e.target.value);
+                      onChange={(val) => {
+                        setSelectedMonth(val);
                         setSelectedDate(""); // Reset specific date filter
                       }}
-                      className="block w-full px-3 py-2 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-theme-card-bg/30 h-9"
-                    >
-                      {dynamicMonths.map((m) => (
-                        <option key={m.val} value={m.val}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
+                      options={dynamicMonths.map((m) => ({
+                        value: m.val,
+                        label: m.name,
+                      }))}
+                      buttonClassName="w-full px-3 py-2 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-theme-card-bg/30 h-9 flex items-center justify-between gap-2 text-left font-semibold select-none"
+                      className="w-full"
+                    />
                   </div>
 
                   {/* 4. Specific Date Input */}

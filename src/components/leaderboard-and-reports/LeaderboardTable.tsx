@@ -11,6 +11,7 @@ import { useLeaderboardData } from "@/hooks/quotes-tracker/useLeaderboardData";
 import { LeaderboardRow } from "./LeaderboardRow";
 import { LeaderboardSkeleton } from "@/components/common/skeleton/LeaderboardSkeleton";
 import { downloadCSVRows } from "@/utils/quotesDashboardHelpers";
+import { CustomSelect } from "@/components/common/CustomSelect";
 
 interface LeaderboardTableProps {
   profile: Profile | null;
@@ -115,17 +116,16 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
           {/* Right: Controls */}
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
             {/* Month Dropdown (Always visible, fixed width of w-28 to prevent snap resizing. Uses text-base on mobile to prevent iOS zoom) */}
-            <select
+            <CustomSelect
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-28 bg-slate-950/85 border border-slate-800/80 hover:border-slate-700 text-white text-base md:text-xs rounded-xl px-3 py-2 outline-none cursor-pointer focus:ring-1 focus:ring-blue-500 transition-all"
-            >
-              {availableMonthsForSelectedYear.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedMonth}
+              options={availableMonthsForSelectedYear.map((m) => ({
+                value: m.value,
+                label: m.name,
+              }))}
+              buttonClassName="w-28 bg-slate-950/85 border border-slate-800/80 hover:border-slate-700 text-white text-base md:text-xs rounded-xl px-3 py-2 outline-none cursor-pointer focus:ring-1 focus:ring-blue-500 transition-all flex items-center justify-between gap-2 text-left font-bold"
+              className="w-28"
+            />
 
             {/* View Report Button */}
             {onViewFullReport && (

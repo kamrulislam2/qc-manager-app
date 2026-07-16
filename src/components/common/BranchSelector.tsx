@@ -1,4 +1,5 @@
 import React from 'react';
+import { CustomSelect } from '@/components/common/CustomSelect';
 
 interface BranchSelectorProps {
   value: string;
@@ -36,30 +37,24 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
     'SWANDRIVE'
   ];
 
-  const handleMainChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    onChange(val);
-  };
-
   const selectClass = size === 'sm'
-    ? "block w-full h-[34px] px-3 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-    : "block w-full h-[42px] px-3.5 bg-theme-page-bg border border-theme-border-input rounded-xl text-theme-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer";
+    ? "block w-full h-[34px] px-3 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer flex items-center justify-between gap-2 text-left font-bold"
+    : "block w-full h-[42px] px-3.5 bg-theme-page-bg border border-theme-border-input rounded-xl text-theme-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer flex items-center justify-between gap-2 text-left font-bold";
+
+  const branchOptions = [
+    { value: "", label: "-- Select Branch --" },
+    ...mainBranches.map(b => ({ value: b, label: b }))
+  ];
 
   return (
     <div className="space-y-2">
-      <select
-        required={required}
+      <CustomSelect
         value={selectValue}
-        onChange={handleMainChange}
-        className={selectClass}
-      >
-        <option value="" className="text-theme-text-muted/60">-- Select Branch --</option>
-        {mainBranches.map(b => (
-          <option key={b} value={b} className="bg-theme-card-container text-theme-text-primary">
-            {b}
-          </option>
-        ))}
-      </select>
+        onChange={onChange}
+        options={branchOptions}
+        buttonClassName={selectClass}
+        className="w-full"
+      />
 
       {/* Suboptions for PRIDE */}
       {selectValue === 'PRIDE' && (

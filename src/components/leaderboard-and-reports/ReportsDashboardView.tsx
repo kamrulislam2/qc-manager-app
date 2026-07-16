@@ -6,6 +6,7 @@ import { SubmissionVolumeChart } from './SubmissionVolumeChart';
 import { BranchContributionChart } from './BranchContributionChart';
 import { FileCategoryChart } from './FileCategoryChart';
 import { OperationalInsights } from './OperationalInsights';
+import { CustomSelect } from '@/components/common/CustomSelect';
 import {
   monthsList,
   computeTypeStats,
@@ -270,29 +271,31 @@ export const ReportsDashboardView: React.FC<ReportsDashboardViewProps> = ({
           </div>
 
           <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
-            <div className="flex-1 sm:flex-none flex items-center gap-2 bg-slate-950/60 border border-slate-800 px-3 py-1.5 rounded-xl">
+            <div className="flex-1 sm:flex-none flex items-center gap-2 bg-slate-950/60 border border-slate-800 px-3 py-1.5 rounded-xl min-w-[130px]">
               <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-              <select
+              <CustomSelect
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-transparent text-base md:text-xs text-slate-300 outline-none border-none cursor-pointer focus:text-white font-semibold w-full"
-              >
-                {availableMonthsForSelectedYear.map((m) => (
-                  <option key={m.value} value={m.value} className="bg-slate-950 text-slate-300">{m.name}</option>
-                ))}
-              </select>
+                onChange={setSelectedMonth}
+                options={availableMonthsForSelectedYear.map((m) => ({
+                  value: m.value,
+                  label: m.name,
+                }))}
+                buttonClassName="bg-transparent border-none text-slate-300 hover:text-white text-base md:text-xs outline-none focus:outline-none focus:ring-0 cursor-pointer font-semibold flex items-center justify-between gap-1 w-full select-none text-left p-0"
+                className="w-full"
+              />
             </div>
-            <div className="flex-1 sm:flex-none flex items-center gap-2 bg-slate-950/60 border border-slate-800 px-3 py-1.5 rounded-xl">
+            <div className="flex-1 sm:flex-none flex items-center gap-2 bg-slate-950/60 border border-slate-800 px-3 py-1.5 rounded-xl min-w-[130px]">
               <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-              <select
+              <CustomSelect
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="bg-transparent text-base md:text-xs text-slate-300 outline-none border-none cursor-pointer focus:text-white font-semibold w-full"
-              >
-                {availableYears.map((year) => (
-                  <option key={year} value={year} className="bg-slate-950 text-slate-300">Year {year}</option>
-                ))}
-              </select>
+                onChange={setSelectedYear}
+                options={availableYears.map((year) => ({
+                  value: year,
+                  label: `Year ${year}`,
+                }))}
+                buttonClassName="bg-transparent border-none text-slate-300 hover:text-white text-base md:text-xs outline-none focus:outline-none focus:ring-0 cursor-pointer font-semibold flex items-center justify-between gap-1 w-full select-none text-left p-0"
+                className="w-full"
+              />
             </div>
           </div>
         </div>
