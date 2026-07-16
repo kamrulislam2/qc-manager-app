@@ -591,10 +591,13 @@ export const useQuotesDashboardData = () => {
         .order('created_at', { ascending: false })
         .limit(150);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching audit logs - Message:', error.message, 'Code:', error.code, 'Details:', error.details);
+        throw error;
+      }
       setAuditLogs(data || []);
-    } catch (err) {
-      console.error('Error fetching audit logs:', err);
+    } catch (err: any) {
+      console.error('Error fetching audit logs:', err?.message || err);
     } finally {
       setAuditLogsLoading(false);
     }
