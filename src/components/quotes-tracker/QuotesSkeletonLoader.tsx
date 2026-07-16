@@ -3,7 +3,7 @@
 import { DailyEntrySkeleton } from "@/components/common/skeleton/DailyEntrySkeleton";
 import { MonthlyListSkeleton } from "@/components/common/skeleton/MonthlyListSkeleton";
 import { QuoteRulesSkeleton } from "@/components/common/skeleton/QuoteRulesSkeleton";
-import { AnalyticsSkeleton } from "@/components/common/skeleton/AnalyticsSkeleton";
+import { LeaderboardSkeleton } from "@/components/common/skeleton/LeaderboardSkeleton";
 import { AuditLogsSkeleton } from "@/components/common/skeleton/AuditLogsSkeleton";
 import { IPCheckerSkeleton } from "@/components/common/skeleton/IPCheckerSkeleton";
 import { LoginCodesSkeleton } from "@/components/common/skeleton/LoginCodesSkeleton";
@@ -19,7 +19,7 @@ interface SkeletonLoaderProps {
     | "save-file"
     | "rules"
     | "users"
-    | "analytics"
+    | "leaderboard"
     | "audit-logs"
     | "ip_checker"
     | "login_codes"
@@ -189,8 +189,8 @@ export function SkeletonLoader({ type = "generic", rows = 4 }: SkeletonLoaderPro
     );
   }
 
-  if (type === "analytics") {
-    return <AnalyticsSkeleton />;
+  if (type === "leaderboard") {
+    return <LeaderboardSkeleton />;
   }
 
   if (type === "audit-logs") {

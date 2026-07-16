@@ -16,7 +16,9 @@ import { CustomEntryModal } from "@/components/quotes-tracker/modals/CustomEntry
 import { SaleStatusModal } from "@/components/quotes-tracker/modals/SaleStatusModal";
 import { AdminViewToggle } from "@/components/leave-tracker/AdminViewToggle";
 import { SkeletonLoader } from "@/components/quotes-tracker/QuotesSkeletonLoader";
-import { AnalyticsPanel } from "@/components/leave-tracker/AnalyticsPanel";
+import { LeaderboardTable } from "@/components/leaderboard-and-reports/LeaderboardTable";
+import { ReportsPanel } from "@/components/leaderboard-and-reports/ReportsPanel";
+import { updateGlobalRankCache } from "@/components/common/UserDisplayName";
 import { AuditLogsPanel } from "@/components/common/AuditLogsPanel";
 import { QuoteRulesPanel } from "@/components/quotes-tracker/QuoteRulesPanel";
 import { CopyHelperPanel } from "@/components/quotes-tracker/CopyHelperPanel";
@@ -63,8 +65,8 @@ const ALL_10_FILE_TYPES = [
 ];
 
 interface DashboardProps {
-  activeTab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "causality" | "copy_helper" | "save_file";
-  onTabChange: (tab: "entry" | "monthly" | "analytics" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "causality" | "copy_helper" | "save_file") => void;
+  activeTab: "entry" | "monthly" | "leaderboard" | "reports" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "causality" | "copy_helper" | "save_file";
+  onTabChange: (tab: "entry" | "monthly" | "leaderboard" | "reports" | "audit_logs" | "rules" | "ip_checker" | "login_codes" | "causality" | "copy_helper" | "save_file") => void;
 }
 
 export default function Dashboard({
@@ -91,7 +93,8 @@ export default function Dashboard({
       if (
         targetTab === "entry" ||
         targetTab === "monthly" ||
-        targetTab === "analytics" ||
+        targetTab === "leaderboard" ||
+        targetTab === "reports" ||
         targetTab === "audit_logs" ||
         targetTab === "rules" ||
         targetTab === "ip_checker" ||
@@ -148,6 +151,13 @@ export default function Dashboard({
     }
   }, [activeTab, profile, fetchAuditLogs]);
 
+  // Update global rank cache for Navbar UserDisplayName component
+  useEffect(() => {
+    if (records.length > 0 && profilesList.length > 0) {
+      updateGlobalRankCache(records, profilesList);
+    }
+  }, [records, profilesList]);
+
   // Daily Entry Form State
   const [fileName, setFileName] = useState("");
   const [branchName, setBranchName] = useState("");
@@ -171,6 +181,16 @@ export default function Dashboard({
     setAdminViewMode(mode);
     localStorage.setItem("quotes_sales_admin_view_mode", mode);
   };
+
+  // Viewing Reports state: toggled from Leaderboard's "View Full Report" button
+  const [viewingReports, setViewingReports] = useState(false);
+
+  // Reset viewingReports when tab changes away from leaderboard
+  useEffect(() => {
+    if (activeTab !== "leaderboard") {
+      setViewingReports(false);
+    }
+  }, [activeTab]);
 
 
 
@@ -1035,11 +1055,11 @@ export default function Dashboard({
 
   // Loading Screen
   if (loading) {
-    let loaderType: "form" | "table" | "analytics" | "audit-logs" | "rules" | "ip_checker" | "login_codes" | "causality" | "generic" = "generic";
+    let loaderType: "form" | "table" | "leaderboard" | "audit-logs" | "rules" | "ip_checker" | "login_codes" | "causality" | "generic" = "generic";
     if (activeTab === "entry") loaderType = "form";
     else if (activeTab === "causality") loaderType = "causality";
     else if (activeTab === "monthly") loaderType = "table";
-    else if (activeTab === "analytics") loaderType = "analytics";
+    else if (activeTab === "leaderboard" || activeTab === "reports") loaderType = "leaderboard";
     else if (activeTab === "audit_logs") loaderType = "audit-logs";
     else if (activeTab === "rules") loaderType = "rules";
     else if (activeTab === "ip_checker") loaderType = "ip_checker";
@@ -1560,12 +1580,35 @@ export default function Dashboard({
             </div>
           )}
 
-          {activeTab === "analytics" && (
-            <Suspense fallback={<SkeletonLoader type="analytics" />}>
-              <AnalyticsPanel
+          {activeTab === "leaderboard" && !viewingReports && (
+            <Suspense fallback={<SkeletonLoader type="leaderboard" />}>
+              <LeaderboardTable
+                profile={profile}
+                onViewFullReport={() => setViewingReports(true)}
+              />
+            </Suspense>
+          )}
+
+          {activeTab === "leaderboard" && viewingReports && (
+            <Suspense fallback={<SkeletonLoader type="leaderboard" />}>
+              <ReportsPanel
                 records={records}
                 profilesList={profilesList}
                 profile={profile}
+                onBack={() => setViewingReports(false)}
+              />
+            </Suspense>
+          )}
+
+          {activeTab === "reports" && (
+            <Suspense fallback={<SkeletonLoader type="leaderboard" />}>
+              <ReportsPanel
+                records={records}
+                profilesList={profilesList}
+                profile={profile}
+                onBack={() => {
+                  onTabChange("leaderboard");
+                }}
               />
             </Suspense>
           )}

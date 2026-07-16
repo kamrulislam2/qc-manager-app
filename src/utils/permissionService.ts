@@ -46,7 +46,7 @@ export const isDirectlySupervised = (
 export const canAccessModule = (
   currentUser: Profile | null,
   targetUser: Profile | null,
-  module: 'kpi' | 'leave' | 'profile_settings' | 'quotes' | 'user_management' | 'todo' | 'analytics' | 'audit_logs',
+  module: 'kpi' | 'leave' | 'profile_settings' | 'quotes' | 'user_management' | 'todo' | 'leaderboard' | 'reports' | 'audit_logs',
   profilesList: Profile[] = []
 ): boolean => {
   if (!currentUser) return false;
@@ -68,7 +68,7 @@ export const canAccessModule = (
     if (module === 'leave') return targetUser ? targetUser.id === currentUser.id : true;
     if (module === 'profile_settings') return true;
     if (module === 'quotes') return !!currentUser.has_quotes_access;
-    if (module === 'analytics') return true;
+    if (module === 'leaderboard' || module === 'reports') return true;
     return false;
   }
   
@@ -80,7 +80,7 @@ export const canAccessModule = (
     }
     if (module === 'user_management') return true;
     if (module === 'quotes') return !!currentUser.has_quotes_access;
-    if (module === 'analytics') return true;
+    if (module === 'leaderboard' || module === 'reports') return true;
     
     // Checks for specific target users
     if (targetUser) {

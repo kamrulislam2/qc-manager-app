@@ -58,7 +58,8 @@ export function ProfileSettings({
         return true;
       case 'todo':
         return showTodoTab;
-      case 'analytics':
+      case 'leaderboard':
+        return true;
       case 'user_management':
         return profile.role === 'admin' || profile.role === 'supervisor';
       case 'audit_logs':
@@ -483,7 +484,7 @@ export function ProfileSettings({
               const options = [
                 { key: 'kpi', label: 'KPI & Performance', category: 'Main Workspace Sections' },
                 { key: 'todo', label: 'Todos Panel', category: 'Main Workspace Sections' },
-                { key: 'analytics', label: 'Analytics (Workspace)', category: 'Main Workspace Sections' },
+                { key: 'leaderboard', label: 'Leaderboard (Workspace)', category: 'Main Workspace Sections' },
                 { key: 'audit_logs', label: 'Audit Logs (Workspace)', category: 'Main Workspace Sections' },
                 { key: 'user_management', label: 'User Management', category: 'Main Workspace Sections' },
 

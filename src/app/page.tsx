@@ -441,14 +441,16 @@ function AppPortalInner({
     | "quotes"
     | "user_management"
     | "todo"
-    | "analytics"
+    | "leaderboard"
+    | "reports"
     | "audit_logs"
     | "kpi"
     | "profile_settings"
     | null
   >(() => {
     if (typeof window !== "undefined") {
-      const cached = _cachedInitialState?.initialTab;
+      let cached = _cachedInitialState?.initialTab;
+      if (cached === "analytics") cached = "leaderboard";
       if (cached) return cached as any;
     }
     return "chuti";
@@ -465,7 +467,8 @@ function AppPortalInner({
   const [activeQuotesTab, setActiveQuotesTab] = useState<
     | "entry"
     | "monthly"
-    | "analytics"
+    | "leaderboard"
+    | "reports"
     | "audit_logs"
     | "rules"
     | "ip_checker"
@@ -475,7 +478,8 @@ function AppPortalInner({
     | "save_file"
   >(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("quotes_sales_active_tab");
+      let saved = localStorage.getItem("quotes_sales_active_tab");
+      if (saved === "analytics") saved = "leaderboard";
       if (
         saved === "asitis_causality" ||
         saved === "eui_causality" ||
@@ -486,7 +490,8 @@ function AppPortalInner({
       if (
         saved === "entry" ||
         saved === "monthly" ||
-        saved === "analytics" ||
+        saved === "leaderboard" ||
+        saved === "reports" ||
         saved === "audit_logs" ||
         saved === "rules" ||
         saved === "ip_checker" ||
@@ -494,7 +499,7 @@ function AppPortalInner({
         saved === "copy_helper" ||
         saved === "save_file"
       ) {
-        return saved;
+        return saved as any;
       }
     }
     return "entry";
@@ -528,7 +533,8 @@ function AppPortalInner({
     tab:
       | "entry"
       | "monthly"
-      | "analytics"
+      | "leaderboard"
+      | "reports"
       | "audit_logs"
       | "rules"
       | "ip_checker"
@@ -537,7 +543,7 @@ function AppPortalInner({
       | "copy_helper"
       | "save_file",
   ) => {
-    if (tab === "analytics" || tab === "audit_logs") {
+    if (tab === "leaderboard" || tab === "reports" || tab === "audit_logs") {
       setActiveTab(tab);
       localStorage.setItem("last_active_dashboard", tab);
     } else {
@@ -1029,8 +1035,8 @@ function AppPortalInner({
         ? "user_management"
         : activeTab === "todo"
           ? "todo"
-          : activeTab === "analytics"
-            ? "analytics"
+          : activeTab === "leaderboard" || activeTab === "reports"
+            ? "leaderboard"
             : activeTab === "audit_logs"
               ? "audit_logs"
               : activeTab === "quotes"
@@ -1418,27 +1424,27 @@ function AppPortalInner({
                             ? "table"
                             : activeQuotesTab === "rules"
                               ? "rules"
-                              : activeQuotesTab === "analytics"
-                                ? "analytics"
-                                : activeQuotesTab === "audit_logs"
-                                  ? "audit-logs"
-                                  : activeQuotesTab === "ip_checker"
-                                    ? "ip_checker"
-                                    : activeQuotesTab === "login_codes"
-                                      ? "login_codes"
-                                      : activeQuotesTab === "copy_helper"
-                                        ? "copy_helper"
-                                        : activeQuotesTab === "save_file"
-                                          ? "save_file"
-                                          : "generic"
+                            : activeQuotesTab === "leaderboard"
+                              ? "leaderboard"
+                              : activeQuotesTab === "audit_logs"
+                                ? "audit-logs"
+                                : activeQuotesTab === "ip_checker"
+                                  ? "ip_checker"
+                                  : activeQuotesTab === "login_codes"
+                                    ? "login_codes"
+                                    : activeQuotesTab === "copy_helper"
+                                      ? "copy_helper"
+                                      : activeQuotesTab === "save_file"
+                                        ? "save_file"
+                                        : "generic"
                     }
                   />
                 ) : activeTab === "user_management" ? (
                   <SkeletonLoader variant="staff-table" rows={8} />
                 ) : activeTab === "todo" ? (
                   <SkeletonLoader variant="todo" />
-                ) : activeTab === "analytics" ? (
-                  <SkeletonLoader variant="analytics" />
+                ) : activeTab === "leaderboard" || activeTab === "reports" ? (
+                  <SkeletonLoader variant="leaderboard" />
                 ) : activeTab === "audit_logs" ? (
                   <SkeletonLoader variant="audit-logs" />
                 ) : activeTab === "kpi" ? (
@@ -1455,7 +1461,8 @@ function AppPortalInner({
             <div
               className={
                 activeTab !== "quotes" &&
-                activeTab !== "analytics" &&
+                activeTab !== "leaderboard" &&
+                activeTab !== "reports" &&
                 activeTab !== "audit_logs"
                   ? "hidden"
                   : undefined

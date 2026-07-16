@@ -12,6 +12,7 @@ import {
   Clock,
   BookOpen,
   TrendingUp,
+  Award,
   Users,
   ScrollText,
   ListTodo,
@@ -26,10 +27,10 @@ import {
 } from 'lucide-react';
 
 interface UnifiedSidebarProps {
-  activeSection: 'chuti' | 'quotes' | 'user_management' | 'todo' | 'analytics' | 'audit_logs' | 'kpi' | 'profile_settings';
+  activeSection: 'chuti' | 'quotes' | 'user_management' | 'todo' | 'leaderboard' | 'reports' | 'audit_logs' | 'kpi' | 'profile_settings';
   profile: Profile | null;
-  activeQuotesTab?: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules' | 'ip_checker' | 'login_codes' | 'causality' | 'copy_helper' | 'save_file';
-  onQuotesTabChange?: (tab: 'entry' | 'monthly' | 'analytics' | 'audit_logs' | 'rules' | 'ip_checker' | 'login_codes' | 'causality' | 'copy_helper' | 'save_file') => void;
+  activeQuotesTab?: 'entry' | 'monthly' | 'leaderboard' | 'reports' | 'audit_logs' | 'rules' | 'ip_checker' | 'login_codes' | 'causality' | 'copy_helper' | 'save_file';
+  onQuotesTabChange?: (tab: 'entry' | 'monthly' | 'leaderboard' | 'reports' | 'audit_logs' | 'rules' | 'ip_checker' | 'login_codes' | 'causality' | 'copy_helper' | 'save_file') => void;
   activeChutiTab?: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings' | 'team_leaves';
   onChutiTabChange?: (tab: 'add_leave' | 'leave_history' | 'govt_responses' | 'settlement' | 'leave_settings' | 'team_leaves') => void;
   isSidebarCollapsed: boolean;
@@ -122,9 +123,9 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
     onNavItemClick?.();
   };
 
-  const handleAnalyticsNav = () => {
-    localStorage.setItem('last_active_dashboard', 'analytics');
-    window.dispatchEvent(new CustomEvent('workspace-change', { detail: 'analytics' }));
+  const handleLeaderboardNav = () => {
+    localStorage.setItem('last_active_dashboard', 'leaderboard');
+    window.dispatchEvent(new CustomEvent('workspace-change', { detail: 'leaderboard' }));
     router.push('/');
     onNavItemClick?.();
   };
@@ -511,22 +512,22 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
           </div>
         )}
 
-        {/* Workspace: Analytics (Admin & Supervisor Only) */}
-        {canAccessModule(profile, null, 'analytics') && !hiddenTabs.includes('analytics') && (
+        {/* Workspace: Leaderboard (Everyone) */}
+        {canAccessModule(profile, null, 'leaderboard') && !hiddenTabs.includes('leaderboard') && (
           <div className="space-y-1">
             <button
-              onClick={handleAnalyticsNav}
-              title={isSidebarCollapsed ? 'Analytics' : undefined}
+              onClick={handleLeaderboardNav}
+              title={isSidebarCollapsed ? 'Leaderboard' : undefined}
               className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isSidebarCollapsed ? 'justify-center p-3' : 'justify-start px-4 py-3 gap-3'
               } ${
-                activeSection === 'analytics'
+                activeSection === 'leaderboard'
                   ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
                   : 'text-theme-text-secondary hover:bg-theme-border-active/80 hover:text-theme-text-inverse border border-transparent'
               }`}
             >
-              <TrendingUp className="h-5 w-5 shrink-0" />
-              {!isSidebarCollapsed && <span className="whitespace-nowrap">Analytics</span>}
+              <Award className="h-5 w-5 shrink-0" />
+              {!isSidebarCollapsed && <span className="whitespace-nowrap">Leaderboard</span>}
             </button>
           </div>
         )}

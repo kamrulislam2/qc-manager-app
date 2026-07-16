@@ -11,14 +11,14 @@ import { ChutiFormSkeleton } from '@/components/common/skeleton/ChutiFormSkeleto
 import { LeaveHistorySkeleton } from '@/components/common/skeleton/LeaveHistorySkeleton';
 import { LeaveSettingsSkeleton } from '@/components/common/skeleton/LeaveSettingsSkeleton';
 import { TodoSkeleton } from '@/components/common/skeleton/TodoSkeleton';
-import { AnalyticsSkeleton } from '@/components/common/skeleton/AnalyticsSkeleton';
+import { LeaderboardSkeleton } from '@/components/common/skeleton/LeaderboardSkeleton';
 import { AuditLogsSkeleton } from '@/components/common/skeleton/AuditLogsSkeleton';
 import { TeamLeaveRecordsSkeleton } from '@/components/common/skeleton/TeamLeaveRecordsSkeleton';
 import { ProfileSettingsSkeleton } from '@/components/common/skeleton/ProfileSettingsSkeleton';
 import { KpiSkeleton } from '@/components/common/skeleton/KpiSkeleton';
 
 interface SkeletonLoaderProps {
-  variant?: 'table' | 'stats' | 'list' | 'profile-header' | 'leaves-table' | 'staff-table' | 'responses-table' | 'settlements-table' | 'chuti-form' | 'leave-history' | 'leave-settings' | 'todo' | 'analytics' | 'audit-logs' | 'team-leaves-report' | 'profile-settings' | 'kpi';
+  variant?: 'table' | 'stats' | 'list' | 'profile-header' | 'leaves-table' | 'staff-table' | 'responses-table' | 'settlements-table' | 'chuti-form' | 'leave-history' | 'leave-settings' | 'todo' | 'leaderboard' | 'audit-logs' | 'team-leaves-report' | 'profile-settings' | 'kpi';
   rows?: number;
   cards?: number;
   className?: string;
@@ -57,8 +57,8 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
       return <LeaveSettingsSkeleton className={className} />;
     case 'todo':
       return <TodoSkeleton className={className} />;
-    case 'analytics':
-      return <AnalyticsSkeleton className={className} />;
+    case 'leaderboard':
+      return <LeaderboardSkeleton className={className} />;
     case 'audit-logs':
       return <AuditLogsSkeleton className={className} />;
     case 'team-leaves-report':

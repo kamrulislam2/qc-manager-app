@@ -91,7 +91,7 @@ export const calculateSummaryStats = (records: RecordItem[]) => {
 // Export records list to CSV file (Microsoft Excel compatible with UTF-8 BOM)
 export const exportToCSV = (records: RecordItem[], fileName: string) => {
   const headers = ['Date', 'Submitted Time', 'File Name', 'Branch', 'Codename', 'Type'];
-  
+
   const rows = records.map(r => {
     const date = formatDate(r.submitted_at);
     const time = formatTimeToAMPM(r.submitted_at);
@@ -104,12 +104,21 @@ export const exportToCSV = (records: RecordItem[], fileName: string) => {
       r.file_type
     ];
   });
-  
+
+  downloadCSVRows(headers, rows, fileName);
+};
+
+// Export arbitrary tabular rows to CSV (used by the leaderboard Excel export)
+export const downloadCSVRows = (
+  headers: string[],
+  rows: (string | number)[][],
+  fileName: string,
+) => {
   const csvContent = [
     headers.join(','),
     ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
   ].join('\n');
-  
+
   // Prepended \uFEFF Byte Order Mark (BOM) allows Excel to render non-ASCII characters (e.g. Bengali script) correctly
   const fullContent = '\uFEFF' + csvContent;
 
