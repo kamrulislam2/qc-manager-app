@@ -205,6 +205,7 @@ export function useModalHandlers({
     const now = new Date().toISOString();
     localStorage.setItem('last_viewed_notifications_time', now);
     setLastViewedTime(now);
+    window.dispatchEvent(new CustomEvent('chuti-last-viewed-time-sync', { detail: now }));
   }, [setShowUserNotificationsModal, setLastViewedTime]);
 
   // Notification bell click (role-aware routing)

@@ -226,6 +226,40 @@ export default function Dashboard({
       [setDismissedNotificationIds]
     )
   );
+  // Listen to dismissed notifications sync event from other components
+  useEffect(() => {
+    const handleSync = (e: Event) => {
+      const dbIds = (e as CustomEvent).detail as string[];
+      if (dbIds && Array.isArray(dbIds)) {
+        setDismissedNotificationIds(prev => {
+          const next = new Set(prev);
+          let changed = false;
+          dbIds.forEach(id => {
+            if (!next.has(id)) {
+              next.add(id);
+              changed = true;
+            }
+          });
+          return changed ? next : prev;
+        });
+      }
+    };
+    window.addEventListener('chuti-dismissed-notifications-sync', handleSync);
+    return () => {
+      window.removeEventListener('chuti-dismissed-notifications-sync', handleSync);
+    };
+  }, []);
+
+  // Broadcast own dismissed notification changes
+  useEffect(() => {
+    if (dismissedNotificationIds.size > 0) {
+      window.dispatchEvent(
+        new CustomEvent('chuti-dismissed-notifications-sync', {
+          detail: Array.from(dismissedNotificationIds)
+        })
+      );
+    }
+  }, [dismissedNotificationIds]);
 
   const [editingRecord, setEditingRecord] = useState<ChutiRecord | null>(null);
 

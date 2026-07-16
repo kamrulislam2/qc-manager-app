@@ -368,6 +368,53 @@ export function useGlobalNotifications(
     }
   }, []);
 
+  // Listen to dismissed notifications sync event from other components
+  useEffect(() => {
+    const handleSync = (e: Event) => {
+      const dbIds = (e as CustomEvent).detail as string[];
+      if (dbIds && Array.isArray(dbIds)) {
+        setDismissedNotificationIds(prev => {
+          const next = new Set(prev);
+          let changed = false;
+          dbIds.forEach(id => {
+            if (!next.has(id)) {
+              next.add(id);
+              changed = true;
+            }
+          });
+          return changed ? next : prev;
+        });
+      }
+    };
+    window.addEventListener('chuti-dismissed-notifications-sync', handleSync);
+    return () => {
+      window.removeEventListener('chuti-dismissed-notifications-sync', handleSync);
+    };
+  }, []);
+
+  // Broadcast own dismissed notification changes
+  useEffect(() => {
+    if (dismissedNotificationIds.size > 0) {
+      window.dispatchEvent(
+        new CustomEvent('chuti-dismissed-notifications-sync', {
+          detail: Array.from(dismissedNotificationIds)
+        })
+      );
+    }
+  }, [dismissedNotificationIds]);
+
+  // Listen to last viewed time sync event from other components
+  useEffect(() => {
+    const handleSync = (e: Event) => {
+      const time = (e as CustomEvent).detail as string;
+      if (time) setLastViewedTime(time);
+    };
+    window.addEventListener('chuti-last-viewed-time-sync', handleSync);
+    return () => {
+      window.removeEventListener('chuti-last-viewed-time-sync', handleSync);
+    };
+  }, []);
+
   // Run fetch on mount / session change / loading status change
   useEffect(() => {
     if (sessionUser && profile && isChutiLoaded) {
@@ -575,6 +622,7 @@ export function useGlobalNotifications(
     const now = new Date().toISOString();
     localStorage.setItem('last_viewed_notifications_time', now);
     setLastViewedTime(now);
+    window.dispatchEvent(new CustomEvent('chuti-last-viewed-time-sync', { detail: now }));
     // Propagate event so other components know it is read
     window.dispatchEvent(new CustomEvent('chuti-notification-count-change', { detail: 0 }));
   }, []);
@@ -586,7 +634,10 @@ export function useGlobalNotifications(
   const handleDismissNotification = useCallback(async (id: string) => {
     if (!sessionUser) return;
 
-    // 1. Optimistic local update
+    // 1. Find the notification from the list to see if it has a chutiId
+    const targetNotif = notificationsList.find(n => n.id === id);
+
+    // 2. Optimistic local update
     try {
       const stored = localStorage.getItem('dismissed_notifications');
       const current = stored ? JSON.parse(stored) as Record<string, number> : {};
@@ -604,7 +655,7 @@ export function useGlobalNotifications(
       console.error('Failed to save dismissal locally:', e);
     }
 
-    // 2. DB persistence
+    // 3. DB persistence (dismissed_notifications table)
     try {
       const { error } = await supabase
         .from('dismissed_notifications')
@@ -618,7 +669,36 @@ export function useGlobalNotifications(
     } catch (e) {
       console.error('Failed to persist notification dismissal:', e);
     }
-  }, [sessionUser, setDismissedNotificationIds]);
+
+    // 4. DB persistence (clean record's admin_edit_request.notifications array)
+    if (targetNotif && targetNotif.chutiId) {
+      try {
+        const { data: record } = await supabase
+          .from('records')
+          .select('admin_edit_request')
+          .eq('id', targetNotif.chutiId)
+          .single();
+
+        if (record) {
+          const editRequest = record.admin_edit_request as { notifications?: any[] } | null;
+          if (editRequest && Array.isArray(editRequest.notifications)) {
+            const updatedNotifs = editRequest.notifications.filter((n: any) => n.id !== id);
+            await supabase
+              .from('records')
+              .update({
+                admin_edit_request: {
+                  ...editRequest,
+                  notifications: updatedNotifs
+                }
+              })
+              .eq('id', targetNotif.chutiId);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to clean notification from records table in DB:', err);
+      }
+    }
+  }, [sessionUser, notificationsList, setDismissedNotificationIds]);
 
   const handleDismissAllNotifications = useCallback(async () => {
     if (notificationsList.length === 0 || !sessionUser) return;
@@ -641,7 +721,7 @@ export function useGlobalNotifications(
       console.error('Failed to save dismiss all locally:', e);
     }
 
-    // 2. DB persistence
+    // 2. DB persistence (dismissed_notifications table)
     try {
       const inserts = notificationsList.map((n) => ({
         user_id: sessionUser.id,
@@ -655,6 +735,48 @@ export function useGlobalNotifications(
       if (error) throw error;
     } catch (e) {
       console.error('Failed to persist dismiss all notifications:', e);
+    }
+
+    // 3. DB persistence (clean all matching record's admin_edit_request.notifications in parallel)
+    const chutiNotifs = notificationsList.filter(n => n.chutiId);
+    if (chutiNotifs.length > 0) {
+      const groupedByChuti: Record<string, string[]> = {};
+      chutiNotifs.forEach(n => {
+        if (!groupedByChuti[n.chutiId!]) {
+          groupedByChuti[n.chutiId!] = [];
+        }
+        groupedByChuti[n.chutiId!].push(n.id);
+      });
+
+      await Promise.all(
+        Object.entries(groupedByChuti).map(async ([chutiId, notifIds]) => {
+          try {
+            const { data: record } = await supabase
+              .from('records')
+              .select('admin_edit_request')
+              .eq('id', chutiId)
+              .single();
+
+            if (record) {
+              const editRequest = record.admin_edit_request as { notifications?: any[] } | null;
+              if (editRequest && Array.isArray(editRequest.notifications)) {
+                const updatedNotifs = editRequest.notifications.filter((n: any) => !notifIds.includes(n.id));
+                await supabase
+                  .from('records')
+                  .update({
+                    admin_edit_request: {
+                      ...editRequest,
+                      notifications: updatedNotifs
+                    }
+                  })
+                  .eq('id', chutiId);
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to clean notification list for record ${chutiId} in DB:`, err);
+          }
+        })
+      );
     }
   }, [notificationsList, dismissedNotificationIds, sessionUser, setDismissedNotificationIds]);
 

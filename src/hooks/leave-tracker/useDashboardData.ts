@@ -80,6 +80,17 @@ export const useDashboardData = () => {
   // Notification last viewed
   const [lastViewedTime, setLastViewedTime] = useState<string>('');
 
+  useEffect(() => {
+    const handleSync = (e: Event) => {
+      const time = (e as CustomEvent).detail as string;
+      if (time) setLastViewedTime(time);
+    };
+    window.addEventListener('chuti-last-viewed-time-sync', handleSync);
+    return () => {
+      window.removeEventListener('chuti-last-viewed-time-sync', handleSync);
+    };
+  }, []);
+
   // Theme Toggle state
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
