@@ -66,7 +66,10 @@ export const ReportsPanel: React.FC<ReportsPanelProps> = ({
   }
 
   // Determine records based on tab (normal users only get their records)
-  const dashboardRecords = isAdmin && activeReportTab === 'all' ? allRecords : records;
+  // Filter allRecords by logged-in user profile.id for "My Report" to get complete historical data.
+  const dashboardRecords = isAdmin && activeReportTab === 'all'
+    ? allRecords
+    : allRecords.filter((r) => r.user_id === profile?.id);
 
   return (
     <div className="space-y-6">
