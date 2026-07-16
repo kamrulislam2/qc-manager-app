@@ -37,6 +37,7 @@ export const LeaderboardSkeleton: React.FC<LeaderboardSkeletonProps> = ({ classN
 
       {/* Table Skeleton */}
       <div className="bg-slate-950/40 border border-slate-850/60 rounded-2xl overflow-hidden animate-pulse shadow-xl">
+        {/* Table Header Section */}
         <div className="p-5 border-b border-slate-850/30 flex justify-between items-center bg-slate-900/20">
           <div className="h-4.5 w-48 bg-slate-800 rounded-md" />
           <div className="flex gap-2">
@@ -44,6 +45,7 @@ export const LeaderboardSkeleton: React.FC<LeaderboardSkeletonProps> = ({ classN
             <div className="h-7 w-28 bg-emerald-600/10 border border-emerald-500/10 rounded-lg" />
           </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -56,33 +58,54 @@ export const LeaderboardSkeleton: React.FC<LeaderboardSkeletonProps> = ({ classN
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: 8 }).map((_, idx) => (
-                <tr key={idx} className="border-b border-slate-850/20">
-                  {/* Name column skeleton */}
-                  <td className="p-4 pl-6">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="h-4.5 w-32 bg-slate-800/80 rounded-md" />
-                      <div className="h-3 w-12 bg-slate-850 rounded-md" />
-                    </div>
-                  </td>
-                  {/* Rank column skeleton */}
-                  <td className="p-4 text-center">
-                    <div className="h-7 w-20 bg-slate-800/40 border border-slate-800/25 rounded-xl mx-auto" />
-                  </td>
-                  {/* Today column skeleton */}
-                  <td className="p-4 text-center">
-                    <div className="h-4.5 w-8 bg-slate-850 mx-auto rounded-md" />
-                  </td>
-                  {/* Monthly column skeleton */}
-                  <td className="p-4 text-center">
-                    <div className="h-4.5 w-10 bg-slate-850 mx-auto rounded-md" />
-                  </td>
-                  {/* Yearly column skeleton */}
-                  <td className="p-4 text-center pr-6">
-                    <div className="h-4.5 w-10 bg-slate-850 mx-auto rounded-md" />
-                  </td>
-                </tr>
-              ))}
+              {Array.from({ length: 8 }).map((_, idx) => {
+                const rankNum = idx + 1;
+                const isTop5 = rankNum <= 5;
+
+                return (
+                  <tr key={idx} className="border-b border-slate-850/20">
+                    {/* Name column skeleton */}
+                    <td className="p-4 pl-6">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-4.5 w-32 bg-slate-800/80 rounded-md" />
+                          {/* Visual checkmark badge skeleton for some users */}
+                          {idx % 3 === 0 && (
+                            <div className="h-4 w-4 bg-blue-500/20 rounded-full shrink-0" />
+                          )}
+                        </div>
+                        <div className="h-3 w-12 bg-slate-850 rounded-md" />
+                      </div>
+                    </td>
+
+                    {/* Rank column skeleton */}
+                    <td className="p-4 text-center">
+                      {isTop5 ? (
+                        /* Pill badge shape for top 5 */
+                        <div className="h-7 w-20 bg-slate-800/40 border border-slate-800/25 rounded-xl mx-auto" />
+                      ) : (
+                        /* Standard flat text shape for 6+ */
+                        <div className="h-4.5 w-8 bg-slate-850 mx-auto rounded-md" />
+                      )}
+                    </td>
+
+                    {/* Today column skeleton */}
+                    <td className="p-4 text-center">
+                      <div className="h-4.5 w-8 bg-slate-850 mx-auto rounded-md" />
+                    </td>
+
+                    {/* Monthly column skeleton */}
+                    <td className="p-4 text-center">
+                      <div className="h-4.5 w-10 bg-slate-850 mx-auto rounded-md" />
+                    </td>
+
+                    {/* Yearly column skeleton */}
+                    <td className="p-4 text-center pr-6">
+                      <div className="h-4.5 w-10 bg-slate-850 mx-auto rounded-md" />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
