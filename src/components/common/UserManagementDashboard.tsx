@@ -1198,6 +1198,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                               profile={u}
                               badge={topPerformerBadges[u.id]}
                               tooltipPosition="top"
+                              showRank={false}
                             />
                           </div>
                           <div className="text-[10px] text-theme-text-muted uppercase mt-0.5 tracking-wider font-mono">
