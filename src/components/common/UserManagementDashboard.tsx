@@ -774,21 +774,20 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     setSubmitting(false);
 
     if (success) {
-      // Refresh profiles list
+      // adminUpdateUserProfile already refreshed the shared profiles list via
+      // ProfilesProvider — only the updated row is needed here to sync the
+      // viewingStaff panel (single-row select, not another full-table fetch).
       const { data } = await supabase
         .from('profiles')
         .select(PROFILE_COLUMNS)
-        .order('username', { ascending: true });
+        .eq('id', viewingStaff.id)
+        .maybeSingle();
       if (data) {
-        const mapped = data.map((p) => mapProfilePasswordResetStatus(p as unknown as Profile));
-        setProfiles(mapped);
-        const updated = mapped.find(p => p.id === viewingStaff.id);
-        if (updated) {
-          updateViewingStaff(updated);
-          if (updated.id === profile?.id) {
-            localStorage.setItem(`cached_profile_${profile.id}`, JSON.stringify(updated));
-            window.dispatchEvent(new CustomEvent("profile-updated", { detail: updated }));
-          }
+        const updated = mapProfilePasswordResetStatus(data as unknown as Profile);
+        updateViewingStaff(updated);
+        if (updated.id === profile?.id) {
+          localStorage.setItem(`cached_profile_${profile.id}`, JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent("profile-updated", { detail: updated }));
         }
       }
     }

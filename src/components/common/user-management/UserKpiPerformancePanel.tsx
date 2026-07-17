@@ -25,6 +25,7 @@ import { isTauriApp } from '@/utils/apiUrlHelper';
 import { Modal } from '@/components/common/Modal';
 import { KpiSkeleton } from '@/components/common/skeleton/KpiSkeleton';
 import { PROFILE_COLUMNS, KPI_ASSESSMENT_COLUMNS } from '@/utils/dbColumns';
+import { useProfiles } from '@/contexts/ProfilesContext';
 
 interface UserKpiPerformancePanelProps {
   viewingStaff: Profile;
@@ -175,9 +176,8 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
   const [isDirty, setIsDirty] = useState(false);
 
   // Autocomplete suggestions for Appraiser
-  const [appUsers, setAppUsers] = useState<{ id: string; full_name: string; username: string; }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  
+
   // Production stats count
   const [typeCounts, setTypeCounts] = useState<Record<string, number>>({});
   const [totalSubmissions, setTotalSubmissions] = useState(0);
@@ -189,37 +189,30 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
   ];
   const years = [2024, 2025, 2026, 2027];
 
-  // Check current session
+  // Shared profiles list (ProfilesProvider) — replaces this panel's former
+  // own-profile fetch and full-table appraiser-autocomplete fetch on mount.
+  const { profilesList } = useProfiles();
+
+  // Check current session — resolve own profile from the shared list
   useEffect(() => {
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select(PROFILE_COLUMNS)
-          .eq('id', session.user.id)
-          .single();
-        if (data) setCurrentUser(data);
+        const own = profilesList.find(p => p.id === session.user.id);
+        if (own) setCurrentUser(own);
       }
     };
     fetchSession();
-  }, []);
+  }, [profilesList]);
 
-  // Fetch active users for appraiser autocomplete
-  useEffect(() => {
-    const fetchAppUsers = async () => {
-      try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, full_name, username')
-          .order('full_name', { ascending: true });
-        if (data) setAppUsers(data);
-      } catch (err) {
-        console.warn('Failed to fetch user profiles for suggestions:', err);
-      }
-    };
-    fetchAppUsers();
-  }, []);
+  // Active users for appraiser autocomplete — derived from the shared list
+  const appUsers = useMemo(
+    () =>
+      profilesList
+        .map(p => ({ id: p.id, full_name: p.full_name || '', username: p.username || '' }))
+        .sort((a, b) => a.full_name.localeCompare(b.full_name)),
+    [profilesList]
+  );
 
   const isSupervisorOrAdmin = useMemo(() => {
     if (!currentUser) return false;

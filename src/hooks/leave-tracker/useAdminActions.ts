@@ -4,8 +4,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
 import { getApiUrl } from '@/utils/apiUrlHelper';
-import { PROFILE_COLUMNS } from '@/utils/dbColumns';
-import { mapProfilePasswordResetStatus } from '@/utils/profileHelpers';
+import { useProfiles } from '@/contexts/ProfilesContext';
 
 interface UseAdminActionsOptions {
   profilesList: Profile[];
@@ -24,6 +23,10 @@ export const useAdminActions = ({
   setSubmitting,
   updateLastActivity,
 }: UseAdminActionsOptions) => {
+  // Post-mutation refreshes go through the shared ProfilesProvider fetch
+  // (single owner of the full-table query + IndexedDB mirror) instead of
+  // issuing duplicate full-table selects here.
+  const { refreshProfiles } = useProfiles();
 
   // Admin: Create a new user account
   const createUser = useCallback(async (
@@ -127,15 +130,8 @@ export const useAdminActions = ({
         `Created new user account '${username.toUpperCase().trim()}' (${fullName}) with role '${role}'${canManageRules ? ' [Quote Rules Permission Granted]' : ''}`
       );
 
-      // Refresh the profiles list
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select(PROFILE_COLUMNS)
-        .order('username', { ascending: true });
-      if (profiles) {
-        // Map to the same shape ProfilesProvider stores in the shared list
-        setProfilesList(profiles.map((p) => mapProfilePasswordResetStatus(p as unknown as Profile) as Profile));
-      }
+      // Refresh the profiles list via the shared provider fetch
+      await refreshProfiles();
 
       showToast('success', `User created successfully! Password: ${activePassword}`);
 
@@ -148,7 +144,7 @@ export const useAdminActions = ({
       setSubmitting(false);
       return null;
     }
-  }, [showToast, logActivity, setProfilesList, setSubmitting]);
+  }, [showToast, logActivity, refreshProfiles, setSubmitting]);
 
   // Admin: Reset password of another user
   const resetUserPassword = useCallback(async (userId: string, newPassword: string) => {
@@ -572,15 +568,8 @@ export const useAdminActions = ({
         );
       }
 
-      // Refresh profiles list
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select(PROFILE_COLUMNS)
-        .order('username', { ascending: true });
-      if (profiles) {
-        // Map to the same shape ProfilesProvider stores in the shared list
-        setProfilesList(profiles.map((p) => mapProfilePasswordResetStatus(p as unknown as Profile) as Profile));
-      }
+      // Refresh profiles list via the shared provider fetch
+      await refreshProfiles();
 
       showToast('success', 'User profile updated successfully!');
 
@@ -592,7 +581,7 @@ export const useAdminActions = ({
       setSubmitting(false);
       return false;
     }
-  }, [showToast, logActivity, profilesList, setProfilesList, setSubmitting, updateLastActivity]);
+  }, [showToast, logActivity, profilesList, refreshProfiles, setSubmitting, updateLastActivity]);
 
   return {
     createUser,
