@@ -173,7 +173,7 @@ export const EUICausalityPanel: React.FC<EUICausalityPanelProps> = ({ profile, i
     try {
       const { data, error } = await supabase
         .from("login_codes")
-        .select("*")
+        .select("code")
         .eq("login_id", "__eui_causality_template_v2__")
         .maybeSingle();
       if (error) throw error;

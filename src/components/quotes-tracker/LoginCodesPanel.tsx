@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/utils/supabase";
 import { LoginCode } from "@/types";
+import { LOGIN_CODE_COLUMNS } from "@/utils/dbColumns";
 import {
   Search,
   X,
@@ -139,7 +140,7 @@ export const LoginCodesPanel: React.FC<LoginCodesPanelProps> = ({
     try {
       const dbPromise = supabase
         .from("login_codes")
-        .select("*")
+        .select(LOGIN_CODE_COLUMNS)
         .order("login_id", { ascending: true });
 
       const [dbResult] = await Promise.all([dbPromise, delayPromise]);

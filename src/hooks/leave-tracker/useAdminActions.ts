@@ -4,6 +4,8 @@ import { useCallback } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
 import { getApiUrl } from '@/utils/apiUrlHelper';
+import { PROFILE_COLUMNS } from '@/utils/dbColumns';
+import { mapProfilePasswordResetStatus } from '@/utils/profileHelpers';
 
 interface UseAdminActionsOptions {
   profilesList: Profile[];
@@ -128,9 +130,12 @@ export const useAdminActions = ({
       // Refresh the profiles list
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('*')
+        .select(PROFILE_COLUMNS)
         .order('username', { ascending: true });
-      if (profiles) setProfilesList(profiles);
+      if (profiles) {
+        // Map to the same shape ProfilesProvider stores in the shared list
+        setProfilesList(profiles.map((p) => mapProfilePasswordResetStatus(p as unknown as Profile) as Profile));
+      }
 
       showToast('success', `User created successfully! Password: ${activePassword}`);
 
@@ -570,9 +575,12 @@ export const useAdminActions = ({
       // Refresh profiles list
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('*')
+        .select(PROFILE_COLUMNS)
         .order('username', { ascending: true });
-      if (profiles) setProfilesList(profiles);
+      if (profiles) {
+        // Map to the same shape ProfilesProvider stores in the shared list
+        setProfilesList(profiles.map((p) => mapProfilePasswordResetStatus(p as unknown as Profile) as Profile));
+      }
 
       showToast('success', 'User profile updated successfully!');
 

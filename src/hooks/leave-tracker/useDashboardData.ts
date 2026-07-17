@@ -10,6 +10,8 @@ import { ChutiRecord, SyncConflict, getOfflineRecords, syncOfflineData, getCache
 
 import { getGlobalSettingsFromProfile, defaultGlobalSettings, GlobalSettings, parseHolidayItem } from '@/utils/dashboardHelpers';
 import { useRealtimeHandler, RealtimePayload } from '@/contexts/RealtimeContext';
+import { useProfiles } from '@/contexts/ProfilesContext';
+import { PROFILE_COLUMNS, CHUTI_COLUMNS, GOVT_HOLIDAY_RESPONSE_COLUMNS, LEAVE_SETTLEMENT_COLUMNS } from '@/utils/dbColumns';
 
 export const useDashboardData = () => {
 
@@ -42,7 +44,8 @@ export const useDashboardData = () => {
   // Lists states
   const [userRecords, setUserRecords] = useState<ChutiRecord[]>([]);
   const [adminRecords, setAdminRecords] = useState<ChutiRecordWithProfile[]>([]);
-  const [profilesList, setProfilesList] = useState<Profile[]>([]);
+  // R1/R2: shared profiles list from ProfilesContext (was a local duplicate copy)
+  const { profilesList, setProfilesList } = useProfiles();
   const [holidayResponses, setHolidayResponses] = useState<GovtHolidayResponse[]>([]);
   const [leaveSettlements, setLeaveSettlements] = useState<LeaveSettlement[]>([]);
 
@@ -106,11 +109,7 @@ export const useDashboardData = () => {
     // Check if offline
     if (typeof window !== 'undefined' && !navigator.onLine) {
       try {
-        // Load profiles cache
-        const cachedProfiles = await getCacheData('profiles_cache');
-        if (cachedProfiles.length > 0) {
-          setProfilesList(cachedProfiles);
-        }
+        // R1/R2: profiles cache is loaded by ProfilesProvider — only chuti data here
 
         // Load chuti records cache
         const cachedChuti = await getCacheData('chuti_cache');
@@ -176,35 +175,24 @@ export const useDashboardData = () => {
       // could be missed by the next delta query.
       const syncStartedAt = new Date().toISOString();
 
-      let profilesData: Profile[] = [];
+      // R1/R2: profiles are fetched once by ProfilesProvider — read the shared
+      // list here for cache mirroring and globalSettings derivation below.
+      const profilesData: Profile[] = profilesListRef.current;
       let adminRecordsData: ChutiRecordWithProfile[] = [];
       let userRecordsData: ChutiRecord[] = [];
       let responsesData: GovtHolidayResponse[] = [];
       let settlementsData: LeaveSettlement[] = [];
 
-      // 1. Fetch profiles and admin chuti list if admin/supervisor
+      // 1. Fetch admin chuti list if admin/supervisor
       if (profile.role === 'admin' || profile.role === 'supervisor') {
-        const { data: profiles, error: profilesErr } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('username', { ascending: true });
-
-        if (!profilesErr && profiles) {
-          const mapped = profiles.map((p) => mapProfilePasswordResetStatus(p));
-          profilesData = mapped;
-          setProfilesList(mapped);
-        }
-
         const lastChutiSync = await getSyncTimestamp('chuti');
         if (lastChutiSync) {
-          const { data: deltaRecords, error } = await supabase
+          const { data: deltaRaw, error } = await supabase
             .from('chuti')
-            .select(`
-              *,
-              profiles (username, full_name, role, supervisor_ids)
-            `)
+            .select(`${CHUTI_COLUMNS}, profiles (username, full_name, role, supervisor_ids)`)
             .gte('updated_at', lastChutiSync)
             .order('date', { ascending: false });
+          const deltaRecords = deltaRaw as unknown as ChutiRecordWithProfile[] | null;
 
           if (!error && deltaRecords && deltaRecords.length > 0) {
             const deletedIds = deltaRecords.filter(r => r.deleted_at).map(r => r.id);
@@ -236,7 +224,7 @@ export const useDashboardData = () => {
 
               const { data, error: fullErr } = await supabase
                 .from('chuti')
-                .select(`*, profiles (username, full_name, role, supervisor_ids)`)
+                .select(`${CHUTI_COLUMNS}, profiles (username, full_name, role, supervisor_ids)`)
                 .is('deleted_at', null)
                 .order('date', { ascending: false })
                 .range(from, to);
@@ -247,7 +235,7 @@ export const useDashboardData = () => {
               }
 
               if (data && data.length > 0) {
-                allData = [...allData, ...data];
+                allData = [...allData, ...(data as unknown as ChutiRecordWithProfile[])];
                 if (data.length < pageSize) {
                   hasMore = false;
                 } else {
@@ -276,10 +264,7 @@ export const useDashboardData = () => {
 
             const { data, error } = await supabase
               .from('chuti')
-              .select(`
-                *,
-                profiles (username, full_name, role, supervisor_ids)
-              `)
+              .select(`${CHUTI_COLUMNS}, profiles (username, full_name, role, supervisor_ids)`)
               .is('deleted_at', null)
               .order('date', { ascending: false })
               .range(from, to);
@@ -290,7 +275,7 @@ export const useDashboardData = () => {
             }
 
             if (data && data.length > 0) {
-              allData = [...allData, ...data];
+              allData = [...allData, ...(data as unknown as ChutiRecordWithProfile[])];
               if (data.length < pageSize) {
                 hasMore = false;
               } else {
@@ -306,32 +291,26 @@ export const useDashboardData = () => {
             adminRecordsData = allData;
           }
         }
-      } else {
-        // For normal users, fetch only supervisor list
-        const { data: supervisors, error: profilesErr } = await supabase
-          .from('profiles')
-          .select('id, username, role, full_name')
-          .eq('role', 'supervisor')
-          .order('username', { ascending: true });
-
-        if (!profilesErr && supervisors) {
-          profilesData = supervisors as Profile[];
-          setProfilesList(supervisors as Profile[]);
-        }
       }
+      // R1/R2: normal users previously fetched a supervisors-only list here.
+      // The shared ProfilesProvider list is a superset (consumers like AddLeave
+      // filter by role === 'supervisor' themselves), so no extra fetch is needed.
 
       // 2. Fetch logged-in user records
       const lastUserChutiSync = await getSyncTimestamp('chuti_user');
       if (lastUserChutiSync) {
-        const { data: deltaRecords, error } = await supabase
+        const { data: deltaRaw2, error } = await supabase
           .from('chuti')
-          .select('*')
+          .select(CHUTI_COLUMNS)
           .eq('user_id', sessionUser.id)
           .gte('updated_at', lastUserChutiSync)
           .order('date', { ascending: false });
+        const deltaRecords = deltaRaw2 as unknown as ChutiRecord[] | null;
 
         if (!error && deltaRecords && deltaRecords.length > 0) {
-          const deletedIds = new Set(deltaRecords.filter(r => r.deleted_at).map(r => r.id));
+          const deletedIds = new Set(
+            deltaRecords.filter(r => r.deleted_at && r.id).map(r => r.id as string),
+          );
           const cachedUserChuti = (await getCacheData('chuti_cache')).filter(r => r.user_id === sessionUser.id);
           const mergedMap = new Map(cachedUserChuti.map(r => [r.id, r]));
           deltaRecords.forEach(r => {
@@ -354,24 +333,26 @@ export const useDashboardData = () => {
           }
         } else if (error) {
           console.error('User delta fetch failed, falling back to full fetch:', error);
-          const { data: records, error: fullErr } = await supabase
+          const { data: recordsRaw, error: fullErr } = await supabase
             .from('chuti')
-            .select('*')
+            .select(CHUTI_COLUMNS)
             .eq('user_id', sessionUser.id)
             .is('deleted_at', null)
             .order('date', { ascending: false });
+          const records = recordsRaw as unknown as ChutiRecord[] | null;
           if (!fullErr && records) {
             setUserRecords(records);
             userRecordsData = records;
           }
         }
       } else {
-        const { data: records, error } = await supabase
+        const { data: recordsRaw, error } = await supabase
           .from('chuti')
-          .select('*')
+          .select(CHUTI_COLUMNS)
           .eq('user_id', sessionUser.id)
           .is('deleted_at', null)
           .order('date', { ascending: false });
+        const records = recordsRaw as unknown as ChutiRecord[] | null;
 
         if (!error && records) {
           setUserRecords(records);
@@ -381,45 +362,43 @@ export const useDashboardData = () => {
 
       // 3. Fetch Govt Holiday Responses and settlements
       if (profile.role === 'admin' || profile.role === 'supervisor') {
-        const { data: responses, error: respError } = await supabase
+        const { data: responsesRaw, error: respError } = await supabase
           .from('govt_holiday_responses')
-          .select(`
-            *,
-            profiles (full_name, username)
-          `)
+          .select(`${GOVT_HOLIDAY_RESPONSE_COLUMNS}, profiles (full_name, username)`)
           .order('created_at', { ascending: false });
+        const responses = responsesRaw as unknown as GovtHolidayResponse[] | null;
         if (!respError && responses) {
           setHolidayResponses(responses);
           responsesData = responses;
         }
 
-        const { data: settlements, error: settError } = await supabase
+        const { data: settlementsRaw, error: settError } = await supabase
           .from('leave_settlements')
-          .select(`
-            *,
-            profiles!leave_settlements_user_id_fkey (full_name, username)
-          `)
+          .select(`${LEAVE_SETTLEMENT_COLUMNS}, profiles!leave_settlements_user_id_fkey (full_name, username)`)
           .order('created_at', { ascending: false });
+        const settlements = settlementsRaw as unknown as LeaveSettlement[] | null;
         if (!settError && settlements) {
           setLeaveSettlements(settlements);
           settlementsData = settlements;
         }
       } else {
-        const { data: responses, error: respError } = await supabase
+        const { data: responsesRaw, error: respError } = await supabase
           .from('govt_holiday_responses')
-          .select('*')
+          .select(GOVT_HOLIDAY_RESPONSE_COLUMNS)
           .eq('user_id', sessionUser.id)
           .order('created_at', { ascending: false });
+        const responses = responsesRaw as unknown as GovtHolidayResponse[] | null;
         if (!respError && responses) {
           setHolidayResponses(responses);
           responsesData = responses;
         }
 
-        const { data: settlements, error: settError } = await supabase
+        const { data: settlementsRaw, error: settError } = await supabase
           .from('leave_settlements')
-          .select('*')
+          .select(LEAVE_SETTLEMENT_COLUMNS)
           .eq('user_id', sessionUser.id)
           .order('created_at', { ascending: false });
+        const settlements = settlementsRaw as unknown as LeaveSettlement[] | null;
         if (!settError && settlements) {
           setLeaveSettlements(settlements);
           settlementsData = settlements;
@@ -428,9 +407,7 @@ export const useDashboardData = () => {
 
       // 4. Asynchronously merge fetched data into IndexedDB cache (non-destructive upsert)
       try {
-        if (profilesData.length > 0) {
-          await mergeCacheData('profiles_cache', profilesData);
-        }
+        // R1/R2: profiles_cache is maintained by ProfilesProvider
 
         // Cache chuti records (merge-based since we use delta sync)
         const recordsToCache = (profile.role === 'admin' || profile.role === 'supervisor')
@@ -457,8 +434,6 @@ export const useDashboardData = () => {
           await setCacheData('settlements_cache', settlementsData);
           await setSyncTimestamp('leave_settlements', syncStartedAt);
         }
-
-        await setSyncTimestamp('profiles', syncStartedAt);
 
         // Store current globalSettings to cache if they are derived
         const currentGlobalSettings = (profile.role === 'admin' || profile.role === 'supervisor')
@@ -611,10 +586,10 @@ export const useDashboardData = () => {
       try {
         const selectedYear = holidayDate.substring(0, 4);
 
-        // Fetch new reserved count
+        // Fetch new reserved count (only the date is needed for the year filter)
         const { data: activeReserveResponses } = await supabase
           .from('govt_holiday_responses')
-          .select('*')
+          .select('holiday_date')
           .eq('user_id', targetUserId)
           .eq('response', 'reserve');
 
@@ -625,7 +600,7 @@ export const useDashboardData = () => {
         // Fetch user's adjusted full leaves in the same year
         const { data: userLeaves } = await supabase
           .from('chuti')
-          .select('*')
+          .select('id, date, comment, reserve_holiday')
           .eq('user_id', targetUserId)
           .eq('leave_type', 'Full Leave')
           .eq('adjustment', true)
@@ -793,7 +768,11 @@ export const useDashboardData = () => {
         || profilesList.find(p => p.role === 'admin');
 
       if (adminProfile && (profile.role === 'admin' || profile.role === 'supervisor')) {
-        setGlobalSettings(getGlobalSettingsFromProfile(adminProfile));
+        const derived = getGlobalSettingsFromProfile(adminProfile);
+        setGlobalSettings(derived);
+        // Keep the offline cache aligned — fetchRecords may have run before the
+        // shared profiles list loaded and cached profile-derived settings.
+        setGlobalSettingsCache(derived).catch(() => {});
       } else {
         setGlobalSettings(getGlobalSettingsFromProfile(profile));
       }
@@ -983,7 +962,8 @@ export const useDashboardData = () => {
         setProfile(prev => prev ? { ...prev, ...newRow } : (newRow as Profile));
       }
 
-      // Inline update profilesList from payload to avoid full refetch
+      // R1/R2: the shared profilesList is patched inline by ProfilesProvider —
+      // here we only detect substantial changes to notify the notification hook.
       const oldUser = profilesListRef.current.find(p => p.id === newRow.id);
       const hasSubstantialChange = !oldUser ||
         oldUser.username !== newRow.username ||
@@ -996,23 +976,14 @@ export const useDashboardData = () => {
 
       const isApprover = profile?.role === 'admin' || profile?.role === 'supervisor';
       if (hasSubstantialChange && isApprover) {
-        // Inline update the profiles list instead of full refetch
-        setProfilesList(prev => {
-          const idx = prev.findIndex(p => p.id === newRow.id);
-          if (idx >= 0) {
-            const updated = [...prev];
-            updated[idx] = { ...updated[idx], ...newRow } as Profile;
-            return updated;
-          }
-          return prev;
-        });
         // Notify notification hook
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('realtime-data-changed'));
         }
       }
     } else {
-      // INSERT or DELETE — needs full refetch for profiles
+      // INSERT or DELETE — ProfilesProvider refetches the list; refresh chuti
+      // records here since approver views join profile data
       const isApprover = profile?.role === 'admin' || profile?.role === 'supervisor';
       if (isApprover) {
         handleRealtimeChange();
@@ -1160,7 +1131,7 @@ export const useDashboardData = () => {
           try {
             const { data, error } = await supabase
               .from('profiles')
-              .select('*')
+              .select(PROFILE_COLUMNS)
               .eq('id', session.user.id)
               .maybeSingle();
             userProfile = data;

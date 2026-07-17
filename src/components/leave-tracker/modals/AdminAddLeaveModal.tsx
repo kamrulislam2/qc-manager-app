@@ -22,6 +22,7 @@ import { toast } from "react-hot-toast";
 import { LeaveUsageSummary } from "@/components/leave-tracker/LeaveUsageSummary";
 
 import { Modal } from "@/components/common/Modal";
+import { GOVT_HOLIDAY_RESPONSE_COLUMNS } from "@/utils/dbColumns";
 
 interface AdminAddLeaveModalProps {
   showModal: boolean;
@@ -65,7 +66,7 @@ export function AdminAddLeaveModal({
       const fetchUserResponses = async () => {
         const { data } = await supabase
           .from("govt_holiday_responses")
-          .select("*")
+          .select(GOVT_HOLIDAY_RESPONSE_COLUMNS)
           .eq("user_id", staffProfile.id);
         if (data) {
           setUserResponses(data);

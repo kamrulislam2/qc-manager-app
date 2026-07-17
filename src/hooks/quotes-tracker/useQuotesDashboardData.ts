@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
@@ -10,7 +10,9 @@ import { useRecordActions } from '@/hooks/leave-tracker/useRecordActions';
 import { useAdminActions } from '@/hooks/leave-tracker/useAdminActions';
 import { toast } from 'react-hot-toast';
 import { useRealtimeHandler } from '@/contexts/RealtimeContext';
+import { useProfiles } from '@/contexts/ProfilesContext';
 import { fetchSubmittedAtRange, buildAvailableDates } from '@/utils/availableDatesHelper';
+import { PROFILE_COLUMNS, AUDIT_LOG_COLUMNS, RECORD_COLUMNS } from '@/utils/dbColumns';
 import {
   syncOfflineData,
   setCacheData,
@@ -72,21 +74,19 @@ export const useQuotesDashboardData = () => {
 
   // Records and Profiles lists
   const [records, setRecords] = useState<RecordItem[]>([]);
-  const [profilesList, setRawProfilesList] = useState<Profile[]>([]);
-
-  const setProfilesList = useCallback((val: Profile[] | ((prev: Profile[]) => Profile[])) => {
-    setRawProfilesList(prev => {
-      const next = typeof val === 'function' ? val(prev) : val;
-      return sanitizeProfilesList(next);
-    });
-  }, []);
+  // R1/R2: shared profiles list from ProfilesContext. Sanitization (stripping
+  // legacy 'Review Van'/'Review Bike' allowed_types) is applied read-side so
+  // quotes consumers see the same shape as before while the shared store keeps
+  // raw rows for chuti/user-management views.
+  const {
+    profilesList: rawProfilesList,
+    setProfilesList,
+  } = useProfiles();
+  const profilesList = useMemo(
+    () => sanitizeProfilesList(rawProfilesList),
+    [rawProfilesList],
+  );
   const [availableDates, setAvailableDates] = useState<{ year: string; month: string }[]>([]);
-
-  // Keep a ref of profilesList to avoid subscription re-run cycles
-  const profilesListRef = useRef<Profile[]>([]);
-  useEffect(() => {
-    profilesListRef.current = profilesList;
-  }, [profilesList]);
 
   // Audit Logs
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
@@ -179,10 +179,7 @@ export const useQuotesDashboardData = () => {
 
               const query = supabase
                 .from('records')
-                .select(`
-                  *,
-                  profiles (username, full_name)
-                `)
+                .select(`${RECORD_COLUMNS}, profiles (username, full_name)`)
                 .gte('submitted_at', startDate)
                 .lte('submitted_at', endDate)
                 .order('submitted_at', { ascending: false })
@@ -192,7 +189,7 @@ export const useQuotesDashboardData = () => {
               if (error) throw error;
 
               if (data && data.length > 0) {
-                monthlyData = [...monthlyData, ...data];
+                monthlyData = [...monthlyData, ...(data as unknown as RecordItem[])];
                 if (data.length < mPageSize) {
                   mHasMore = false;
                 } else {
@@ -254,10 +251,7 @@ export const useQuotesDashboardData = () => {
 
                 const query = supabase
                   .from('records')
-                  .select(`
-                    *,
-                    profiles (username, full_name)
-                  `)
+                  .select(`${RECORD_COLUMNS}, profiles (username, full_name)`)
                   .gte('updated_at', bufferedSyncTimestamp)
                   .range(from, to);
 
@@ -265,7 +259,7 @@ export const useQuotesDashboardData = () => {
                 if (pageError) throw pageError;
 
                 if (pageData && pageData.length > 0) {
-                  deltaData = [...deltaData, ...pageData];
+                  deltaData = [...deltaData, ...(pageData as unknown as RecordItem[])];
                   if (pageData.length < deltaPageSize) {
                     deltaHasMore = false;
                   } else {
@@ -295,10 +289,7 @@ export const useQuotesDashboardData = () => {
 
                 const query = supabase
                   .from('records')
-                  .select(`
-                    *,
-                    profiles (username, full_name)
-                  `)
+                  .select(`${RECORD_COLUMNS}, profiles (username, full_name)`)
                   .gte('submitted_at', '2026-05-01T00:00:00.000Z')
                   .order('submitted_at', { ascending: false })
                   .range(from, to);
@@ -307,7 +298,7 @@ export const useQuotesDashboardData = () => {
                 if (error) throw error;
 
                 if (data && data.length > 0) {
-                  allData = [...allData, ...data];
+                  allData = [...allData, ...(data as unknown as RecordItem[])];
                   if (data.length < pageSize) {
                     hasMore = false;
                   } else {
@@ -331,11 +322,7 @@ export const useQuotesDashboardData = () => {
             console.error('Failed to purge stale cache:', purgeErr);
           }
 
-          // If Admin, load profiles list from local cache (already populated by Chuti/User Management)
-          if (profile.role === 'admin' || profile.role === 'supervisor') {
-            const cachedProfiles = await getCacheData<Profile>('profiles_cache');
-            setProfilesList(cachedProfiles);
-          }
+          // R1/R2: profiles list is owned by ProfilesProvider (cache + network)
 
           // Record this fetch timestamp in our throttling ref
           if (!canSkipRemote) {
@@ -451,16 +438,7 @@ export const useQuotesDashboardData = () => {
       setRecords(filtered);
       lastFetchedKeyRef.current = fetchKey;
 
-      // If Offline or Net Error & Admin, load profiles list from cache
-      if ((profile.role === 'admin' || profile.role === 'supervisor')) {
-        const cachedProfiles = await getCacheData<Profile>('profiles_cache');
-        setProfilesList(prev => {
-          if (prev.length === 0 || !navigator.onLine) {
-            return cachedProfiles;
-          }
-          return prev;
-        });
-      }
+      // R1/R2: offline profiles fallback is handled by ProfilesProvider
 
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -471,7 +449,7 @@ export const useQuotesDashboardData = () => {
       setInitialFetchDone(true);
       fetchingRef.current = false;
     }
-  }, [sessionUser, profile, selectedYear, selectedMonth, showToast, setProfilesList, setProfile]);
+  }, [sessionUser, profile, selectedYear, selectedMonth, showToast, setProfile]);
 
   // Fetch unique month/year dates that contain submitted records for the logged-in user (or anyone if admin)
   const fetchAvailableDates = useCallback(async () => {
@@ -532,7 +510,7 @@ export const useQuotesDashboardData = () => {
     try {
       const { data, error } = await supabase
         .from('audit_logs')
-        .select('*')
+        .select(AUDIT_LOG_COLUMNS)
         .order('created_at', { ascending: false })
         .limit(150);
       
@@ -635,7 +613,7 @@ export const useQuotesDashboardData = () => {
       // Reload profile
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('*')
+        .select(PROFILE_COLUMNS)
         .eq('id', sessionUser.id)
         .maybeSingle();
 
@@ -724,7 +702,7 @@ export const useQuotesDashboardData = () => {
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select(PROFILE_COLUMNS)
             .eq('id', userId)
             .maybeSingle();
 
@@ -885,44 +863,8 @@ export const useQuotesDashboardData = () => {
             localStorage.setItem('quotes_sales_profile', JSON.stringify(payload.new));
           }
         }
-
-        // Refresh profiles list for admin/supervisor only if substantial change occurred
-        if ((profile?.role === 'admin' || profile?.role === 'supervisor')) {
-          const oldUser = profilesListRef.current.find(p => p.id === payload.new.id);
-          const hasSubstantialChange = !oldUser ||
-            oldUser.username !== payload.new.username ||
-            oldUser.role !== payload.new.role ||
-            oldUser.full_name !== payload.new.full_name ||
-            oldUser.job_role !== payload.new.job_role ||
-            oldUser.working_hours !== payload.new.working_hours ||
-            oldUser.break_time !== payload.new.break_time ||
-            oldUser.is_setup_completed !== payload.new.is_setup_completed;
-
-          if (hasSubstantialChange) {
-            // Inline-update the changed profile from the realtime payload
-            // instead of refetching the entire profiles list (egress saver).
-            setProfilesList(prev => {
-              const idx = prev.findIndex(p => p.id === payload.new.id);
-              if (idx >= 0) {
-                const updated = [...prev];
-                updated[idx] = { ...updated[idx], ...payload.new } as Profile;
-                return updated;
-              }
-              return prev;
-            });
-          }
-        }
-      } else {
-        // INSERT, or DELETE of another user's profile
-        if ((profile?.role === 'admin' || profile?.role === 'supervisor')) {
-          supabase
-            .from('profiles')
-            .select('*')
-            .order('username', { ascending: true })
-            .then(({ data }) => {
-              if (data) setProfilesList(data || []);
-            });
-        }
+        // R1/R2: the shared profiles list (UPDATE patch and INSERT/DELETE
+        // refetch) is handled by ProfilesProvider — nothing else to do here.
       }
     };
 
@@ -936,7 +878,7 @@ export const useQuotesDashboardData = () => {
         window.removeEventListener('realtime-profile-payload', handleProfilePayload);
       }
     };
-  }, [sessionUser, profile, fetchRecords, fetchAvailableDates, router, setProfile, setProfilesList]);
+  }, [sessionUser, profile, fetchRecords, fetchAvailableDates, router, setProfile]);
 
   const handleLogout = async () => {
     lastFetchedKeyRef.current = '';

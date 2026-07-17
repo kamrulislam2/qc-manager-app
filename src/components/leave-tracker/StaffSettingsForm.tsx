@@ -6,6 +6,7 @@ import { Profile } from "@/types";
 import { formatTimeToAMPM } from "@/utils/dashboardHelpers";
 import { supabase } from "@/utils/supabase";
 import { canAccessProfileSection } from "@/utils/permissionService";
+import { KPI_ASSESSMENT_COLUMNS } from "@/utils/dbColumns";
 
 interface StaffSettingsFormProps {
   isNewUser: boolean;
@@ -165,7 +166,7 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
       try {
         const { data, error } = await supabase
           .from('kpi_assessments')
-          .select('*')
+          .select(KPI_ASSESSMENT_COLUMNS)
           .eq('user_id', viewingStaff.id)
           .order('updated_at', { ascending: false });
         if (data) {

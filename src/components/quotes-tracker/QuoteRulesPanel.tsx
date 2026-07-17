@@ -12,6 +12,7 @@ import { supabase } from "@/utils/supabase";
 import { Profile, ComplianceRule } from "@/types";
 
 import { INSURANCE_DATABASE } from "@/utils/initialRulesData";
+import { COMPLIANCE_RULE_COLUMNS } from "@/utils/dbColumns";
 import {
   Search,
   X,
@@ -214,7 +215,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
       try {
         const { data, error } = await supabase
           .from("compliance_rules")
-          .select("*")
+          .select(COMPLIANCE_RULE_COLUMNS)
           .eq("is_deleted", false)
           .order("created_at", { ascending: true });
 

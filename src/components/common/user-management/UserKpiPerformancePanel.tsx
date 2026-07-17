@@ -24,6 +24,7 @@ import { Capacitor } from '@capacitor/core';
 import { isTauriApp } from '@/utils/apiUrlHelper';
 import { Modal } from '@/components/common/Modal';
 import { KpiSkeleton } from '@/components/common/skeleton/KpiSkeleton';
+import { PROFILE_COLUMNS, KPI_ASSESSMENT_COLUMNS } from '@/utils/dbColumns';
 
 interface UserKpiPerformancePanelProps {
   viewingStaff: Profile;
@@ -195,7 +196,7 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
       if (session?.user) {
         const { data } = await supabase
           .from('profiles')
-          .select('*')
+          .select(PROFILE_COLUMNS)
           .eq('id', session.user.id)
           .single();
         if (data) setCurrentUser(data);
@@ -590,7 +591,7 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
       try {
         const { data, error } = await supabase
           .from('kpi_assessments')
-          .select('*')
+          .select(KPI_ASSESSMENT_COLUMNS)
           .eq('user_id', targetStaff.id)
           .eq('month_year', monthYearKey)
           .maybeSingle();
@@ -760,7 +761,7 @@ export const UserKpiPerformancePanel: React.FC<UserKpiPerformancePanelProps> = (
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(PROFILE_COLUMNS)
         .eq('username', clean)
         .maybeSingle();
       if (error) throw error;

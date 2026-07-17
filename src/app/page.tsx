@@ -46,6 +46,8 @@ import ChutiDashboard from "@/app/chuti/page";
 import QuotesDashboard from "@/app/quotes/page";
 import { UserManagementDashboard } from "@/components/common/UserManagementDashboard";
 import { TodoPanel } from "@/components/common/TodoPanel";
+import { ProfilesProvider, useProfiles } from "@/contexts/ProfilesContext";
+import { PROFILE_COLUMNS } from "@/utils/dbColumns";
 import { ProfileSettings } from "@/components/common/ProfileSettings";
 
 function getInitialState() {
@@ -161,7 +163,7 @@ export default function AppPortal() {
     try {
       const fetchPromise = supabase
         .from("profiles")
-        .select("*")
+        .select(PROFILE_COLUMNS)
         .eq("id", userId)
         .single();
 
@@ -412,13 +414,15 @@ export default function AppPortal() {
 
   return (
     <RealtimeProvider sessionUser={sessionUser} profile={profile}>
-      <AppPortalInner
-        sessionUser={sessionUser}
-        profile={profile}
-        setProfile={setProfile}
-        handleLogout={handleLogout}
-        isProfileFresh={isProfileFresh}
-      />
+      <ProfilesProvider sessionUser={sessionUser}>
+        <AppPortalInner
+          sessionUser={sessionUser}
+          profile={profile}
+          setProfile={setProfile}
+          handleLogout={handleLogout}
+          isProfileFresh={isProfileFresh}
+        />
+      </ProfilesProvider>
     </RealtimeProvider>
   );
 }
@@ -569,7 +573,8 @@ function AppPortalInner({
 
   const [isUserManagementFullView, setIsUserManagementFullView] =
     useState(false);
-  const [profilesList, setProfilesList] = useState<Profile[]>([]);
+  // R1/R2: single shared profiles list from ProfilesContext (was local state)
+  const { profilesList, refreshProfiles } = useProfiles();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isNative, setIsNative] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -697,26 +702,8 @@ function AppPortalInner({
   useEffect(() => {
     if (!sessionUser) return;
 
-    let deferTimer: NodeJS.Timeout | null = null;
-
-    const fetchProfiles = async () => {
-      if (deferTimer) {
-        clearTimeout(deferTimer);
-        deferTimer = null;
-      }
-      const { data, error } = await supabase.from("profiles").select("*");
-      if (data && !error) {
-        const mappedData = data.map((p: any) =>
-          mapProfilePasswordResetStatus(p),
-        );
-        setProfilesList(mappedData);
-      }
-    };
-
-    deferTimer = setTimeout(() => {
-      fetchProfiles();
-    }, 3000);
-
+    // R1/R2: profiles are fetched once by ProfilesProvider — this effect only
+    // triggers the badge-sync RPC and refreshes the shared list afterwards.
     const triggerBadgeSync = async () => {
       // Once-daily guard: badges are computed from the PREVIOUS month's records,
       // so re-running the RPC on every mount only rewrites identical rows and
@@ -726,7 +713,7 @@ function AppPortalInner({
       const todayStr = new Date().toLocaleDateString("en-CA");
       try {
         if (localStorage.getItem(BADGE_SYNC_KEY) === todayStr) {
-          return; // deferTimer above still fetches profiles at 3s
+          return;
         }
       } catch {
         // localStorage unavailable — fall through and sync anyway
@@ -739,29 +726,22 @@ function AppPortalInner({
             "Failed to sync top performer badges from DB:",
             error.message,
           );
-          fetchProfiles();
         } else {
           try {
             localStorage.setItem(BADGE_SYNC_KEY, todayStr);
           } catch {
             // ignore storage failures
           }
-          fetchProfiles();
+          // Pull the updated badge data into the shared list
+          refreshProfiles();
         }
       } catch (err) {
         console.error("Error triggering top performer badges sync:", err);
-        fetchProfiles();
       }
     };
 
     triggerBadgeSync();
-
-    return () => {
-      if (deferTimer) {
-        clearTimeout(deferTimer);
-      }
-    };
-  }, [sessionUser]);
+  }, [sessionUser, refreshProfiles]);
 
   const [topPerformerBadges, setTopPerformerBadges] = useState<
     Record<string, any>
@@ -1093,7 +1073,9 @@ function AppPortalInner({
     }, [throttledFetchGlobalRankings])
   );
 
-  // Register realtime handler inside AppPortalInner under RealtimeProvider
+  // Register realtime handler inside AppPortalInner under RealtimeProvider.
+  // NOTE: the shared profilesList patch is handled by ProfilesProvider — this
+  // handler only keeps the logged-in user's own profile and ranks current.
   useRealtimeHandler(
     "profiles",
     useCallback(
@@ -1109,15 +1091,6 @@ function AppPortalInner({
               JSON.stringify(updatedProfile),
             );
           }
-          setProfilesList((prev) =>
-            prev.map((p) =>
-              p.id === payload.new.id
-                ? (mapProfilePasswordResetStatus(
-                    payload.new,
-                  ) as unknown as Profile)
-                : p,
-            ),
-          );
           // Update ranks only when a rank-relevant field actually changed.
           // Skips noise like global_settings session heartbeats, which previously
           // fired a full leaderboard RPC on every profile update.
@@ -1137,7 +1110,7 @@ function AppPortalInner({
           }
         }
       },
-      [sessionUser.id, setProfile, setProfilesList, throttledFetchGlobalRankings],
+      [sessionUser.id, setProfile, throttledFetchGlobalRankings],
     ),
   );
 

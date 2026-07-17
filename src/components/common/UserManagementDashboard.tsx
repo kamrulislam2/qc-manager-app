@@ -12,6 +12,7 @@ import { Modal } from '@/components/common/Modal';
 import { UserManagementSkeleton } from '@/components/common/skeleton/UserManagementSkeleton';
 import toast from 'react-hot-toast';
 import { useRealtimeHandler, RealtimePayload } from '@/contexts/RealtimeContext';
+import { useProfiles } from '@/contexts/ProfilesContext';
 import {
   Search,
   UserPlus,
@@ -42,6 +43,7 @@ import { AddLeave } from '@/components/leave-tracker/AddLeave';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { LeaveSettlement, GovtHolidayResponse } from '@/types';
 import { GlobalSettings, getGlobalSettingsFromProfile, defaultGlobalSettings } from '@/utils/dashboardHelpers';
+import { PROFILE_COLUMNS, CHUTI_COLUMNS, LEAVE_SETTLEMENT_COLUMNS, GOVT_HOLIDAY_RESPONSE_COLUMNS } from '@/utils/dbColumns';
 
 interface UserManagementDashboardProps {
   sessionUser: { id: string } | null;
@@ -65,7 +67,8 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
   topPerformerBadges = {},
   onViewStateChange,
 }) => {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  // R1/R2: shared profiles list from ProfilesContext (was a local duplicate copy)
+  const { profilesList: profiles, setProfilesList: setProfiles, refreshProfiles, isLoaded: profilesLoaded } = useProfiles();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -343,17 +346,17 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       const [chutiRes, sRes, hrRes] = await Promise.all([
         supabase
           .from('chuti')
-          .select('*')
+          .select(CHUTI_COLUMNS)
           .eq('user_id', staffId)
           .is('deleted_at', null)
           .order('date', { ascending: false }),
         supabase
           .from('leave_settlements')
-          .select('*')
+          .select(LEAVE_SETTLEMENT_COLUMNS)
           .eq('user_id', staffId),
         supabase
           .from('govt_holiday_responses')
-          .select('*')
+          .select(GOVT_HOLIDAY_RESPONSE_COLUMNS)
           .eq('user_id', staffId),
       ]);
 
@@ -361,9 +364,9 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       if (sRes.error) throw sRes.error;
       if (hrRes.error) throw hrRes.error;
 
-      setViewingStaffRecords(chutiRes.data || []);
-      setViewingStaffSettlements(sRes.data || []);
-      setViewingStaffHolidayResponses(hrRes.data || []);
+      setViewingStaffRecords((chutiRes.data || []) as unknown as ChutiRecord[]);
+      setViewingStaffSettlements((sRes.data || []) as unknown as LeaveSettlement[]);
+      setViewingStaffHolidayResponses((hrRes.data || []) as unknown as GovtHolidayResponse[]);
       // NOTE: admin global_settings are loaded once via a dedicated effect below,
       // not on every staff-data load — they rarely change and this fires on each realtime event.
     } catch (e: any) {
@@ -636,29 +639,24 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
     setSubmitting(false);
   };
 
+  // R1/R2: fetchProfiles now proxies to the shared ProfilesContext refresh —
+  // post-mutation refreshes update every consumer (chuti/quotes/navbar) at once.
   const fetchProfiles = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('username', { ascending: true });
-      if (error) throw error;
-      if (data) {
-        const mapped = data.map((p) => mapProfilePasswordResetStatus(p));
-        setProfiles(mapped);
-      }
-    } catch (e: unknown) {
-      console.error('Failed to load profiles:', e);
-      toast.error('Failed to load user accounts.');
+      await refreshProfiles();
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshProfiles]);
 
   useEffect(() => {
-    fetchProfiles();
-  }, [fetchProfiles]);
+    // Provider owns the initial fetch — show the skeleton only until its
+    // first load (cache or network) resolves, then just mirror its state.
+    if (profilesLoaded) {
+      setIsLoading(false);
+    }
+  }, [profilesLoaded]);
 
   const handleCreateUserWrapper = async (params: { 
     codename: string; 
@@ -779,10 +777,10 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       // Refresh profiles list
       const { data } = await supabase
         .from('profiles')
-        .select('*')
+        .select(PROFILE_COLUMNS)
         .order('username', { ascending: true });
       if (data) {
-        const mapped = data.map((p) => mapProfilePasswordResetStatus(p));
+        const mapped = data.map((p) => mapProfilePasswordResetStatus(p as unknown as Profile));
         setProfiles(mapped);
         const updated = mapped.find(p => p.id === viewingStaff.id);
         if (updated) {

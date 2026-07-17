@@ -89,7 +89,7 @@ export const AsitisCausalityPanel: React.FC<AsitisCausalityPanelProps> = ({ prof
     try {
       const { data, error } = await supabase
         .from("login_codes")
-        .select("*")
+        .select("code")
         .eq("login_id", "__asitis_causality_template__")
         .maybeSingle();
       if (error) throw error;

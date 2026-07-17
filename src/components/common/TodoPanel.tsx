@@ -20,6 +20,7 @@ import { toast } from "react-hot-toast";
 import { ConfirmModal } from "@/components/common/modals/ConfirmModal";
 import { createPortal } from "react-dom";
 import { TodoSkeleton } from "@/components/common/skeleton/TodoSkeleton";
+import { TODO_COLUMNS } from "@/utils/dbColumns";
 
 interface TodoPanelProps {
   profile: Profile | null;
@@ -114,14 +115,14 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
       // 1. Fetch today's existing todos
       const { data: todayData, error: todayErr } = await supabase
         .from("todos")
-        .select("*")
+        .select(TODO_COLUMNS)
         .eq("user_id", profile.id)
         .eq("todo_date", todayStr)
         .order("created_at", { ascending: false });
 
       if (todayErr) throw todayErr;
 
-      let currentTodayTodos = todayData || [];
+      let currentTodayTodos = (todayData || []) as unknown as TodoItem[];
 
       // A. Check for existing duplicates in today's list and clean them up
       const uniqueTodayMap = new Map<string, TodoItem>();
@@ -183,7 +184,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
 
             const { data: lastTodos, error: lastErr } = await supabase
               .from("todos")
-              .select("*")
+              .select(TODO_COLUMNS)
               .eq("user_id", profile.id)
               .eq("todo_date", lastActiveDate)
               .order("created_at", { ascending: false });
@@ -268,7 +269,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
 
       const { data, error } = await supabase
         .from("todos")
-        .select("*")
+        .select(TODO_COLUMNS)
         .eq("user_id", profile.id)
         .gte("todo_date", startDate)
         .lte("todo_date", endDate)
