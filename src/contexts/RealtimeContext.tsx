@@ -82,8 +82,11 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
     const isApprover = profile.role === 'admin' || profile.role === 'supervisor';
 
     let active = true;
-
-
+    let resubscribeTimer: ReturnType<typeof setTimeout> | null = null;
+    let resubscribeAttempt = 0;
+    // Tears down the current channel instance. Marks it stale first so its
+    // synchronously-fired CLOSED callback can't re-enter the resubscribe path.
+    let disposeChannel: (() => void) | null = null;
 
     const dispatch = (table: RealtimeTable, payload: RealtimePayload) => {
       handlersRef.current.get(table)?.forEach((handler) => {
@@ -95,97 +98,127 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
       });
     };
 
-    const channel = supabase
-      .channel(`realtime-unified-${sessionUser.id}`)
-      // ── chuti ──
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chuti',
-          ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
-        },
-        (payload) => dispatch('chuti', payload as unknown as RealtimePayload)
-      )
-      // ── profiles ──
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles',
-          ...(isApprover ? {} : { filter: `id=eq.${sessionUser.id}` }),
-        },
-        (payload) => dispatch('profiles', payload as unknown as RealtimePayload)
-      )
-      // ── leave_settlements ──
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leave_settlements',
-          ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
-        },
-        (payload) => dispatch('leave_settlements', payload as unknown as RealtimePayload)
-      )
-      // ── records (quotes) — always user-scoped ──
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'records',
-          filter: `user_id=eq.${sessionUser.id}`,
-        },
-        (payload) => dispatch('records', payload as unknown as RealtimePayload)
-      )
-      // ── govt_holiday_responses ──
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'govt_holiday_responses',
-          ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
-        },
-        (payload) => dispatch('govt_holiday_responses', payload as unknown as RealtimePayload)
-      )
-      // ── dismissed_notifications ──
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'dismissed_notifications',
-          filter: `user_id=eq.${sessionUser.id}`,
-        },
-        (payload) => dispatch('dismissed_notifications', payload as unknown as RealtimePayload)
-      )
+    const createChannel = () => {
+      // Per-instance staleness: our own removeChannel fires CLOSED
+      // synchronously, which must not be mistaken for a server-side close.
+      let stale = false;
+      const channel = supabase
+        .channel(`realtime-unified-${sessionUser.id}`)
+        // ── chuti ──
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'chuti',
+            ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
+          },
+          (payload) => dispatch('chuti', payload as unknown as RealtimePayload)
+        )
+        // ── profiles ──
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'profiles',
+            ...(isApprover ? {} : { filter: `id=eq.${sessionUser.id}` }),
+          },
+          (payload) => dispatch('profiles', payload as unknown as RealtimePayload)
+        )
+        // ── leave_settlements ──
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'leave_settlements',
+            ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
+          },
+          (payload) => dispatch('leave_settlements', payload as unknown as RealtimePayload)
+        )
+        // ── records (quotes) — always user-scoped ──
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'records',
+            filter: `user_id=eq.${sessionUser.id}`,
+          },
+          (payload) => dispatch('records', payload as unknown as RealtimePayload)
+        )
+        // ── govt_holiday_responses ──
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'govt_holiday_responses',
+            ...(isApprover ? {} : { filter: `user_id=eq.${sessionUser.id}` }),
+          },
+          (payload) => dispatch('govt_holiday_responses', payload as unknown as RealtimePayload)
+        )
+        // ── dismissed_notifications ──
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'dismissed_notifications',
+            filter: `user_id=eq.${sessionUser.id}`,
+          },
+          (payload) => dispatch('dismissed_notifications', payload as unknown as RealtimePayload)
+        )
 
-      .subscribe((status, err) => {
-        if (!active) return;
-        if (typeof window !== 'undefined') {
+        .subscribe((status, err) => {
+          if (!active || stale) return;
+          if (typeof window === 'undefined') return;
+
           if (status === 'SUBSCRIBED') {
+            resubscribeAttempt = 0;
             window.dispatchEvent(new CustomEvent('realtime-connection-status', { detail: 'connected' }));
-          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            const errStr = err ? (err.message || String(err)) : '';
-            const isAbnormalClose = errStr.includes('1006') || errStr.toLowerCase().includes('abnormal');
-
-            if (process.env.NODE_ENV === 'development' && isAbnormalClose) {
-              console.debug(`[RealtimeProvider] unified channel connection status changed: ${status} (expected abnormal close 1006 during Fast Refresh/Strict Mode)`);
-            } else {
-              console.warn(`[RealtimeProvider] unified channel connection status changed: ${status}`, err);
-            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            // Socket-level drops surface here; phoenix auto-rejoins errored
+            // channels with its own backoff once the socket reconnects, so no
+            // manual action — just report. err is only populated for these.
+            console.warn(`[RealtimeProvider] unified channel connection status changed: ${status}`, err);
             window.dispatchEvent(new CustomEvent('realtime-connection-status', { detail: 'disconnected' }));
+          } else if (status === 'CLOSED') {
+            // CLOSED with active still true = the server/service closed the
+            // channel (restart, auth expiry), NOT our own cleanup (which flips
+            // active first). realtime-js removes closed channels from the
+            // socket and never rejoins them, so without this the app would
+            // silently lose realtime until remount. Note: the library passes
+            // no error argument for CLOSED — nothing useful to log there.
+            window.dispatchEvent(new CustomEvent('realtime-connection-status', { detail: 'disconnected' }));
+
+            const delay = Math.min(3000 * 2 ** resubscribeAttempt, 60000);
+            resubscribeAttempt += 1;
+            console.info(`[RealtimeProvider] unified channel closed by server — resubscribing in ${delay / 1000}s (attempt ${resubscribeAttempt})`);
+
+            if (resubscribeTimer) clearTimeout(resubscribeTimer);
+            resubscribeTimer = setTimeout(() => {
+              resubscribeTimer = null;
+              if (!active) return;
+              disposeChannel?.();
+              createChannel();
+            }, delay);
           }
-        }
-      });
+        });
+
+      disposeChannel = () => {
+        stale = true;
+        supabase.removeChannel(channel);
+      };
+    };
+
+    createChannel();
 
     return () => {
       active = false;
-      supabase.removeChannel(channel);
+      if (resubscribeTimer) clearTimeout(resubscribeTimer);
+      disposeChannel?.();
     };
     // Only re-create when user identity or role changes — not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
