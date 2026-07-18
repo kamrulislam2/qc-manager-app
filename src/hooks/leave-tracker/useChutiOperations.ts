@@ -685,6 +685,48 @@ export const useChutiOperations = ({
   };
 
   // Submit Revision Reason (Supervisors or Admins)
+
+  // Build a status-change payload: prefixed comment + appended user notification.
+  // Shared by the revision and approval flows below (was copy-pasted 4×).
+  const buildStatusUpdatePayload = (
+    t: ChutiRecordWithProfile,
+    opts: {
+      status: string;
+      commentPrefix: string;
+      notifType: string;
+      notifTitle: string;
+      notifBody: string;
+      extraFields?: Record<string, unknown>;
+    }
+  ) => {
+    const updatedComment = t.comment ? `${opts.commentPrefix} | ${t.comment}` : opts.commentPrefix;
+    const newNotification = createNotification(opts.notifType, opts.notifTitle, opts.notifBody);
+    const existingNotifications = getExistingNotifications(t);
+    return {
+      status: opts.status,
+      ...(opts.extraFields || {}),
+      comment: updatedComment,
+      admin_edit_request: {
+        ...(t.admin_edit_request || {}),
+        notifications: [...existingNotifications, newNotification]
+      }
+    };
+  };
+
+  // A status update matched 0 rows → the record was deleted on the server.
+  // Purge it from IndexedDB caches + local state, then surface an error.
+  const pruneMissingRecord = async (t: ChutiRecordWithProfile): Promise<never> => {
+    await removeCacheItems('chuti_cache', [t.id!]);
+    const offlineRecords = await getOfflineRecords();
+    const targetOffline = offlineRecords.find(r => r.id === t.id);
+    if (targetOffline && targetOffline.localId) {
+      await deleteOfflineRecord(targetOffline.localId);
+    }
+    setUserRecords(prev => prev.filter(r => r.id !== t.id));
+    setAdminRecords(prev => prev.filter(r => r.id !== t.id));
+    throw new Error(`The request for date ${formatDate(t.date)} was not found in the database. Cleaned up from local cache.`);
+  };
+
   const submitRevisionWithReason = async () => {
     const chutiId = revisionPromptChutiId;
     if (!chutiId) return;
@@ -693,7 +735,7 @@ export const useChutiOperations = ({
       setMessage({ type: 'error', text: 'Reason/Comment is required before sending for revision!' });
       return;
     }
-    
+
     setSubmittingRevision(true);
     setReviewingIds(prev => new Set(prev).add(chutiId));
 
@@ -711,116 +753,41 @@ export const useChutiOperations = ({
 
       if (targets.length === 0) throw new Error('Record not found.');
 
-      if (revisionPromptIsSupervisor) {
-        const updatedCommentPrefix = `${profile?.username || 'Supervisor'} Revision: ${reasonText}`;
+      const isSupervisor = revisionPromptIsSupervisor;
+      const senderName = profile?.username || (isSupervisor ? 'Supervisor' : 'Admin');
+      const senderRole = isSupervisor ? 'supervisor' : 'admin';
 
-        await Promise.all(targets.map(async (t) => {
-          let updatedComment = t.comment || '';
-          updatedComment = updatedComment ? `${updatedCommentPrefix} | ${updatedComment}` : updatedCommentPrefix;
-
-          const newNotification = createNotification(
-            'revision',
-            'Leave Revision Request ⚠️',
-            `Your ${t.leave_type} request was sent for revision by supervisor (Date: ${formatDate(t.date)}). Reason: ${reasonText}`
-          );
-          const existingNotifications = getExistingNotifications(t);
-
-          const updates = { 
-            status: 'needs_review',
-            comment: updatedComment,
-            admin_edit_request: {
-              ...(t.admin_edit_request || {}),
-              notifications: [...existingNotifications, newNotification]
-            }
-          };
-
-          setUserRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
-          setAdminRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
-
-          const { data, error } = await supabase
-            .from('chuti')
-            .update(updates)
-            .eq('id', t.id)
-            .select();
-
-          if (error) throw error;
-
-          if (!data || data.length === 0) {
-            // Prune local caches
-            await removeCacheItems('chuti_cache', [t.id]);
-            const offlineRecords = await getOfflineRecords();
-            const targetOffline = offlineRecords.find(r => r.id === t.id);
-            if (targetOffline && targetOffline.localId) {
-              await deleteOfflineRecord(targetOffline.localId);
-            }
-            setUserRecords(prev => prev.filter(r => r.id !== t.id));
-            setAdminRecords(prev => prev.filter(r => r.id !== t.id));
-            throw new Error(`The request for date ${formatDate(t.date)} was not found in the database. Cleaned up from local cache.`);
-          }
-        }));
-
-
-
-        setMessage({ 
-          type: 'success', 
-          text: 'Leave request has been returned to the user for revision.' 
+      await Promise.all(targets.map(async (t) => {
+        const updates = buildStatusUpdatePayload(t, {
+          status: 'needs_review',
+          commentPrefix: `${senderName} Revision: ${reasonText}`,
+          notifType: 'revision',
+          notifTitle: 'Leave Revision Request ⚠️',
+          notifBody: `Your ${t.leave_type} request was sent for revision by ${senderRole} (Date: ${formatDate(t.date)}). Reason: ${reasonText}`,
+          // Admin revisions also reset any pending reserve adjustment
+          extraFields: isSupervisor ? undefined : { reserve_adjustment_status: 'none' }
         });
-      } else {
-        const updatedCommentPrefix = `${profile?.username || 'Admin'} Revision: ${reasonText}`;
 
-        await Promise.all(targets.map(async (t) => {
-          let updatedComment = t.comment || '';
-          updatedComment = updatedComment ? `${updatedCommentPrefix} | ${updatedComment}` : updatedCommentPrefix;
+        setUserRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
+        setAdminRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
 
-          const newNotification = createNotification(
-            'revision',
-            'Leave Revision Request ⚠️',
-            `Your ${t.leave_type} request was sent for revision by admin (Date: ${formatDate(t.date)}). Reason: ${reasonText}`
-          );
-          const existingNotifications = getExistingNotifications(t);
+        const { data, error } = await supabase
+          .from('chuti')
+          .update(updates)
+          .eq('id', t.id)
+          .select();
 
-          const updates = {
-            status: 'needs_review',
-            reserve_adjustment_status: 'none',
-            comment: updatedComment,
-            admin_edit_request: {
-              ...(t.admin_edit_request || {}),
-              notifications: [...existingNotifications, newNotification]
-            }
-          };
+        if (error) throw error;
 
-          setUserRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
-          setAdminRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
+        if (!data || data.length === 0) {
+          await pruneMissingRecord(t);
+        }
+      }));
 
-          const { data, error } = await supabase
-            .from('chuti')
-            .update(updates)
-            .eq('id', t.id)
-            .select();
-
-          if (error) throw error;
-
-          if (!data || data.length === 0) {
-            // Prune local caches
-            await removeCacheItems('chuti_cache', [t.id]);
-            const offlineRecords = await getOfflineRecords();
-            const targetOffline = offlineRecords.find(r => r.id === t.id);
-            if (targetOffline && targetOffline.localId) {
-              await deleteOfflineRecord(targetOffline.localId);
-            }
-            setUserRecords(prev => prev.filter(r => r.id !== t.id));
-            setAdminRecords(prev => prev.filter(r => r.id !== t.id));
-            throw new Error(`The request for date ${formatDate(t.date)} was not found in the database. Cleaned up from local cache.`);
-          }
-        }));
-
-
-
-        setMessage({ 
-          type: 'success', 
-          text: 'Leave request has been returned to the user for revision.' 
-        });
-      }
+      setMessage({
+        type: 'success',
+        text: 'Leave request has been returned to the user for revision.'
+      });
       setShowRevisionPromptModal(false);
       setRevisionPromptChutiId(null);
       setRevisionPromptText('');
@@ -860,27 +827,16 @@ export const useChutiOperations = ({
       if (targets.length === 0) throw new Error('Record not found.');
 
       const supervisorUsername = profile?.username || 'Supervisor';
+      const buildApprovalUpdates = (t: ChutiRecordWithProfile) => buildStatusUpdatePayload(t, {
+        status: 'approved_by_supervisor',
+        commentPrefix: `${supervisorUsername} Approved`,
+        notifType: 'supervisor_approved',
+        notifTitle: 'Leave Verified by Supervisor ✅',
+        notifBody: `Supervisor approved your ${t.leave_type} request for date (${formatDate(t.date)}) and forwarded it to Admin.`
+      });
 
       await Promise.all(targets.map(async (t) => {
-        const updatedCommentPrefix = `${supervisorUsername} Approved`;
-        let updatedComment = t.comment || '';
-        updatedComment = updatedComment ? `${updatedCommentPrefix} | ${updatedComment}` : updatedCommentPrefix;
-
-        const newNotification = createNotification(
-          'supervisor_approved',
-          'Leave Verified by Supervisor ✅',
-          `Supervisor approved your ${t.leave_type} request for date (${formatDate(t.date)}) and forwarded it to Admin.`
-        );
-        const existingNotifications = getExistingNotifications(t);
-
-        const updates = { 
-          status: 'approved_by_supervisor',
-          comment: updatedComment,
-          admin_edit_request: {
-            ...(t.admin_edit_request || {}),
-            notifications: [...existingNotifications, newNotification]
-          }
-        };
+        const updates = buildApprovalUpdates(t);
 
         const { data, error } = await supabase
           .from('chuti')
@@ -891,16 +847,7 @@ export const useChutiOperations = ({
         if (error) throw error;
 
         if (!data || data.length === 0) {
-          // Prune local caches
-          await removeCacheItems('chuti_cache', [t.id]);
-          const offlineRecords = await getOfflineRecords();
-          const targetOffline = offlineRecords.find(r => r.id === t.id);
-          if (targetOffline && targetOffline.localId) {
-            await deleteOfflineRecord(targetOffline.localId);
-          }
-          setUserRecords(prev => prev.filter(r => r.id !== t.id));
-          setAdminRecords(prev => prev.filter(r => r.id !== t.id));
-          throw new Error(`The request for date ${formatDate(t.date)} was not found in the database. Cleaned up from local cache.`);
+          await pruneMissingRecord(t);
         }
       }));
 
@@ -908,26 +855,7 @@ export const useChutiOperations = ({
 
       const updateLocalState = () => {
         targets.forEach(t => {
-          const updatedCommentPrefix = `${supervisorUsername} Approved`;
-          let updatedComment = t.comment || '';
-          updatedComment = updatedComment ? `${updatedCommentPrefix} | ${updatedComment}` : updatedCommentPrefix;
-
-          const newNotification = createNotification(
-            'supervisor_approved',
-            'Leave Verified by Supervisor ✅',
-            `Supervisor approved your ${t.leave_type} request for date (${formatDate(t.date)}) and forwarded it to Admin.`
-          );
-          const existingNotifications = getExistingNotifications(t);
-
-          const updates = { 
-            status: 'approved_by_supervisor',
-            comment: updatedComment,
-            admin_edit_request: {
-              ...(t.admin_edit_request || {}),
-              notifications: [...existingNotifications, newNotification]
-            }
-          };
-
+          const updates = buildApprovalUpdates(t);
           setUserRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
           setAdminRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
         });
@@ -975,27 +903,16 @@ export const useChutiOperations = ({
       if (targets.length === 0) throw new Error('Record not found.');
 
       const adminUsername = profile?.username || 'Admin';
+      const buildApprovalUpdates = (t: ChutiRecordWithProfile) => buildStatusUpdatePayload(t, {
+        status: 'approved',
+        commentPrefix: `${adminUsername} Approved`,
+        notifType: 'approved',
+        notifTitle: 'Leave Request Approved ✅',
+        notifBody: `Admin approved your ${t.leave_type} request for date (${formatDate(t.date)}).`
+      });
 
       await Promise.all(targets.map(async (t) => {
-        const updatedCommentPrefix = `${adminUsername} Approved`;
-        let updatedComment = t.comment || '';
-        updatedComment = updatedComment ? `${updatedCommentPrefix} | ${updatedComment}` : updatedCommentPrefix;
-
-        const newNotification = createNotification(
-          'approved',
-          'Leave Request Approved ✅',
-          `Admin approved your ${t.leave_type} request for date (${formatDate(t.date)}).`
-        );
-        const existingNotifications = getExistingNotifications(t);
-
-        const updates = { 
-          status: 'approved',
-          comment: updatedComment,
-          admin_edit_request: {
-            ...(t.admin_edit_request || {}),
-            notifications: [...existingNotifications, newNotification]
-          }
-        };
+        const updates = buildApprovalUpdates(t);
 
         const { data, error } = await supabase
           .from('chuti')
@@ -1006,16 +923,7 @@ export const useChutiOperations = ({
         if (error) throw error;
 
         if (!data || data.length === 0) {
-          // Prune local caches
-          await removeCacheItems('chuti_cache', [t.id]);
-          const offlineRecords = await getOfflineRecords();
-          const targetOffline = offlineRecords.find(r => r.id === t.id);
-          if (targetOffline && targetOffline.localId) {
-            await deleteOfflineRecord(targetOffline.localId);
-          }
-          setUserRecords(prev => prev.filter(r => r.id !== t.id));
-          setAdminRecords(prev => prev.filter(r => r.id !== t.id));
-          throw new Error(`The request for date ${formatDate(t.date)} was not found in the database. Cleaned up from local cache.`);
+          await pruneMissingRecord(t);
         }
       }));
 
@@ -1023,26 +931,7 @@ export const useChutiOperations = ({
 
       const updateLocalState = () => {
         targets.forEach(t => {
-          const updatedCommentPrefix = `${adminUsername} Approved`;
-          let updatedComment = t.comment || '';
-          updatedComment = updatedComment ? `${updatedCommentPrefix} | ${updatedComment}` : updatedCommentPrefix;
-
-          const newNotification = createNotification(
-            'approved',
-            'Leave Request Approved ✅',
-            `Admin approved your ${t.leave_type} request for date (${formatDate(t.date)}).`
-          );
-          const existingNotifications = getExistingNotifications(t);
-
-          const updates = { 
-            status: 'approved',
-            comment: updatedComment,
-            admin_edit_request: {
-              ...(t.admin_edit_request || {}),
-              notifications: [...existingNotifications, newNotification]
-            }
-          };
-
+          const updates = buildApprovalUpdates(t);
           setUserRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
           setAdminRecords(prev => prev.map(r => r.id === t.id ? { ...r, ...updates } : r));
         });
