@@ -1,6 +1,7 @@
 import React from 'react';
 import { CustomSelect } from '@/components/common/CustomSelect';
 import { formatTimeToAMPM } from '@/utils/dashboardHelpers';
+import { WORKING_HOURS_OPTIONS } from '@/utils/workingHours';
 
 interface ProfileFieldsProps {
   fullName: string;
@@ -35,12 +36,7 @@ export const ProfileFields: React.FC<ProfileFieldsProps> = ({
 }) => {
   const workingHoursOptions = [
     ...(workingHours === '' ? [{ value: '', label: 'Select Hours' }] : []),
-    { value: '7.5', label: '7 Hours 30 Mins' },
-    { value: '8.0', label: '8 Hours' },
-    { value: '8.5', label: '8 Hours 30 Mins' },
-    { value: '9.0', label: '9 Hours' },
-    { value: '9.5', label: '9 Hours 30 Mins' },
-    { value: '10.0', label: '10 Hours' },
+    ...WORKING_HOURS_OPTIONS,
   ];
 
   return (

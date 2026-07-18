@@ -7,6 +7,7 @@ import { formatTimeToAMPM } from "@/utils/dashboardHelpers";
 import { supabase } from "@/utils/supabase";
 import { canAccessProfileSection } from "@/utils/permissionService";
 import { KPI_ASSESSMENT_COLUMNS } from "@/utils/dbColumns";
+import { WORKING_HOURS_OPTIONS } from "@/utils/workingHours";
 
 interface StaffSettingsFormProps {
   isNewUser: boolean;
@@ -286,12 +287,9 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
                 onChange={(e) => setWorkingHours?.(e.target.value)}
                 className="block w-full h-[36px] px-3 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:border-blue-500/50 cursor-pointer"
               >
-                <option value="7.5">7 Hours 30 Mins</option>
-                <option value="8.0">8 Hours</option>
-                <option value="8.5">8 Hours 30 Mins</option>
-                <option value="9.0">9 Hours</option>
-                <option value="9.5">9 Hours 30 Mins</option>
-                <option value="10.0">10 Hours</option>
+                {WORKING_HOURS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             ) : (
               <div className="h-[36px] flex items-center px-3 bg-theme-page-bg/30 border border-theme-border-muted/40 rounded-lg text-theme-text-secondary text-xs font-semibold">
