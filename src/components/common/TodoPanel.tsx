@@ -913,7 +913,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                                   }}
                                   className={`text-xs font-semibold leading-relaxed cursor-text select-none truncate ${
                                     todo.status === "Completed"
-                                      ? "text-theme-text-muted line-through"
+                                      ? "text-theme-text-muted"
                                       : todo.status === "Idle"
                                         ? "text-theme-text-muted italic font-medium"
                                         : "text-theme-text-primary"
