@@ -37,7 +37,7 @@ export const AUDIT_LOG_COLUMNS =
   'id, actor_id, actor_codename, action_type, target_id, details, created_at';
 
 export const TODO_COLUMNS =
-  'id, user_id, codename, task, todo_date, status, comment, is_all_time, created_at';
+  'id, user_id, codename, task, todo_date, status, comment, is_all_time, created_at, last_activity_at';
 
 export const LOGIN_CODE_COLUMNS = 'login_id, code, name, updated_at';
 

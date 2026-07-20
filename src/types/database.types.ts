@@ -665,6 +665,7 @@ export type Database = {
           created_at: string
           id: string
           is_all_time: boolean
+          last_activity_at: string
           status: string
           task: string
           todo_date: string
@@ -676,6 +677,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_all_time?: boolean
+          last_activity_at?: string
           status?: string
           task: string
           todo_date?: string
@@ -687,6 +689,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_all_time?: boolean
+          last_activity_at?: string
           status?: string
           task?: string
           todo_date?: string

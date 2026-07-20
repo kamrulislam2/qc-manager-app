@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useRef, useCallback } from
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
+import { canAccessModule } from '@/utils/permissionService';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -13,7 +14,8 @@ export type RealtimeTable =
   | 'leave_settlements'
   | 'records'
   | 'govt_holiday_responses'
-  | 'dismissed_notifications';
+  | 'dismissed_notifications'
+  | 'todos';
 
 /** Minimal interface for Supabase postgres_changes payloads */
 export interface RealtimePayload {
@@ -80,6 +82,9 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
     if (!sessionUser?.id || !profile) return;
 
     const isApprover = profile.role === 'admin' || profile.role === 'supervisor';
+    // Todos are superadmin-only — skip the listener entirely for everyone else
+    // so the extra postgres_changes subscription adds zero cost fleet-wide.
+    const hasTodoAccess = canAccessModule(profile, null, 'todo');
 
     let active = true;
     let resubscribeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -169,9 +174,23 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
             filter: `user_id=eq.${sessionUser.id}`,
           },
           (payload) => dispatch('dismissed_notifications', payload as unknown as RealtimePayload)
-        )
+        );
 
-        .subscribe((status, err) => {
+      // ── todos (superadmin-only) — always user-scoped ──
+      if (hasTodoAccess) {
+        channel.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'todos',
+            filter: `user_id=eq.${sessionUser.id}`,
+          },
+          (payload) => dispatch('todos', payload as unknown as RealtimePayload)
+        );
+      }
+
+      channel.subscribe((status, err) => {
           if (!active || stale) return;
           if (typeof window === 'undefined') return;
 

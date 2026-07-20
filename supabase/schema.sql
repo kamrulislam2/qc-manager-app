@@ -921,6 +921,21 @@ END;
 $$;
 
 
+--
+-- Name: update_todos_last_activity(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_todos_last_activity() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  NEW.last_activity_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -1216,6 +1231,7 @@ CREATE TABLE public.todos (
     todo_date date DEFAULT CURRENT_DATE NOT NULL,
     is_all_time boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    last_activity_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT todos_status_check CHECK ((status = ANY (ARRAY['Idle'::text, 'Working'::text, 'Completed'::text])))
 );
 
@@ -1441,6 +1457,13 @@ CREATE INDEX idx_records_user_submitted ON public.records USING btree (user_id, 
 
 
 --
+-- Name: idx_todos_last_activity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_todos_last_activity ON public.todos USING btree (user_id, todo_date, last_activity_at DESC);
+
+
+--
 -- Name: idx_todos_todo_date; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1487,6 +1510,13 @@ CREATE TRIGGER on_profile_update_security BEFORE UPDATE ON public.profiles FOR E
 --
 
 CREATE TRIGGER records_set_updated_at BEFORE UPDATE ON public.records FOR EACH ROW EXECUTE FUNCTION public.update_records_updated_at();
+
+
+--
+-- Name: todos todos_set_last_activity; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER todos_set_last_activity BEFORE UPDATE ON public.todos FOR EACH ROW EXECUTE FUNCTION public.update_todos_last_activity();
 
 
 --

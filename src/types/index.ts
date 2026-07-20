@@ -174,4 +174,5 @@ export interface TodoItem {
   todo_date: string; // Format: 'YYYY-MM-DD'
   is_all_time: boolean;
   created_at: string;
+  last_activity_at: string; // Bumped by DB trigger on every update; drives "recently active" ordering
 }

@@ -21,6 +21,11 @@ import { ConfirmModal } from "@/components/common/modals/ConfirmModal";
 import { createPortal } from "react-dom";
 import { TodoSkeleton } from "@/components/common/skeleton/TodoSkeleton";
 import { TODO_COLUMNS } from "@/utils/dbColumns";
+import { sortTodosByActivity } from "@/utils/todoSort";
+import {
+  useRealtimeHandler,
+  RealtimePayload,
+} from "@/contexts/RealtimeContext";
 
 interface TodoPanelProps {
   profile: Profile | null;
@@ -44,13 +49,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
   const [loading, setLoading] = useState(false);
   const [todos, setTodos] = useState<TodoItem[]>([]);
 
-  const sortedTodos = React.useMemo(() => {
-    return [...todos].sort((a, b) => {
-      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return dateB - dateA;
-    });
-  }, [todos]);
+  const sortedTodos = React.useMemo(() => sortTodosByActivity(todos), [todos]);
 
   const [newTask, setNewTask] = useState("");
   const [isAllTime, setIsAllTime] = useState(false);
@@ -112,13 +111,13 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
     if (!profile) return;
     setLoading(true);
     try {
-      // 1. Fetch today's existing todos
+      // 1. Fetch today's existing todos — most recently active first
       const { data: todayData, error: todayErr } = await supabase
         .from("todos")
         .select(TODO_COLUMNS)
         .eq("user_id", profile.id)
         .eq("todo_date", todayStr)
-        .order("created_at", { ascending: false });
+        .order("last_activity_at", { ascending: false });
 
       if (todayErr) throw todayErr;
 
@@ -312,6 +311,40 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
     }
   }, [selectedYear, selectedMonth, subTab, fetchArchiveTodos]);
 
+  // Realtime: keep today's list in sync across all open windows via the
+  // unified channel (no extra Supabase channels/subscriptions created here).
+  // Upsert-by-id is idempotent, so echoes of our own optimistic updates
+  // simply reconcile timestamps instead of duplicating rows. Ordering is
+  // derived from last_activity_at by sortTodosByActivity, so merged rows
+  // land in the right position automatically.
+  const handleTodoRealtime = useCallback(
+    (payload: RealtimePayload) => {
+      if (payload.eventType === "DELETE") {
+        const deletedId = (payload.old as { id?: string })?.id;
+        if (!deletedId) return;
+        setTodos((prev) => prev.filter((t) => t.id !== deletedId));
+        setSelectedTodoIds((prev) => prev.filter((id) => id !== deletedId));
+        return;
+      }
+
+      const row = payload.new as unknown as TodoItem;
+      if (!row?.id) return;
+      // Daily list only shows today's tasks; a row moved off today is removed.
+      if (row.todo_date !== todayStr) {
+        setTodos((prev) => prev.filter((t) => t.id !== row.id));
+        return;
+      }
+      setTodos((prev) => {
+        const exists = prev.some((t) => t.id === row.id);
+        return exists
+          ? prev.map((t) => (t.id === row.id ? { ...t, ...row } : t))
+          : [...prev, row];
+      });
+    },
+    [todayStr],
+  );
+  useRealtimeHandler("todos", handleTodoRealtime);
+
   // Add a new Daily Todo Item
   const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -362,8 +395,15 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
         .eq("id", todo.id);
 
       if (error) throw error;
+      // Optimistic bump — the DB trigger sets the authoritative timestamp,
+      // and the realtime UPDATE echo reconciles it across all windows.
+      const bumpedAt = new Date().toISOString();
       setTodos((prev) =>
-        prev.map((t) => (t.id === todo.id ? { ...t, status: nextStatus } : t)),
+        prev.map((t) =>
+          t.id === todo.id
+            ? { ...t, status: nextStatus, last_activity_at: bumpedAt }
+            : t,
+        ),
       );
       toast.success(`Task marked as ${nextStatus}!`);
     } catch (err: unknown) {
@@ -384,7 +424,13 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
       if (error) throw error;
       setTodos((prev) =>
         prev.map((t) =>
-          t.id === todo.id ? { ...t, is_all_time: nextAllTime } : t,
+          t.id === todo.id
+            ? {
+                ...t,
+                is_all_time: nextAllTime,
+                last_activity_at: new Date().toISOString(),
+              }
+            : t,
         ),
       );
       toast.success(
@@ -411,7 +457,11 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
 
       if (error) throw error;
       setTodos((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, comment: commentVal } : t)),
+        prev.map((t) =>
+          t.id === id
+            ? { ...t, comment: commentVal, last_activity_at: new Date().toISOString() }
+            : t,
+        ),
       );
     } catch (err: unknown) {
       console.error(
@@ -472,7 +522,13 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
       if (error) throw error;
       setTodos((prev) =>
         prev.map((t) =>
-          t.id === todoId ? { ...t, task: editingTaskText.trim() } : t,
+          t.id === todoId
+            ? {
+                ...t,
+                task: editingTaskText.trim(),
+                last_activity_at: new Date().toISOString(),
+              }
+            : t,
         ),
       );
       toast.success("Task name updated!");
