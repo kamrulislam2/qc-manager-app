@@ -1,40 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Profile, RecordItem } from "@/types";
+import { Profile } from "@/types";
 import { BadgeInfo } from "@/utils/leaderboardHelper";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 
-// Global cache for all-time ranks mapping: profileId -> rank number
+// Global cache for all-time ranks mapping: profileId -> rank number.
+// Single source of truth: fed exclusively by the get_leaderboard_data RPC
+// (updateGlobalRankCacheDirect in app/page.tsx) so the navbar always matches
+// the Leaderboard page. Do NOT add local recomputations — regular users only
+// have their own records loaded (egress-scoped), which yields bogus ranks.
 let rankCache: Record<string, number> = {};
 const rankCacheListeners = new Set<() => void>();
-
-export const updateGlobalRankCache = (records: RecordItem[], profiles: Profile[]) => {
-  const counts: Record<string, number> = {};
-  profiles.forEach((p) => {
-    counts[p.id] = 0;
-  });
-  records.forEach((r) => {
-    if (r.user_id && counts[r.user_id] !== undefined) {
-      counts[r.user_id]++;
-    }
-  });
-
-  // Sort descending by count, then alphabetically by username
-  const sorted = [...profiles]
-    .map((p) => ({
-      id: p.id,
-      count: counts[p.id] || 0,
-      username: p.username.toUpperCase(),
-    }))
-    .sort((a, b) => b.count - a.count || a.username.localeCompare(b.username));
-
-  const newCache: Record<string, number> = {};
-  sorted.forEach((item, index) => {
-    newCache[item.id] = index + 1;
-  });
-
-  rankCache = newCache;
-  rankCacheListeners.forEach((listener) => listener());
-};
 
 export const updateGlobalRankCacheDirect = (ranks: Record<string, number>) => {
   rankCache = ranks;
@@ -93,10 +68,12 @@ export const UserDisplayName: React.FC<UserDisplayNameProps> = ({
   }, [profile.id]);
 
   // Determine which rank to display:
-  // 1. Explicitly passed rankProp
-  // 2. Globally computed rank from rankCache
-  // 3. Fallback to rank inside the badge settings
-  const displayRank = rankProp !== undefined ? rankProp : (rank !== null ? rank : (badge ? badge.rank : null));
+  // 1. Explicitly passed rankProp (e.g. LeaderboardRow passes the RPC rank)
+  // 2. Globally cached rank from the same RPC (fed by app/page.tsx)
+  // No badge.rank fallback: the top-performer badge stores LAST month's rank,
+  // which briefly showed e.g. "#1" for a badged user whose current rank is #21.
+  // Until the RPC responds, the rank label simply stays hidden.
+  const displayRank = rankProp !== undefined ? rankProp : rank;
 
   return (
     <span

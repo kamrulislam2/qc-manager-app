@@ -20,7 +20,6 @@ import { AdminViewToggle } from "@/components/leave-tracker/AdminViewToggle";
 import { SkeletonLoader } from "@/components/quotes-tracker/QuotesSkeletonLoader";
 import { LeaderboardTable } from "@/components/leaderboard-and-reports/LeaderboardTable";
 import { ReportsPanel } from "@/components/leaderboard-and-reports/ReportsPanel";
-import { updateGlobalRankCache } from "@/components/common/UserDisplayName";
 import { AuditLogsPanel } from "@/components/common/AuditLogsPanel";
 import { QuoteRulesPanel } from "@/components/quotes-tracker/QuoteRulesPanel";
 import { CopyHelperPanel } from "@/components/quotes-tracker/CopyHelperPanel";
@@ -154,12 +153,10 @@ export default function Dashboard({
     }
   }, [activeTab, profile, fetchAuditLogs]);
 
-  // Update global rank cache for Navbar UserDisplayName component
-  useEffect(() => {
-    if (records.length > 0 && profilesList.length > 0) {
-      updateGlobalRankCache(records, profilesList);
-    }
-  }, [records, profilesList]);
+  // NOTE: the navbar rank cache is fed exclusively by the get_leaderboard_data
+  // RPC in app/page.tsx (updateGlobalRankCacheDirect) — the previous local
+  // recomputation here used month-scoped records (own-records-only for regular
+  // users) and briefly overwrote the correct rank with a bogus one.
 
   // Daily Entry Form State
   const [fileName, setFileName] = useState("");
