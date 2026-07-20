@@ -25,7 +25,14 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "off",
       "@typescript-eslint/no-explicit-any": "warn", // Changed from "off" to "warn" for better type safety
       "react/no-unescaped-entities": "off",
-      "@typescript-eslint/no-unused-vars": "warn"
+      // Honor the codebase convention: underscore prefix = intentionally unused
+      // (e.g. _msg, the _set* pack in useModalHandlers). Caught errors that are
+      // deliberately swallowed (offline/cache fallbacks) are also exempt.
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrors": "none"
+      }]
     }
   }
 ]);
