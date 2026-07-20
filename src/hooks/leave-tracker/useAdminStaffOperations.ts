@@ -192,6 +192,8 @@ export const useAdminStaffOperations = ({
           localStorage.removeItem(`session_start_time_${sessionUser.id}`);
           localStorage.removeItem(`last_access_time_${sessionUser.id}`);
           localStorage.removeItem(key);
+          // Intentionally GLOBAL: the user still has the default password
+          // (first-time setup not completed), so revoke every session.
           await supabase.auth.signOut();
           router.push('/login');
         } catch (e) {

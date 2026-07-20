@@ -20,7 +20,8 @@ export async function checkInactivity(userId: string): Promise<boolean> {
       localStorage.removeItem(`last_active_time_${userId}`);
       localStorage.removeItem(`session_start_time_${userId}`);
       localStorage.removeItem('qc_session_id');
-      await supabase.auth.signOut();
+      // Local scope: only this device's session is revoked — other devices stay logged in.
+      await supabase.auth.signOut({ scope: 'local' });
       toast.error("Logged out: You have been logged out due to 1 week of inactivity.");
       return true;
     }
@@ -59,11 +60,15 @@ export async function registerAndCheckSession(
     // New login session
     activeSessions.push({ sessionId: currentSessionId!, lastActive: now });
 
-    // Enforce max 3 sessions limit: Sort oldest first (ascending)
+    // Enforce max sessions limit: Sort oldest first (ascending).
+    // Limit is generous (10) so a user can stay signed in on Web, Desktop,
+    // Android and multiple browsers simultaneously — it only guards against
+    // unbounded growth of the tracking array.
+    const MAX_SESSIONS = 10;
     activeSessions.sort((a: ActiveSession, b: ActiveSession) => (a.lastActive || 0) - (b.lastActive || 0));
 
-    if (activeSessions.length > 3) {
-      activeSessions = activeSessions.slice(activeSessions.length - 3);
+    if (activeSessions.length > MAX_SESSIONS) {
+      activeSessions = activeSessions.slice(activeSessions.length - MAX_SESSIONS);
     }
 
     const updatedSettings = {
@@ -112,8 +117,10 @@ export async function registerAndCheckSession(
     // Evicted!
     localStorage.removeItem('qc_session_id');
     localStorage.removeItem(`last_active_time_${userId}`);
-    await supabase.auth.signOut();
-    toast.error("Logged out: You are logged in on 3 other devices/locations.");
+    // Local scope: only THIS device signs out. The previous global default
+    // revoked every refresh token for the user, killing all other devices too.
+    await supabase.auth.signOut({ scope: 'local' });
+    toast.error("Logged out: You are logged in on too many other devices/locations.");
     return false;
   }
 

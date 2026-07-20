@@ -379,7 +379,8 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       const errMsg = e?.message || '';
       if (errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('jwt') || e?.status === 401) {
         toast.error('Session expired. Logging out...');
-        supabase.auth.signOut();
+        // Local: this device's token expired — other devices keep their sessions
+        supabase.auth.signOut({ scope: 'local' });
       } else {
         toast.error(errMsg || 'Failed to load leave history.');
       }

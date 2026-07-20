@@ -141,7 +141,8 @@ export default function LoginPage() {
             }
           }
           try {
-            await supabase.auth.signOut();
+            // Local: only clear this device's stale session
+            await supabase.auth.signOut({ scope: "local" });
           } catch (e) {
             console.warn("Failed to clear stale auth session:", e);
           }
@@ -179,7 +180,8 @@ export default function LoginPage() {
               localStorage.removeItem(`session_start_time_${userId}`);
               localStorage.removeItem(`last_access_time_${userId}`);
               try {
-                await supabase.auth.signOut();
+                // Local: this device's session expired — don't touch other devices
+                await supabase.auth.signOut({ scope: "local" });
               } catch (e) {
                 console.error("Error signing out expired session:", e);
               }
@@ -198,7 +200,8 @@ export default function LoginPage() {
           }
         }
         try {
-          await supabase.auth.signOut();
+          // Local: only clear this device's stale session
+          await supabase.auth.signOut({ scope: "local" });
         } catch (e) {
           console.warn("Failed to clear stale auth session:", e);
         }

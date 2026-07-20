@@ -1033,7 +1033,8 @@ export const useDashboardData = () => {
               }
             }
             try {
-              await supabase.auth.signOut();
+              // Local: only clear this device's stale session
+              await supabase.auth.signOut({ scope: 'local' });
             } catch (signOutErr) {
               console.warn('Failed to clear stale auth session:', signOutErr);
             }
@@ -1101,7 +1102,8 @@ export const useDashboardData = () => {
             localStorage.removeItem(`session_start_time_${userId}`);
             localStorage.removeItem(`last_access_time_${userId}`);
             try {
-              await supabase.auth.signOut();
+              // Local: this device's session expired — don't log out other devices
+              await supabase.auth.signOut({ scope: 'local' });
             } catch (signOutError) {
               console.error('Error signing out expired session:', signOutError);
             }
@@ -1168,7 +1170,8 @@ export const useDashboardData = () => {
           localStorage.removeItem(`session_start_time_${userId}`);
           localStorage.removeItem(`last_access_time_${userId}`);
           try {
-            await supabase.auth.signOut();
+            // Local: profile fetch failed on this device only
+            await supabase.auth.signOut({ scope: 'local' });
           } catch (e) {
             console.error(e);
           }
@@ -1282,7 +1285,8 @@ export const useDashboardData = () => {
       sessionStorage.removeItem('selectedYear');
       sessionStorage.removeItem('viewingStaffId');
     }
-    await supabase.auth.signOut();
+    // Local scope: log out this device only — other devices stay signed in
+    await supabase.auth.signOut({ scope: 'local' });
     setSessionUser(null);
     setProfile(null);
     setInitialFetchDone(false);

@@ -185,7 +185,8 @@ export default function AppPortal() {
         ) {
           addLog("Auth token invalid or expired. Performing force logout...");
           localStorage.removeItem(cacheKey);
-          await supabase.auth.signOut();
+          // Local scope: only this device's stale token is cleared — other devices stay logged in.
+          await supabase.auth.signOut({ scope: "local" });
           return;
         }
         if (!cachedProfile) {
@@ -326,7 +327,10 @@ export default function AppPortal() {
 
   const handleLogout = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
+    // Local scope: log out this device only. The previous global default
+    // revoked ALL of the user's refresh tokens, logging out every other
+    // device (Web/Desktop/Android) at once.
+    await supabase.auth.signOut({ scope: "local" });
   };
 
   if (!mounted) {

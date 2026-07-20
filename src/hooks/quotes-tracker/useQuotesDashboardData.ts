@@ -602,7 +602,8 @@ export const useQuotesDashboardData = () => {
             }
           }
           try {
-            await supabase.auth.signOut();
+            // Local: only clear this device's stale session
+            await supabase.auth.signOut({ scope: 'local' });
           } catch (signOutErr) {
             console.warn("Failed to clear stale auth session:", signOutErr);
           }
@@ -626,7 +627,8 @@ export const useQuotesDashboardData = () => {
             if (!isNaN(lastTime) && currentTime - lastTime > limitMs) {
               console.warn('Session expired due to 21 days of inactivity.');
               localStorage.removeItem('quotes_sales_last_activity');
-              await supabase.auth.signOut();
+              // Local: inactivity on this device only — other devices stay signed in
+              await supabase.auth.signOut({ scope: 'local' });
               showToast('error', 'Logged out due to 21 days of inactivity.');
               setLoading(false);
               router.push('/login');
@@ -680,7 +682,8 @@ export const useQuotesDashboardData = () => {
         if (!userProfile) {
           if (typeof navigator !== 'undefined' && navigator.onLine) {
             console.error('User profile not found. Logging out.');
-            await supabase.auth.signOut();
+            // Local: only this device — don't revoke other devices' sessions
+            await supabase.auth.signOut({ scope: 'local' });
             if (typeof window !== 'undefined') {
               localStorage.removeItem('quotes_sales_profile');
             }
@@ -834,7 +837,8 @@ export const useQuotesDashboardData = () => {
     } catch (err) {
       console.error('Failed to clear cache on logout:', err);
     }
-    await supabase.auth.signOut();
+    // Local scope: log out this device only — other devices stay signed in
+    await supabase.auth.signOut({ scope: 'local' });
     router.push('/login');
   };
 
