@@ -14,7 +14,11 @@ import {
   formatDate,
   getSettlementSplits,
   isFriday,
-  adjustShortLeaveForJummah
+  adjustShortLeaveForJummah,
+  isBreakEligible,
+  addBreakToShortLeave,
+  applyBreakComment,
+  parseBreakMinutesFromComment
 } from '@/utils/dashboardHelpers';
 import { useGovtHolidayStats, useHalfYearlyStats } from '@/hooks/leave-tracker/useLeaveQuotaStats';
 
@@ -79,6 +83,13 @@ export function AddLeave({
     }
     return new Date().getDay() === 5;
   });
+  // Break time (Short Leave only). On edit, restore from the stored comment marker.
+  const [breakEnabled, setBreakEnabled] = useState(
+    () => parseBreakMinutesFromComment(editingRecord?.comment) !== null,
+  );
+  const [breakMinutes, setBreakMinutes] = useState(
+    () => parseBreakMinutesFromComment(editingRecord?.comment) ?? 20,
+  );
   const [bulkDates, setBulkDates] = useState<string[]>([]);
   const [bulkAdjustments, setBulkAdjustments] = useState<boolean[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -96,6 +107,9 @@ export function AddLeave({
   const defaultSignIn = targetProfile?.default_sign_in;
   const defaultSignOut = targetProfile?.default_sign_out;
   const targetWorkingHours = targetProfile?.working_hours;
+
+  // Break time is only offered for Short Leave when signed in more than 1 hour late.
+  const breakEligible = isBreakEligible(leaveType, signInTime, defaultSignIn || '13:00');
 
   // Initialize today's date and default times
   useEffect(() => {
@@ -123,6 +137,14 @@ export function AddLeave({
     }
   }, [date, leaveType]);
 
+  // Reset the break toggle when it stops being applicable (type change / no
+  // longer late enough) so a stale break can't be silently folded in on submit.
+  useEffect(() => {
+    if (!breakEligible && breakEnabled) {
+      setBreakEnabled(false);
+    }
+  }, [breakEligible, breakEnabled]);
+
   // Recalculate leave hour when inputs change
   useEffect(() => {
     if (!targetProfile) return;
@@ -131,11 +153,15 @@ export function AddLeave({
     const workingHours = targetWorkingHours ?? 9.5;
     const isHoliday = checkIfHolidayOrWeekend(date, globalSettings);
     const calc = calculateLeaveOrOvertime(leaveType, signInTime, signOutTime, shiftStart, shiftEnd, workingHours, isHoliday);
-    const finalCalc = (leaveType === 'Short Leave' && isFriday(date))
+    const jummahApplied = (leaveType === 'Short Leave' && isFriday(date))
       ? adjustShortLeaveForJummah(calc, adjustJummah)
       : calc;
+    // Break time counts as short leave, added on top of the (Jummah-adjusted) hours.
+    const finalCalc = (leaveType === 'Short Leave' && breakEligible)
+      ? addBreakToShortLeave(jummahApplied, breakMinutes, breakEnabled)
+      : jummahApplied;
     setLeaveHour(finalCalc);
-  }, [signInTime, signOutTime, leaveType, date, defaultSignIn, defaultSignOut, targetWorkingHours, globalSettings, targetProfile, adjustJummah]);
+  }, [signInTime, signOutTime, leaveType, date, defaultSignIn, defaultSignOut, targetWorkingHours, globalSettings, targetProfile, adjustJummah, breakEligible, breakEnabled, breakMinutes]);
 
   // Filter records belonging to the target staff member
   const staffRecords = React.useMemo(() => {
@@ -366,6 +392,13 @@ export function AddLeave({
           .trim();
       }
 
+      // Break time marker (Short Leave, eligible)
+      commentWithCategory = applyBreakComment(
+        commentWithCategory,
+        breakMinutes,
+        leaveType === 'Short Leave' && breakEligible && breakEnabled,
+      );
+
       let finalStatus = editingRecord.status;
 
       if (adminDirectEdit) {
@@ -381,6 +414,11 @@ export function AddLeave({
             .replace(jummahMsg, '')
             .trim();
         }
+        baseComment = applyBreakComment(
+          baseComment,
+          breakMinutes,
+          leaveType === 'Short Leave' && breakEligible && breakEnabled,
+        );
 
         // Build a change log for audit trail
         let changeDescription = '';
@@ -412,6 +450,11 @@ export function AddLeave({
             .replace(jummahMsg, '')
             .trim();
         }
+        baseComment = applyBreakComment(
+          baseComment,
+          breakMinutes,
+          leaveType === 'Short Leave' && breakEligible && breakEnabled,
+        );
 
         let changeDescription = '';
         if (editingRecord.date !== date) {
@@ -646,6 +689,11 @@ export function AddLeave({
         }
       }
 
+      // Break time counts as short leave — record the marker so it round-trips on edit.
+      if (leaveType === 'Short Leave' && breakEligible && breakEnabled) {
+        commentWithCategory = applyBreakComment(commentWithCategory, breakMinutes, true);
+      }
+
       // Prepend admin/supervisor signature
       if (profile?.role === 'admin' && targetProfile.id !== profile.id) {
         const adminUsername = profile?.username || 'Admin';
@@ -869,6 +917,11 @@ export function AddLeave({
                 allowOvertime={targetProfile?.allow_overtime || false}
                 adjustJummah={adjustJummah}
                 setAdjustJummah={setAdjustJummah}
+                breakEligible={breakEligible}
+                breakEnabled={breakEnabled}
+                setBreakEnabled={setBreakEnabled}
+                breakMinutes={breakMinutes}
+                setBreakMinutes={setBreakMinutes}
                 adjustment={adjustment}
                 availableOvertimeMins={parseHHMMToMinutes(stats.overtimeHours)}
                 availableShortLeaveMins={parseHHMMToMinutes(stats.shortHours)}

@@ -13,7 +13,10 @@ import {
   checkIfHolidayOrWeekend,
   getLeaveValidationError,
   isFriday,
-  adjustShortLeaveForJummah
+  adjustShortLeaveForJummah,
+  isBreakEligible,
+  addBreakToShortLeave,
+  applyBreakComment
 } from "@/utils/dashboardHelpers";
 import { ChutiRecord, generateUUID } from "@/utils/offlineSync";
 
@@ -52,6 +55,8 @@ export function AdminAddLeaveModal({
   const [leaveHour, setLeaveHour] = useState("00:00");
   const [comment, setComment] = useState("");
   const [adjustJummah, setAdjustJummah] = useState(() => new Date().getDay() === 5);
+  const [breakEnabled, setBreakEnabled] = useState(false);
+  const [breakMinutes, setBreakMinutes] = useState(20);
   const [bulkDates, setBulkDates] = useState<string[]>([]);
   const [bulkAdjustments, setBulkAdjustments] = useState<boolean[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -105,6 +110,8 @@ export function AdminAddLeaveModal({
       setComment("");
       setBulkDates([]);
       setBulkAdjustments([]);
+      setBreakEnabled(false);
+      setBreakMinutes(20);
     }
   }, [showModal, staffProfile]);
 
@@ -131,11 +138,29 @@ export function AdminAddLeaveModal({
       workingHours,
       isHoliday,
     );
-    const finalCalc = (leaveType === 'Short Leave' && isFriday(date))
+    const jummahApplied = (leaveType === 'Short Leave' && isFriday(date))
       ? adjustShortLeaveForJummah(calc, adjustJummah)
       : calc;
+    const breakEligibleNow = isBreakEligible(leaveType, signInTime, shiftStart);
+    const finalCalc = breakEligibleNow
+      ? addBreakToShortLeave(jummahApplied, breakMinutes, breakEnabled)
+      : jummahApplied;
     setLeaveHour(finalCalc);
-  }, [signInTime, signOutTime, leaveType, date, staffProfile, globalSettings, adjustJummah]);
+  }, [signInTime, signOutTime, leaveType, date, staffProfile, globalSettings, adjustJummah, breakEnabled, breakMinutes]);
+
+  // Break time eligibility (Short Leave, signed in more than 1 hour late)
+  const breakEligible = isBreakEligible(
+    leaveType,
+    signInTime,
+    staffProfile?.default_sign_in || "13:00",
+  );
+
+  // Clear a stale break toggle if it stops being applicable
+  useEffect(() => {
+    if (!breakEligible && breakEnabled) {
+      setBreakEnabled(false);
+    }
+  }, [breakEligible, breakEnabled]);
 
   // Real-time balance calculations
   const selectedYear = date
@@ -368,6 +393,10 @@ export function AdminAddLeaveModal({
           finalComment = `${finalComment} | ${jummahMsg}`;
         }
       }
+      // Break time counts as short leave — persist the marker for edit round-trip.
+      if (leaveType === 'Short Leave' && breakEligible && breakEnabled) {
+        finalComment = applyBreakComment(finalComment, breakMinutes, true);
+      }
 
       const { error: bulkInsertError } = await supabase.rpc(
         "admin_insert_chuti_records_bulk",
@@ -477,6 +506,11 @@ export function AdminAddLeaveModal({
                   allowOvertime={staffProfile.allow_overtime || false}
                   adjustJummah={adjustJummah}
                   setAdjustJummah={setAdjustJummah}
+                  breakEligible={breakEligible}
+                  breakEnabled={breakEnabled}
+                  setBreakEnabled={setBreakEnabled}
+                  breakMinutes={breakMinutes}
+                  setBreakMinutes={setBreakMinutes}
                   adjustment={adjustment}
                   availableOvertimeMins={parseHHMMToMinutes(
                     stats.overtimeHours,

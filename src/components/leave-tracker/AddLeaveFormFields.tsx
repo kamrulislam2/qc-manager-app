@@ -53,6 +53,11 @@ interface AddLeaveFormFieldsProps {
   globalSettings?: any;
   adjustJummah?: boolean;
   setAdjustJummah?: (val: boolean) => void;
+  breakEligible?: boolean;
+  breakEnabled?: boolean;
+  setBreakEnabled?: (val: boolean) => void;
+  breakMinutes?: number;
+  setBreakMinutes?: (val: number) => void;
   onDateErrorChange?: (id: string, hasError: boolean) => void;
 }
 
@@ -93,6 +98,11 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
   onDateErrorChange,
   adjustJummah = false,
   setAdjustJummah,
+  breakEligible = false,
+  breakEnabled = false,
+  setBreakEnabled,
+  breakMinutes = 20,
+  setBreakMinutes,
 }) => {
   const isHoliday = globalSettings
     ? checkIfHolidayOrWeekend(date, globalSettings)
@@ -712,6 +722,68 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
               />
             </div>
           </div>
+
+          {/* Break Time (Short Leave only, when signed in more than 1 hour late).
+              Break counts as short leave, so it is added to the calculated hours. */}
+          {leaveType === "Short Leave" && breakEligible && (
+            <div className="space-y-2 bg-theme-page-bg/40 p-3.5 rounded-xl border border-theme-border-muted">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="block text-xs font-bold text-theme-text-primary font-sans">
+                    Add break time?
+                  </span>
+                  <span className="block text-[10px] text-theme-text-muted mt-0.5">
+                    Signed in over an hour late — break time (01–40 min) is added
+                    to the short leave.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBreakEnabled && setBreakEnabled(!breakEnabled)}
+                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    breakEnabled ? "bg-amber-600" : "bg-theme-border-input"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      breakEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {breakEnabled && (
+                <div className="flex items-center gap-3 pt-2.5 border-t border-theme-border-muted/50">
+                  <label className="text-[10px] font-bold text-theme-text-muted uppercase tracking-wider shrink-0">
+                    Break
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={40}
+                    step={1}
+                    value={breakMinutes}
+                    onChange={(e) => {
+                      if (!setBreakMinutes) return;
+                      const raw = parseInt(e.target.value, 10);
+                      if (isNaN(raw)) {
+                        setBreakMinutes(1);
+                        return;
+                      }
+                      setBreakMinutes(Math.min(40, Math.max(1, raw)));
+                    }}
+                    className="w-20 px-2.5 py-1.5 bg-theme-page-bg border border-theme-border-input rounded-lg text-theme-text-primary text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  />
+                  <span className="text-[10px] text-theme-text-muted">
+                    mins (max 40)
+                  </span>
+                  <span className="ml-auto font-mono text-amber-400 text-xs font-bold">
+                    +{formatMinsToHHMM(Math.min(40, Math.max(0, breakMinutes || 0)))}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-theme-text-muted uppercase tracking-wider">
