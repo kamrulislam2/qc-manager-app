@@ -5,6 +5,7 @@ import { useProfiles } from '@/contexts/ProfilesContext';
 import { Profile } from '@/types';
 import { BadgeInfo } from '@/utils/leaderboardHelper';
 import { fetchSubmittedAtRange, buildAvailableDates } from '@/utils/availableDatesHelper';
+import { LEADERBOARD_ARCHIVE_COLUMNS } from '@/utils/dbColumns';
 
 export interface LeaderboardUser {
   user_id: string;
@@ -60,6 +61,18 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
   // Available dates dynamically loaded from db
   const [availableDates, setAvailableDates] = useState<{ year: string; month: string }[]>([]);
 
+  // Years that live only in leaderboard_archive (their raw records were pruned
+  // after 2 years). Selecting one of these in Yearly mode reads the snapshot
+  // table instead of the live RPC.
+  const [archiveYears, setArchiveYears] = useState<string[]>([]);
+
+  const currentYearStr = new Date().getFullYear().toString();
+  // Yearly mode + a year older than the 2-year live window = archived path.
+  const isArchivedYear =
+    leaderboardPeriod === 'yearly' &&
+    selectedYear !== currentYearStr &&
+    archiveYears.includes(selectedYear);
+
   const isFetchingRef = useRef(false);
 
   // Shared profiles list — used to detect which fields actually changed on
@@ -86,7 +99,11 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
       const { data, error: rpcError } = await supabase.rpc('get_leaderboard_data', {
         p_year: selectedYear,
         p_month: selectedMonth,
-        p_period: leaderboardPeriod,
+        // p_period is vestigial — the SQL always returns month rank + yearly
+        // totals (overall_score) in one payload. Yearly view is derived
+        // client-side from the same response, so toggling Monthly/Yearly
+        // never triggers an extra RPC call (no added egress).
+        p_period: 'monthly',
         p_today: todayStr,
         p_tz: timeZone,
       });
@@ -122,7 +139,7 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [selectedYear, selectedMonth, leaderboardPeriod, currentProfile]);
+  }, [selectedYear, selectedMonth, currentProfile]);
 
   // Fetch unique month/year dates that contain submitted records
   const fetchAvailableDates = useCallback(async () => {
@@ -134,25 +151,101 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
     }
   }, []);
 
-  // Fetch initial leaderboard and available dates
+  // Fetch the set of years that exist in the archive snapshot table (small,
+  // ~staff-count rows per year). Runs once on mount + on realtime bursts.
+  const fetchArchiveYears = useCallback(async () => {
+    try {
+      const { data, error: archErr } = await supabase
+        .from('leaderboard_archive')
+        .select('year')
+        .order('year', { ascending: false });
+      if (archErr) throw archErr;
+      const years = Array.from(
+        new Set((data || []).map((r: { year: number }) => String(r.year)))
+      );
+      setArchiveYears(years);
+    } catch (err) {
+      console.error('Error fetching leaderboard archive years:', err);
+    }
+  }, []);
+
+  // Load a pruned year's leaderboard from the archive snapshot table. Ranks
+  // are already frozen at prune time; today's/monthly counts don't exist for
+  // archived years, so they surface as 0 (yearly total is the ranking basis).
+  const fetchArchivedYearData = useCallback(async (year: string) => {
+    setLoading(true);
+    try {
+      const { data, error: archErr } = await supabase
+        .from('leaderboard_archive')
+        .select(LEADERBOARD_ARCHIVE_COLUMNS)
+        .eq('year', Number(year))
+        .order('rank', { ascending: true });
+      if (archErr) throw archErr;
+
+      const mappedData: LeaderboardUser[] = (data || []).map((row: any) => ({
+        user_id: row.user_id ?? row.username,
+        username: row.username,
+        full_name: row.full_name,
+        role: 'user',
+        job_role: row.job_role,
+        branch: row.branch,
+        badge: null,
+        quotes_count: row.quotes_count ?? 0,
+        requotes_count: row.requotes_count ?? 0,
+        reviews_count: row.reviews_count ?? 0,
+        sales_count: row.sales_count ?? 0,
+        total_submitted: row.total_submitted ?? 0,
+        todays_count: 0,
+        months_count: 0,
+        overall_score: row.total_submitted ?? 0,
+        earliest_achievement_timestamp: null,
+        rank: row.rank,
+      }));
+
+      setRawLeaderboardData(mappedData);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching archived leaderboard data:', err);
+      setError(err.message || 'Failed to load archived leaderboard');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load leaderboard: archived years read the snapshot table, everything else
+  // hits the live RPC. Re-runs when the year/period selection changes.
   useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+    if (isArchivedYear) {
+      fetchArchivedYearData(selectedYear);
+    } else {
+      fetchLeaderboard();
+    }
+  }, [isArchivedYear, selectedYear, fetchArchivedYearData, fetchLeaderboard]);
 
   useEffect(() => {
     fetchAvailableDates();
-  }, [fetchAvailableDates]);
+    fetchArchiveYears();
+  }, [fetchAvailableDates, fetchArchiveYears]);
 
   // Realtime: silent refetch on records/profiles changes, throttled
   const lastRealtimeUpdateRef = useRef(0);
   const pendingRefetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Archived years are immutable snapshots — records/profiles realtime events
+  // must never trigger a refetch (or overwrite) while one is displayed.
+  const isArchivedYearRef = useRef(isArchivedYear);
+  useEffect(() => {
+    isArchivedYearRef.current = isArchivedYear;
+  }, [isArchivedYear]);
+
   const handleRealtimeUpdate = useCallback(() => {
+    if (isArchivedYearRef.current) return;
     const now = Date.now();
     const elapsed = now - lastRealtimeUpdateRef.current;
     if (elapsed < REALTIME_THROTTLE_MS) {
       if (!pendingRefetchRef.current) {
         pendingRefetchRef.current = setTimeout(() => {
           pendingRefetchRef.current = null;
+          if (isArchivedYearRef.current) return;
           lastRealtimeUpdateRef.current = Date.now();
           fetchLeaderboard(true);
           fetchAvailableDates();
@@ -189,13 +282,14 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
   useRealtimeHandler('records', handleRealtimeUpdate);
   useRealtimeHandler('profiles', handleProfileRealtimeUpdate);
 
-  // Derived filter options based on availableDates
+  // Derived filter options based on availableDates + archived years
   const availableYears = useMemo(() => {
     const years = new Set<string>();
     years.add(new Date().getFullYear().toString());
     availableDates.forEach(d => years.add(d.year));
+    archiveYears.forEach(y => years.add(y));
     return Array.from(years).sort((a, b) => b.localeCompare(a));
-  }, [availableDates]);
+  }, [availableDates, archiveYears]);
 
   const availableMonthsForSelectedYear = useMemo(() => {
     const months = availableDates
@@ -205,9 +299,31 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
     return filteredList.length > 0 ? filteredList : monthsList;
   }, [availableDates, selectedYear]);
 
+  // Period-adjusted ranking. Monthly = server order (RPC dense rank on
+  // months_count). Yearly = re-ranked client-side by overall_score (the
+  // selected year's total submissions, already in the same RPC payload) —
+  // top yearly submitter first, dense ranks, no extra fetch needed.
+  const periodRankedData = useMemo(() => {
+    if (leaderboardPeriod === 'monthly') return rawLeaderboardData;
+
+    const sorted = [...rawLeaderboardData].sort(
+      (a, b) =>
+        b.overall_score - a.overall_score || a.username.localeCompare(b.username)
+    );
+    let rank = 0;
+    let prevScore: number | null = null;
+    return sorted.map(user => {
+      if (user.overall_score !== prevScore) {
+        rank += 1;
+        prevScore = user.overall_score;
+      }
+      return { ...user, rank };
+    });
+  }, [rawLeaderboardData, leaderboardPeriod]);
+
   // Filtered list
   const leaderboardData = useMemo(() => {
-    let list = rawLeaderboardData;
+    let list = periodRankedData;
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase().trim();
@@ -219,7 +335,18 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
     }
 
     return list;
-  }, [rawLeaderboardData, searchQuery]);
+  }, [periodRankedData, searchQuery]);
+
+  // Switch Monthly/Yearly. Monthly view is always the current year (its month
+  // dropdown drives the period), so leaving Yearly snaps the year back to
+  // current — otherwise a previously-selected archived year would make the
+  // monthly RPC query an empty/pruned year.
+  const changePeriod = useCallback((period: 'monthly' | 'yearly') => {
+    setLeaderboardPeriod(period);
+    if (period === 'monthly') {
+      setSelectedYear(currentYearStr);
+    }
+  }, [currentYearStr]);
 
   return {
     leaderboardData,
@@ -229,6 +356,7 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
     fetchLeaderboard,
     leaderboardPeriod,
     setLeaderboardPeriod,
+    changePeriod,
     selectedYear,
     setSelectedYear,
     selectedMonth,
@@ -237,5 +365,6 @@ export const useLeaderboardData = (currentProfile: Profile | null) => {
     setSearchQuery,
     availableYears,
     availableMonthsForSelectedYear,
+    isArchivedYear,
   };
 };

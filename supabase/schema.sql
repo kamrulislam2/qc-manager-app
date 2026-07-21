@@ -231,6 +231,118 @@ $$;
 
 
 --
+-- Name: archive_and_prune_old_records(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.archive_and_prune_old_records(p_tz text DEFAULT 'Asia/Dhaka'::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_current_year INT := EXTRACT(YEAR FROM timezone(p_tz, now()))::INT;
+  v_year INT;
+  v_archived_users INT;
+  v_deleted INT;
+  v_total_deleted INT := 0;
+  v_years_archived INT[] := '{}';
+  v_purged INT;
+BEGIN
+  FOR v_year IN
+    SELECT DISTINCT EXTRACT(YEAR FROM timezone(p_tz, r.submitted_at))::INT
+    FROM public.records r
+    WHERE EXTRACT(YEAR FROM timezone(p_tz, r.submitted_at))::INT < v_current_year - 2
+    ORDER BY 1
+  LOOP
+    INSERT INTO public.leaderboard_archive
+      (user_id, username, full_name, job_role, branch, year,
+       quotes_count, requotes_count, reviews_count, sales_count,
+       total_submitted, rank)
+    WITH year_stats AS (
+      SELECT
+        r.user_id,
+        COUNT(*)::INT AS total_submitted,
+        COUNT(*) FILTER (WHERE r.file_type = 'Quote')::INT AS quotes_count,
+        COUNT(*) FILTER (WHERE r.file_type IN ('Requote', 'Requote Van', 'Requote Bike'))::INT AS requotes_count,
+        COUNT(*) FILTER (WHERE r.file_type LIKE '%Review%')::INT AS reviews_count,
+        COUNT(*) FILTER (WHERE r.file_type = 'Sale')::INT AS sales_count
+      FROM public.records r
+      WHERE EXTRACT(YEAR FROM timezone(p_tz, r.submitted_at))::INT = v_year
+      GROUP BY r.user_id
+    ),
+    user_branches AS (
+      SELECT DISTINCT ON (b.user_id)
+        b.user_id,
+        b.branch_name
+      FROM (
+        SELECT
+          r2.user_id,
+          r2.branch_name,
+          COUNT(*) AS branch_cnt,
+          MAX(r2.submitted_at) AS branch_latest
+        FROM public.records r2
+        WHERE EXTRACT(YEAR FROM timezone(p_tz, r2.submitted_at))::INT = v_year
+        GROUP BY r2.user_id, r2.branch_name
+      ) b
+      ORDER BY b.user_id, b.branch_cnt DESC, b.branch_latest DESC
+    )
+    SELECT
+      ys.user_id,
+      COALESCE(p.username, ys.user_id::text) AS username,
+      p.full_name,
+      p.job_role,
+      ub.branch_name,
+      v_year,
+      ys.quotes_count,
+      ys.requotes_count,
+      ys.reviews_count,
+      ys.sales_count,
+      ys.total_submitted,
+      DENSE_RANK() OVER (
+        ORDER BY ys.total_submitted DESC, COALESCE(p.username, ys.user_id::text) ASC
+      )::INT AS rank
+    FROM year_stats ys
+    LEFT JOIN public.profiles p ON p.id = ys.user_id
+    LEFT JOIN user_branches ub ON ub.user_id = ys.user_id
+    ON CONFLICT (username, year) DO UPDATE SET
+      user_id = EXCLUDED.user_id,
+      full_name = EXCLUDED.full_name,
+      job_role = EXCLUDED.job_role,
+      branch = EXCLUDED.branch,
+      quotes_count = EXCLUDED.quotes_count,
+      requotes_count = EXCLUDED.requotes_count,
+      reviews_count = EXCLUDED.reviews_count,
+      sales_count = EXCLUDED.sales_count,
+      total_submitted = EXCLUDED.total_submitted,
+      rank = EXCLUDED.rank,
+      archived_at = timezone('utc'::text, now());
+
+    GET DIAGNOSTICS v_archived_users = ROW_COUNT;
+
+    DELETE FROM public.records r
+    WHERE EXTRACT(YEAR FROM timezone(p_tz, r.submitted_at))::INT = v_year;
+    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+
+    v_total_deleted := v_total_deleted + v_deleted;
+    v_years_archived := v_years_archived || v_year;
+
+    RAISE NOTICE 'Archived year %: % users snapshotted, % records deleted',
+      v_year, v_archived_users, v_deleted;
+  END LOOP;
+
+  DELETE FROM public.leaderboard_archive WHERE year < v_current_year - 5;
+  GET DIAGNOSTICS v_purged = ROW_COUNT;
+
+  RETURN jsonb_build_object(
+    'years_archived', to_jsonb(v_years_archived),
+    'records_deleted', v_total_deleted,
+    'archive_rows_purged', v_purged,
+    'run_at', timezone('utc'::text, now())
+  );
+END;
+$$;
+
+
+--
 -- Name: cleanup_old_audit_logs(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1069,6 +1181,29 @@ CREATE TABLE public.kpi_assessments (
 
 
 --
+-- Name: leaderboard_archive; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.leaderboard_archive (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    username text NOT NULL,
+    full_name text,
+    job_role text,
+    branch text,
+    year integer NOT NULL,
+    quotes_count integer DEFAULT 0 NOT NULL,
+    requotes_count integer DEFAULT 0 NOT NULL,
+    reviews_count integer DEFAULT 0 NOT NULL,
+    sales_count integer DEFAULT 0 NOT NULL,
+    total_submitted integer DEFAULT 0 NOT NULL,
+    rank integer NOT NULL,
+    archived_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT leaderboard_archive_username_year_unique UNIQUE (username, year)
+);
+
+
+--
 -- Name: leave_settlements; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1300,6 +1435,22 @@ ALTER TABLE ONLY public.kpi_assessments
 
 
 --
+-- Name: leaderboard_archive leaderboard_archive_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.leaderboard_archive
+    ADD CONSTRAINT leaderboard_archive_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: leaderboard_archive leaderboard_archive_username_year_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.leaderboard_archive
+    ADD CONSTRAINT leaderboard_archive_username_year_unique UNIQUE (username, year);
+
+
+--
 -- Name: leave_settlements leave_settlements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1426,6 +1577,13 @@ CREATE INDEX idx_chuti_updated_at ON public.chuti USING btree (updated_at);
 --
 
 CREATE INDEX idx_chuti_user_date ON public.chuti USING btree (user_id, date);
+
+
+--
+-- Name: idx_leaderboard_archive_year; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_leaderboard_archive_year ON public.leaderboard_archive USING btree (year, rank);
 
 
 --
@@ -1591,6 +1749,14 @@ ALTER TABLE ONLY public.leave_settlements
 
 
 --
+-- Name: leaderboard_archive leaderboard_archive_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.leaderboard_archive
+    ADD CONSTRAINT leaderboard_archive_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: leave_settlements leave_settlements_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1665,6 +1831,13 @@ CREATE POLICY "Admins can read all holiday responses" ON public.govt_holiday_res
 --
 
 CREATE POLICY "Admins can update/delete responses" ON public.govt_holiday_responses USING (public.is_admin());
+
+
+--
+-- Name: leaderboard_archive Authenticated users can read leaderboard archive; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated users can read leaderboard archive" ON public.leaderboard_archive FOR SELECT TO authenticated USING (true);
 
 
 --
@@ -2068,6 +2241,12 @@ ALTER TABLE public.kpi_assessments ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.leave_settlements ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: leaderboard_archive; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.leaderboard_archive ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: login_codes; Type: ROW SECURITY; Schema: public; Owner: -

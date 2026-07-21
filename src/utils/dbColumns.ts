@@ -43,3 +43,6 @@ export const LOGIN_CODE_COLUMNS = 'login_id, code, name, updated_at';
 
 export const COMPLIANCE_RULE_COLUMNS =
   'id, category, sub_category, company_name, company_tags, title, content, extra_info, is_deleted, created_at, updated_at, updated_by';
+
+export const LEADERBOARD_ARCHIVE_COLUMNS =
+  'user_id, username, full_name, job_role, branch, year, quotes_count, requotes_count, reviews_count, sales_count, total_submitted, rank';

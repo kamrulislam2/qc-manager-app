@@ -339,6 +339,65 @@ export type Database = {
           },
         ]
       }
+      leaderboard_archive: {
+        Row: {
+          archived_at: string
+          branch: string | null
+          full_name: string | null
+          id: string
+          job_role: string | null
+          quotes_count: number
+          rank: number
+          requotes_count: number
+          reviews_count: number
+          sales_count: number
+          total_submitted: number
+          user_id: string | null
+          username: string
+          year: number
+        }
+        Insert: {
+          archived_at?: string
+          branch?: string | null
+          full_name?: string | null
+          id?: string
+          job_role?: string | null
+          quotes_count?: number
+          rank: number
+          requotes_count?: number
+          reviews_count?: number
+          sales_count?: number
+          total_submitted?: number
+          user_id?: string | null
+          username: string
+          year: number
+        }
+        Update: {
+          archived_at?: string
+          branch?: string | null
+          full_name?: string | null
+          id?: string
+          job_role?: string | null
+          quotes_count?: number
+          rank?: number
+          requotes_count?: number
+          reviews_count?: number
+          sales_count?: number
+          total_submitted?: number
+          user_id?: string | null
+          username?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaderboard_archive_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leave_settlements: {
         Row: {
           action_by: string | null
@@ -733,6 +792,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      archive_and_prune_old_records: {
+        Args: { p_tz?: string }
+        Returns: Json
       }
       cleanup_old_audit_logs: { Args: never; Returns: undefined }
       create_new_user: {

@@ -30,12 +30,16 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
     loading,
     error,
     leaderboardPeriod,
+    changePeriod,
     selectedYear,
+    setSelectedYear,
     selectedMonth,
     setSelectedMonth,
     searchQuery,
     setSearchQuery,
+    availableYears,
     availableMonthsForSelectedYear,
+    isArchivedYear,
   } = useLeaderboardData(profile);
 
   const isAdmin = profile?.role === "admin";
@@ -129,17 +133,52 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
 
           {/* Right: Controls */}
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-            {/* Month Dropdown (Always visible, fixed width of w-28 to prevent snap resizing. Uses text-base on mobile to prevent iOS zoom) */}
-            <CustomSelect
-              value={selectedMonth}
-              onChange={setSelectedMonth}
-              options={availableMonthsForSelectedYear.map((m) => ({
-                value: m.value,
-                label: m.name,
-              }))}
-              buttonClassName="w-28 bg-slate-950/85 border border-slate-800/80 hover:border-slate-700 text-white text-base md:text-xs rounded-xl px-3 py-2 outline-none cursor-pointer focus:ring-1 focus:ring-blue-500 transition-all flex items-center justify-between gap-2 text-left font-bold"
-              className="w-28"
-            />
+            {/* Monthly / Yearly period toggle */}
+            <div className="flex bg-slate-950/85 p-1 rounded-xl border border-slate-800/80 text-xs shrink-0">
+              <button
+                onClick={() => changePeriod("monthly")}
+                className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  leaderboardPeriod === "monthly"
+                    ? "bg-blue-600/15 border border-blue-500/20 text-blue-400"
+                    : "text-slate-400 hover:text-white border border-transparent"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => changePeriod("yearly")}
+                className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  leaderboardPeriod === "yearly"
+                    ? "bg-blue-600/15 border border-blue-500/20 text-blue-400"
+                    : "text-slate-400 hover:text-white border border-transparent"
+                }`}
+              >
+                Yearly
+              </button>
+            </div>
+
+            {/* Monthly view: month dropdown. Yearly view: year dropdown
+                (includes archived years pulled from leaderboard_archive). */}
+            {leaderboardPeriod === "monthly" ? (
+              <CustomSelect
+                value={selectedMonth}
+                onChange={setSelectedMonth}
+                options={availableMonthsForSelectedYear.map((m) => ({
+                  value: m.value,
+                  label: m.name,
+                }))}
+                buttonClassName="w-28 bg-slate-950/85 border border-slate-800/80 hover:border-slate-700 text-white text-base md:text-xs rounded-xl px-3 py-2 outline-none cursor-pointer focus:ring-1 focus:ring-blue-500 transition-all flex items-center justify-between gap-2 text-left font-bold"
+                className="w-28"
+              />
+            ) : (
+              <CustomSelect
+                value={selectedYear}
+                onChange={setSelectedYear}
+                options={availableYears.map((y) => ({ value: y, label: y }))}
+                buttonClassName="w-28 bg-slate-950/85 border border-slate-800/80 hover:border-slate-700 text-white text-base md:text-xs rounded-xl px-3 py-2 outline-none cursor-pointer focus:ring-1 focus:ring-blue-500 transition-all flex items-center justify-between gap-2 text-left font-bold"
+                className="w-28"
+              />
+            )}
 
             {/* View Report Button */}
             {onViewFullReport && (
@@ -168,7 +207,16 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
         <div className="p-5 border-b border-slate-850/30 flex flex-wrap justify-between items-center gap-3 bg-slate-900/20">
           <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
             <Award className="h-4 w-4 text-blue-500" />
-            Rankings ({leaderboardPeriod === "monthly" ? "Monthly" : "Yearly"})
+            Rankings (
+            {leaderboardPeriod === "monthly"
+              ? "Monthly"
+              : `Yearly ${selectedYear}`}
+            )
+            {isArchivedYear && (
+              <span className="inline-flex items-center gap-1 normal-case tracking-normal bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] font-bold rounded-lg px-2 py-0.5">
+                Archived
+              </span>
+            )}
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 bg-slate-900/60 border border-slate-800/80 rounded-lg px-2.5 py-1">
