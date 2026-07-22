@@ -4,6 +4,7 @@ import { Bell } from "lucide-react";
 import { Profile, ChutiRecordWithProfile, BulkRepresentative } from "@/types";
 import { Modal } from "@/components/common/Modal";
 import { LeaveApprovalPanel } from "@/components/leave-tracker/LeaveApprovalPanel";
+import { isAdminRole } from '@/utils/permissionService';
 
 interface AdminLeaveApprovalModalProps {
   showLeaveApprovalModal: boolean;
@@ -49,7 +50,7 @@ export function AdminLeaveApprovalModal({
   onSwitchToUserPanel,
   userNotificationsCount = 0,
 }: AdminLeaveApprovalModalProps) {
-  if (profile?.role !== "admin") return null;
+  if (!isAdminRole(profile)) return null;
 
   const handleClose = () => setShowLeaveApprovalModal(false);
 

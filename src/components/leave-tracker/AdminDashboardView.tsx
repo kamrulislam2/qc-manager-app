@@ -9,6 +9,7 @@ import {
   Download
 } from 'lucide-react';
 import { Profile, ChutiRecordWithProfile, GovtHolidayResponse, LeaveSettlement } from '@/types';
+import { getDisplayRole, getRoleLabel } from '@/utils/permissionService';
 import { AdminSettlementsPanel } from '@/components/leave-tracker/AdminSettlementsPanel';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { LeavesRecordsTable } from '@/components/leave-tracker/LeavesRecordsTable';
@@ -375,13 +376,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <div>
                     <h2 className="text-xl font-bold text-theme-text-primary flex items-center gap-2">
                       {staffProfile?.full_name || 'Staff User'}{staffProfile?.username ? ` (${staffProfile.username.toUpperCase()})` : ''}
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${staffProfile?.role === 'admin'
+                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${getDisplayRole(staffProfile?.role, currentUserProfile) === 'admin'
                         ? 'bg-blue-955/60 border-blue-800 text-blue-300'
-                        : staffProfile?.role === 'supervisor'
+                        : getDisplayRole(staffProfile?.role, currentUserProfile) === 'supervisor'
                           ? 'bg-purple-955/60 border-purple-805 text-purple-300'
                           : 'bg-blue-955/60 border-blue-805 text-blue-300'
                         }`}>
-                        {staffProfile?.job_role || (staffProfile?.role === 'admin' ? 'Admin' : (staffProfile?.role === 'supervisor' ? 'Supervisor' : 'Staff'))}
+                        {staffProfile?.job_role || (getDisplayRole(staffProfile?.role, currentUserProfile) === 'user' ? 'Staff' : getRoleLabel(staffProfile?.role, currentUserProfile))}
                       </span>
                     </h2>
                     <div className="flex flex-wrap gap-4 mt-2 text-xs text-theme-text-muted">

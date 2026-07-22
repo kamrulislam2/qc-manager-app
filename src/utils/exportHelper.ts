@@ -3,6 +3,7 @@ import { Profile, GovtHolidayResponse } from '../types';
 import { ChutiRecord } from './offlineSync';
 import { calculateStats } from './dashboardHelpers';
 import { isTauriApp } from './apiUrlHelper';
+import { isAdminRole } from '@/utils/permissionService';
 
 // Helper to save file inside Tauri using Save Dialog and FS API
 const saveTauriFile = async (
@@ -180,7 +181,7 @@ const buildTeamWiseTablesHtml = (
   };
 
   // If the exporter is not an admin, we just output a single table with their team name
-  if (profile?.role !== 'admin') {
+  if (!isAdminRole(profile)) {
     const supervisorName = (profile?.username || 'Supervisor').toUpperCase();
     const rows = getTableRowsHtml(recordsToExport);
     return `

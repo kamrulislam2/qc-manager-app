@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
     }
 
     const isSupervisor = requesterProfile.role === 'supervisor';
-    const isAdmin = requesterProfile.role === 'admin';
+    // Superadmin inherits all admin capability.
+    const isAdmin = requesterProfile.role === 'admin' || requesterProfile.role === 'superadmin';
 
     if (!isSupervisor && !isAdmin) {
       return NextResponse.json(

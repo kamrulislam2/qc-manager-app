@@ -5,6 +5,7 @@ import { ChutiRecord } from '@/utils/offlineSync';
 import { Profile } from '@/types';
 
 import { Modal } from '@/components/common/Modal';
+import { isAdminRole } from '@/utils/permissionService';
 
 interface AdminCancelAdjustmentModalProps {
   showCancelAdjustmentModal: boolean;
@@ -27,7 +28,7 @@ export function AdminCancelAdjustmentModal({
   adminActiveTab,
   submitting = false,
 }: AdminCancelAdjustmentModalProps) {
-  const isDirectCancel = profile?.role === 'admin' && adminActiveTab === 'admin';
+  const isDirectCancel = isAdminRole(profile) && adminActiveTab === 'admin';
 
   return (
     <Modal

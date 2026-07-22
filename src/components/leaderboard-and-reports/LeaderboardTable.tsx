@@ -13,6 +13,8 @@ import { LeaderboardRow } from "./LeaderboardRow";
 import { LeaderboardSkeleton } from "@/components/common/skeleton/LeaderboardSkeleton";
 import { downloadCSVRows } from "@/utils/quotesDashboardHelpers";
 import { CustomSelect } from "@/components/common/CustomSelect";
+import { isAdminRole, isFeatureEnabled } from '@/utils/permissionService';
+import { getGlobalSettingsFromProfile } from '@/utils/dashboardHelpers';
 
 interface LeaderboardTableProps {
   profile: Profile | null;
@@ -42,7 +44,10 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
     isArchivedYear,
   } = useLeaderboardData(profile);
 
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = isAdminRole(profile);
+  const gs = getGlobalSettingsFromProfile(profile);
+  const yearlyEnabled = isFeatureEnabled('yearly_leaderboard', gs, profile);
+  const csvEnabled = isFeatureEnabled('csv_export', gs, profile);
 
   const handleExportExcel = () => {
     const periodLabel =
@@ -133,7 +138,8 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
 
           {/* Right: Controls */}
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-            {/* Monthly / Yearly period toggle */}
+            {/* Monthly / Yearly period toggle (feature-flagged) */}
+            {yearlyEnabled && (
             <div className="flex bg-slate-950/85 p-1 rounded-xl border border-slate-800/80 text-xs shrink-0">
               <button
                 onClick={() => changePeriod("monthly")}
@@ -156,6 +162,7 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                 Yearly
               </button>
             </div>
+            )}
 
             {/* Monthly view: month dropdown. Yearly view: year dropdown
                 (includes archived years pulled from leaderboard_archive). */}
@@ -225,7 +232,7 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                 {leaderboardData.length}
               </strong>
             </span>
-            {isAdmin && (
+            {isAdmin && csvEnabled && (
               <button
                 onClick={handleExportExcel}
                 className="inline-flex items-center gap-1.5 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-lg px-2.5 py-1 transition-all cursor-pointer"

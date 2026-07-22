@@ -21,8 +21,8 @@ import { SkeletonLoader } from "@/components/quotes-tracker/QuotesSkeletonLoader
 import { LeaderboardTable } from "@/components/leaderboard-and-reports/LeaderboardTable";
 import { ReportsPanel } from "@/components/leaderboard-and-reports/ReportsPanel";
 import { AuditLogsPanel } from "@/components/common/AuditLogsPanel";
-import { isSuperadmin } from "@/utils/permissionService";
-import { getGlobalSettingsFromProfile } from "@/utils/dashboardHelpers";
+import { isSuperadmin, isAdminRole, isFeatureEnabled } from "@/utils/permissionService";
+import { getGlobalSettingsFromProfile, getSanitizerWords } from "@/utils/dashboardHelpers";
 import { QuoteRulesPanel } from "@/components/quotes-tracker/QuoteRulesPanel";
 import { CopyHelperPanel } from "@/components/quotes-tracker/CopyHelperPanel";
 import { SaveFileHelperPanel } from "@/components/quotes-tracker/SaveFileHelperPanel";
@@ -150,14 +150,20 @@ export default function Dashboard({
   // (from global settings). Falls back to default behavior when unset.
   const cleanFileName = useMemo(() => {
     const gs = getGlobalSettingsFromProfile(profile);
-    return buildCleanFileName({ extraWords: gs.sanitizer_words });
+    return buildCleanFileName(getSanitizerWords(gs));
   }, [profile]);
+
+  // Feature flag: Custom Entry modal (superadmin-controlled; default ON).
+  const customEntryEnabled = useMemo(
+    () => isFeatureEnabled('custom_entry', getGlobalSettingsFromProfile(profile), profile),
+    [profile]
+  );
 
 
 
   // Fetch audit logs when activeTab becomes 'audit_logs'
   useEffect(() => {
-    if (activeTab === "audit_logs" && profile?.role === "admin") {
+    if (activeTab === "audit_logs" && isAdminRole(profile)) {
       fetchAuditLogs();
     }
   }, [activeTab, profile, fetchAuditLogs]);
@@ -584,7 +590,7 @@ export default function Dashboard({
     return records.filter((r) => {
       // Admin filter mode
       if (
-        (profile?.role === "admin" || profile?.role === "supervisor") &&
+        (isAdminRole(profile) || profile?.role === "supervisor") &&
         adminViewMode === "mine" &&
         r.user_id !== sessionUser?.id
       ) {
@@ -634,7 +640,7 @@ export default function Dashboard({
     return records.filter((r) => {
       // Admin filter mode
       if (
-        (profile?.role === "admin" || profile?.role === "supervisor") &&
+        (isAdminRole(profile) || profile?.role === "supervisor") &&
         adminViewMode === "mine" &&
         r.user_id !== sessionUser?.id
       ) {
@@ -705,7 +711,7 @@ export default function Dashboard({
     if (searchQuery) {
       const activeTabOtherSiteTotal = records.filter((r) => {
         if (
-          (profile?.role === "admin" || profile?.role === "supervisor") &&
+          (isAdminRole(profile) || profile?.role === "supervisor") &&
           adminViewMode === "mine" &&
           r.user_id !== sessionUser?.id
         ) {
@@ -796,7 +802,7 @@ export default function Dashboard({
 
     // For non-admin mode, use currentUserProfile; for admin/supervisor mode, look up in profilesList
     const targetProfile =
-      (profile?.role === "admin" || profile?.role === "supervisor")
+      (isAdminRole(profile) || profile?.role === "supervisor")
         ? profilesList.find((p) => p.id === userId)
         : userId === profile?.id
           ? profile
@@ -1359,7 +1365,7 @@ export default function Dashboard({
                       <span>Excel</span>
                     </button>
 
-                    {(profile?.role === "admin" || profile?.role === "supervisor") && (
+                    {(isAdminRole(profile) || profile?.role === "supervisor") && (
                       <AdminViewToggle
                         viewMode={adminViewMode}
                         onChange={handleAdminViewModeChange}
@@ -1430,7 +1436,7 @@ export default function Dashboard({
                         onDelete={setDeletingRecordId}
                         isLoading={recordsLoading}
                         currentUserId={sessionUser?.id}
-                        isAdmin={profile?.role === "admin" || profile?.role === "supervisor"}
+                        isAdmin={isAdminRole(profile) || profile?.role === "supervisor"}
                         onBulkDelete={setBulkDeletingRecordIds}
                         onSaveInline={handleSaveInline}
                         onBulkSaveInline={handleBulkSaveInline}
@@ -1467,6 +1473,7 @@ export default function Dashboard({
                     <span>Excel</span>
                   </button>
 
+                  {customEntryEnabled && (
                   <button
                     onClick={() => setIsCustomEntryModalOpen(true)}
                     className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg shadow-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"
@@ -1474,7 +1481,8 @@ export default function Dashboard({
                     <Plus className="h-3.5 w-3.5" />
                     <span>Entry</span>
                   </button>
-                  {(profile?.role === "admin" || profile?.role === "supervisor") && (
+                  )}
+                  {(isAdminRole(profile) || profile?.role === "supervisor") && (
                     <AdminViewToggle
                       viewMode={adminViewMode}
                       onChange={handleAdminViewModeChange}
@@ -1636,7 +1644,7 @@ export default function Dashboard({
                   onDelete={setDeletingRecordId}
                   isLoading={recordsLoading}
                   currentUserId={sessionUser?.id}
-                  isAdmin={profile?.role === "admin" || profile?.role === "supervisor"}
+                  isAdmin={isAdminRole(profile) || profile?.role === "supervisor"}
                   onBulkDelete={setBulkDeletingRecordIds}
                   onSaveInline={handleSaveInline}
                   onBulkSaveInline={handleBulkSaveInline}
@@ -1693,7 +1701,7 @@ export default function Dashboard({
           )}
 
           {/* TAB 5: SYSTEM AUDIT LOGS */}
-          {activeTab === "audit_logs" && profile?.role === "admin" && (
+          {activeTab === "audit_logs" && isAdminRole(profile) && (
             <Suspense fallback={<SkeletonLoader type="audit-logs" />}>
               <AuditLogsPanel
                 logs={auditLogs}
@@ -1723,7 +1731,7 @@ export default function Dashboard({
           {/* TAB 8: LOGIN CODES */}
           {activeTab === "login_codes" && (
             <LoginCodesPanel
-              canEdit={profile?.role === 'admin' || profile?.role === 'supervisor'}
+              canEdit={isAdminRole(profile) || profile?.role === 'supervisor'}
               isOnline={isOnline}
               showToast={showToast}
             />
@@ -1886,7 +1894,7 @@ export default function Dashboard({
               profilesList={profilesList}
               currentUserProfile={profile}
               submitting={submitting}
-              adminMode={(profile?.role === "admin" || profile?.role === "supervisor") && adminViewMode === "all"}
+              adminMode={(isAdminRole(profile) || profile?.role === "supervisor") && adminViewMode === "all"}
               onSubmit={handleAdminCustomEntrySubmit}
             />
 

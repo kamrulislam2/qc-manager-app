@@ -1,5 +1,10 @@
 import { ChutiRecord, generateUUID } from '@/utils/offlineSync';
 import { LeaveSettlement } from '@/types';
+import {
+  SanitizerRule,
+  resolveSanitizerRules,
+  enabledSanitizerWords,
+} from '@/utils/fileNameSanitizer';
 
 export interface GlobalSettings {
   office_leave_h1: number;
@@ -12,8 +17,31 @@ export interface GlobalSettings {
   settlement_active_year?: string | null;
   settlement_active_period?: 'H1' | 'H2' | 'Instant' | null;
   settlement_active_category?: 'Office Leave' | 'Govt Holiday' | 'Eid-ul-Fitr' | 'Eid-ul-Adha' | null;
-  /** Superadmin-managed extra terms stripped by the filename sanitizer. */
+  /** @deprecated legacy custom-only list; superseded by sanitizer_rules. Still read for seeding. */
   sanitizer_words?: string[];
+  /** Superadmin-managed filename sanitizer rules (word + enabled). Seeded from defaults on first run. */
+  sanitizer_rules?: SanitizerRule[];
+  /**
+   * Superadmin-managed per-role tab/subtab visibility.
+   * Shape: { [role]: { [tabKey]: boolean } }. A tab is hidden for a role only
+   * when explicitly set to false; absent = visible (default allow).
+   */
+  role_visibility?: Record<string, Record<string, boolean>>;
+  /**
+   * Superadmin feature flags. flagKey -> enabled. Absent or true = ON
+   * (default), only explicit false disables. Gates functionality, not nav.
+   */
+  feature_flags?: Record<string, boolean>;
+  /** Superadmin time-boxed per-role tab overrides (auto-expire client-side). */
+  temp_access?: TempAccessEntry[];
+}
+
+/** A time-boxed grant/revoke of a tab for a role. Ignored past expires_at. */
+export interface TempAccessEntry {
+  role: string;
+  tabKey: string;
+  action: 'grant' | 'revoke';
+  expires_at: string; // ISO timestamp
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -60,7 +88,11 @@ export const getGlobalSettingsFromProfile = (profile: any): GlobalSettings => {
           settlement_active_year: gs.settlement_active_year || null,
           settlement_active_period: gs.settlement_active_period || null,
           settlement_active_category: gs.settlement_active_category || null,
-          sanitizer_words: Array.isArray(gs.sanitizer_words) ? gs.sanitizer_words : []
+          sanitizer_words: Array.isArray(gs.sanitizer_words) ? gs.sanitizer_words : [],
+          sanitizer_rules: Array.isArray(gs.sanitizer_rules) ? gs.sanitizer_rules : undefined,
+          role_visibility: (gs.role_visibility && typeof gs.role_visibility === "object") ? gs.role_visibility : undefined,
+          feature_flags: (gs.feature_flags && typeof gs.feature_flags === "object") ? gs.feature_flags : undefined,
+          temp_access: Array.isArray(gs.temp_access) ? gs.temp_access : undefined
         };
       }
     } catch (e) {
@@ -83,7 +115,11 @@ export const getGlobalSettingsFromProfile = (profile: any): GlobalSettings => {
           settlement_active_year: gs.settlement_active_year || null,
           settlement_active_period: gs.settlement_active_period || null,
           settlement_active_category: gs.settlement_active_category || null,
-          sanitizer_words: Array.isArray(gs.sanitizer_words) ? gs.sanitizer_words : []
+          sanitizer_words: Array.isArray(gs.sanitizer_words) ? gs.sanitizer_words : [],
+          sanitizer_rules: Array.isArray(gs.sanitizer_rules) ? gs.sanitizer_rules : undefined,
+          role_visibility: (gs.role_visibility && typeof gs.role_visibility === "object") ? gs.role_visibility : undefined,
+          feature_flags: (gs.feature_flags && typeof gs.feature_flags === "object") ? gs.feature_flags : undefined,
+          temp_access: Array.isArray(gs.temp_access) ? gs.temp_access : undefined
         };
       }
     } catch (e) {
@@ -93,6 +129,18 @@ export const getGlobalSettingsFromProfile = (profile: any): GlobalSettings => {
   
   return defaultGlobalSettings;
 };
+
+/**
+ * Effective sanitizer rules for a profile's global settings, with defaults
+ * seeded on first run (so the list is never empty and existing hardcoded
+ * behavior is preserved). Single source of truth for the sanitizer UI.
+ */
+export const getSanitizerRules = (globalSettings: GlobalSettings): SanitizerRule[] =>
+  resolveSanitizerRules(globalSettings.sanitizer_rules, globalSettings.sanitizer_words);
+
+/** Enabled sanitizer words derived from settings — feed to buildCleanFileName. */
+export const getSanitizerWords = (globalSettings: GlobalSettings): string[] =>
+  enabledSanitizerWords(getSanitizerRules(globalSettings));
 
 // Helper function to clean supervisor/admin approval prefix and adjustments from comment for table display
 export const getCleanComment = (comment: string | null | undefined): string => {

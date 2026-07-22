@@ -40,10 +40,12 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@tauri-apps/cli": "^2.11.2",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "pg": "^8.22.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5"
   },

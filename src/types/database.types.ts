@@ -865,6 +865,10 @@ export type Database = {
         Args: { p_month: number; p_user_id: string; p_year: number }
         Returns: boolean
       }
+      set_feature_flags: { Args: { p_flags: Json }; Returns: undefined }
+      set_role_visibility: { Args: { p_visibility: Json }; Returns: undefined }
+      set_sanitizer_rules: { Args: { p_rules: Json }; Returns: undefined }
+      set_temp_access: { Args: { p_entries: Json }; Returns: undefined }
       set_sanitizer_words: { Args: { p_words: string[] }; Returns: undefined }
       sync_top_performer_badges: { Args: never; Returns: undefined }
     }

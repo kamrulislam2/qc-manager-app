@@ -3,6 +3,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Profile, ChutiRecordWithProfile, BulkRepresentative, LeaveSettlement } from '@/types';
 import { ChutiRecord } from '@/utils/offlineSync';
 import { formatDate, calculateStats, parseHolidayItem, GlobalSettings } from '@/utils/dashboardHelpers';
+import { isAdminRole } from '@/utils/permissionService';
 
 // Notification item type (shared across the app)
 export interface NotificationItem {
@@ -76,7 +77,7 @@ export function useDerivedState({
   const filteredUserRecords = useMemo(() => applyFilters(userRecords), [applyFilters, userRecords]);
 
   const getFilteredRecordsForUser = useCallback((userId: string) => {
-    const baseRecords = (profile?.role === 'admin' || (profile?.role === 'supervisor' && userId !== sessionUser?.id)) 
+    const baseRecords = (isAdminRole(profile) || (profile?.role === 'supervisor' && userId !== sessionUser?.id)) 
       ? adminRecords.filter(r => r.user_id === userId) 
       : userRecords;
     return applyFilters(baseRecords);
@@ -356,7 +357,7 @@ export function useDerivedState({
 
   // --- Admin/Supervisor Holiday & Settlement Notifications ---
   const adminHolidayNotifications = useMemo(() => {
-    if (!initialFetchDone || !sessionUser || !profile || profile.role !== 'admin') {
+    if (!initialFetchDone || !sessionUser || !profile || !isAdminRole(profile)) {
       return [];
     }
 

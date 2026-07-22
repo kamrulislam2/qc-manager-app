@@ -14,6 +14,7 @@ import {
 } from '@/utils/offlineSync';
 import { formatDate, calculateLeaveOrOvertime, getExistingNotifications, createNotification, calculateStats, parseIntervalToMinutes, GlobalSettings, checkIfHolidayOrWeekend, getLeaveValidationError } from '@/utils/dashboardHelpers';
 import { toast } from 'react-hot-toast';
+import { isAdminRole } from '@/utils/permissionService';
 
 interface useChutiOperationsParams {
   sessionUser: any;
@@ -254,7 +255,7 @@ export const useChutiOperations = ({
 
     const bypassSupervisor = 
       profile?.needs_supervisor_approval === false ||
-      profile?.role === 'admin' ||
+      isAdminRole(profile) ||
       profile?.role === 'supervisor' ||
       !profile?.supervisor_ids ||
       profile.supervisor_ids.length === 0;
@@ -567,7 +568,7 @@ export const useChutiOperations = ({
 
       const bypassSupervisor = 
         profile?.needs_supervisor_approval === false ||
-        profile?.role === 'admin' ||
+        isAdminRole(profile) ||
         profile?.role === 'supervisor';
 
       const updates = {

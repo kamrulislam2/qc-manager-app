@@ -4,6 +4,7 @@ import { LeaderboardSkeleton } from '@/components/common/skeleton/LeaderboardSke
 import { ReportsDashboardView } from './ReportsDashboardView';
 import { getCacheData } from '@/utils/quotesOfflineSync';
 import { ArrowLeft } from 'lucide-react';
+import { isAdminRole } from '@/utils/permissionService';
 
 interface ReportsPanelProps {
   records: RecordItem[];
@@ -18,7 +19,7 @@ export const ReportsPanel: React.FC<ReportsPanelProps> = ({
   profile,
   onBack,
 }) => {
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'supervisor';
+  const isAdmin = isAdminRole(profile) || profile?.role === 'supervisor';
 
   // Active report tab: "mine" for normal users, "mine" | "all" for admin
   const [activeReportTab, setActiveReportTab] = useState<'mine' | 'all'>('mine');

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
+import { isAdminRole } from '@/utils/permissionService';
 
 
 interface useAdminStaffOperationsParams {
@@ -267,7 +268,7 @@ export const useAdminStaffOperations = ({
                    isJobRoleChanged || isSignInChanged || isSignOutChanged || isNeedsApprovalChanged || 
                    isAllowReserveChanged || isAllowOvertimeChanged || isMaxLeavesChanged || 
                    isEligibleOfficeChanged || isEligibleGovtChanged || (editNeedsApproval && isSupervisorsChanged);
-    } else if (profile.role === 'admin') {
+    } else if (isAdminRole(profile)) {
       hasChanges = isUsernameChanged || isFullNameChanged || isWorkingHoursChanged || isBreakTimeChanged || 
                    isJobRoleChanged || isSignInChanged || isSignOutChanged || isNeedsApprovalChanged || 
                    isAllowReserveChanged || isAllowOvertimeChanged || isMaxLeavesChanged || 
@@ -316,7 +317,7 @@ export const useAdminStaffOperations = ({
         setShowProfileSettingsModal(false);
         setEditingStaffProfileId(null);
         fetchRecords();
-      } else if (profile.role === 'admin') {
+      } else if (isAdminRole(profile)) {
         const updates = {
           username: editUsername.toUpperCase().trim(),
           full_name: editFullName,
@@ -668,7 +669,7 @@ export const useAdminStaffOperations = ({
   // Delete User Account (Admin feature)
   const handleDeleteUser = async () => {
     if (!deleteTargetUser) return;
-    if (deleteTargetUser.role === 'admin') {
+    if (deleteTargetUser.role === 'admin' || deleteTargetUser.role === 'superadmin') {
       setMessage({ type: 'error', text: 'Admin profile cannot be deleted!' });
       return;
     }

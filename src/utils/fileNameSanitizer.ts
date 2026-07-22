@@ -1,71 +1,103 @@
-// Reusable, configurable file-name sanitizer.
+// Single source of truth for file-name sanitization.
 //
-// The DEFAULT_* regex lists are copied VERBATIM from the original inline
-// implementation in quotesDashboardHelpers.ts, so `buildCleanFileName()` with
-// no config is byte-for-byte identical to the previous `cleanFileName`.
+// Previously three hardcoded regex arrays (comment phrases, file types, branch
+// names) lived here. They are now expressed as a SEED word list
+// (DEFAULT_SANITIZER_WORDS) that is stored into settings on first run so every
+// entry is visible and editable by a superadmin. At RUNTIME the sanitizer reads
+// ONLY from the resolved settings list — no hardcoded arrays are applied.
 //
-// Superadmins can supply additional terms (persisted in global_settings) via
-// `config.extraWords`; each is compiled to a case-insensitive, word-bounded
-// regex and stripped in the same iterative pass. The additive design preserves
-// all existing behavior — configured words only ADD to what is removed.
+// Ordering matters: multi-word tokens ("Requote Van") must precede their
+// single-word substrings ("Requote", "Van") so overlaps are removed correctly.
+// The seed preserves the original order, so default behavior is unchanged.
 
-export interface SanitizerConfig {
-  /** Extra terms to strip (superadmin-managed, from global_settings). */
-  extraWords?: string[];
+export interface SanitizerRule {
+  word: string;
+  enabled: boolean;
 }
 
-// 1. Literal comment phrases (case-insensitive), optional surrounding parens.
-const DEFAULT_PHRASES: RegExp[] = [
-  /\(?check\s+note\)?/gi,
-  /\(?expert\s+please\)?/gi,
-  /\(?\(?dot\)?\)?/gi,
+// Seed defaults — the exact values previously hardcoded, in the exact order
+// they were applied. On first run these are written into global_settings so
+// they appear in the File Name Sanitizer UI with zero manual migration.
+export const DEFAULT_SANITIZER_WORDS: string[] = [
+  // Comment phrases
+  "check note",
+  "expert please",
+  "dot",
+  // File types
+  "Individual Review",
+  "Other Site",
+  "Requote Van",
+  "Requote Bike",
+  "Review Van",
+  "Review Bike",
+  "Requote",
+  "Review",
+  "Quote",
+  "Sale",
+  "Van",
+  "Bike",
+  // Branch names
+  "PRIDE COMPARE",
+  "EAZY COMPARE",
+  "SWANDRIVE",
+  "MIDDLESURE",
+  "IRESURE",
+  "BRISTOL",
+  "SHEFFIELD",
+  "PRIDE",
+  "EAZY",
+  "NOTTS",
+  "RIDE",
+  "SORT",
+  "GET",
+  "ADI",
+  "AQ",
+  "BC",
+  "MK",
+  "BI",
+  "NN",
 ];
 
-// 2. File-type tokens (case-insensitive).
-const DEFAULT_FILE_TYPES: RegExp[] = [
-  /\bIndividual\s+Review\b/gi,
-  /\bOther\s+Site\b/gi,
-  /\bRequote\s+Van\b/gi,
-  /\bRequote\s+Bike\b/gi,
-  /\bReview\s+Van\b/gi,
-  /\bReview\s+Bike\b/gi,
-  /\bRequote\b/gi,
-  /\bReview\b/gi,
-  /\bQuote\b/gi,
-  /\bSale\b/gi,
-  /\bVan\b/gi,
-  /\bBike\b/gi,
-];
+export const DEFAULT_SANITIZER_RULES: SanitizerRule[] = DEFAULT_SANITIZER_WORDS.map(
+  (word) => ({ word, enabled: true }),
+);
 
-// 3. Branch-name tokens (case-insensitive).
-const DEFAULT_BRANCHES: RegExp[] = [
-  /\bPRIDE\s+COMPARE\b/gi,
-  /\bEAZY\s+COMPARE\b/gi,
-  /\bSWANDRIVE\b/gi,
-  /\bMIDDLESURE\b/gi,
-  /\bIRESURE\b/gi,
-  /\bBRISTOL\b/gi,
-  /\bSHEFFIELD\b/gi,
-  /\bPRIDE\b/gi,
-  /\bEAZY\b/gi,
-  /\bNOTTS\b/gi,
-  /\bRIDE\b/gi,
-  /\bSORT\b/gi,
-  /\bGET\b/gi,
-  /\bADI\b/gi,
-  /\bAQ\b/gi,
-  /\bBC\b/gi,
-  /\bMK\b/gi,
-  /\bBI\b/gi,
-  /\bNN\b/gi,
-];
+/**
+ * Resolve the effective sanitizer rules. If the superadmin has saved rules,
+ * use them verbatim. Otherwise (first run) SEED from the hardcoded defaults
+ * plus any legacy `sanitizer_words` (the older custom-only field), de-duped —
+ * so existing behavior is preserved and the list is never empty.
+ */
+export const resolveSanitizerRules = (
+  storedRules?: SanitizerRule[] | null,
+  legacyWords?: string[] | null,
+): SanitizerRule[] => {
+  if (Array.isArray(storedRules) && storedRules.length > 0) {
+    return storedRules
+      .filter((r) => r && typeof r.word === "string" && r.word.trim() !== "")
+      .map((r) => ({ word: r.word.trim(), enabled: r.enabled !== false }));
+  }
+  const seen = new Set<string>();
+  const rules: SanitizerRule[] = [];
+  for (const word of [...DEFAULT_SANITIZER_WORDS, ...(legacyWords ?? [])]) {
+    const key = String(word).trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    rules.push({ word: String(word).trim(), enabled: true });
+  }
+  return rules;
+};
+
+/** Enabled words only (what actually gets stripped). */
+export const enabledSanitizerWords = (rules: SanitizerRule[]): string[] =>
+  rules.filter((r) => r.enabled).map((r) => r.word);
 
 const escapeRegExp = (s: string): string =>
   s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// Compile a superadmin-configured term into a case-insensitive, word-bounded
-// regex. Multi-word terms match any run of whitespace between words.
-const compileTerm = (term: string): RegExp | null => {
+// Compile a term into a case-insensitive, word-bounded regex. Multi-word terms
+// match any run of whitespace between words.
+const compileWord = (term: string): RegExp | null => {
   const trimmed = term.trim();
   if (!trimmed) return null;
   const parts = trimmed.split(/\s+/).map(escapeRegExp);
@@ -73,12 +105,13 @@ const compileTerm = (term: string): RegExp | null => {
 };
 
 /**
- * Builds a sanitizer function. Call with no args for the exact legacy behavior,
- * or pass `{ extraWords }` from global settings to strip additional terms.
+ * Build a sanitizer function from an explicit list of enabled words — the
+ * single source of truth. Runs the same iterative strip + separator-collapse as
+ * before.
  */
-export const buildCleanFileName = (config?: SanitizerConfig) => {
-  const extraRegexes = (config?.extraWords ?? [])
-    .map(compileTerm)
+export const buildCleanFileName = (words: string[]) => {
+  const regexes = words
+    .map(compileWord)
     .filter((r): r is RegExp => r !== null);
 
   return (name: string): string => {
@@ -90,10 +123,7 @@ export const buildCleanFileName = (config?: SanitizerConfig) => {
     while (cleaned !== prev && iterations < 5) {
       prev = cleaned;
       iterations++;
-      for (const regex of DEFAULT_PHRASES) cleaned = cleaned.replace(regex, "");
-      for (const regex of DEFAULT_FILE_TYPES) cleaned = cleaned.replace(regex, "");
-      for (const regex of DEFAULT_BRANCHES) cleaned = cleaned.replace(regex, "");
-      for (const regex of extraRegexes) cleaned = cleaned.replace(regex, "");
+      for (const regex of regexes) cleaned = cleaned.replace(regex, "");
       cleaned = cleaned.replace(/[-\s.,()/\\]+/g, " ").trim();
     }
 
@@ -104,5 +134,9 @@ export const buildCleanFileName = (config?: SanitizerConfig) => {
   };
 };
 
-/** Legacy entry point — default config, identical to the original behavior. */
-export const cleanFileName = (name: string): string => buildCleanFileName()(name);
+/**
+ * Legacy default entry point — applies the seed defaults. Used as the fallback
+ * when no settings-derived list is provided (e.g. a component's default prop).
+ */
+export const cleanFileName = (name: string): string =>
+  buildCleanFileName(DEFAULT_SANITIZER_WORDS)(name);

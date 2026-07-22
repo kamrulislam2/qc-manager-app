@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/utils/supabase";
 import { Profile } from "@/types";
-import { canAccessModule } from "@/utils/permissionService";
+import { canAccessModule, isAdminRole } from "@/utils/permissionService";
 import {
   FileText,
   Loader2,
@@ -244,7 +244,7 @@ export const UserKpiPerformancePanel: React.FC<
   const isSupervisorOrAdmin = useMemo(() => {
     if (!currentUser) return false;
     if (evaluatorModeProfile) return true;
-    if (currentUser.role === "admin") return true;
+    if (isAdminRole(currentUser)) return true;
 
     // For supervisor, they can edit if they are a direct supervisor OR the manually designated appraiser
     if (currentUser.role === "supervisor") {
@@ -284,7 +284,7 @@ export const UserKpiPerformancePanel: React.FC<
   // Is the current viewer the designated appraiser or an admin?
   const isDesignatedAppraiser = useMemo(() => {
     if (!currentUser) return false;
-    if (currentUser.role === "admin") return true;
+    if (isAdminRole(currentUser)) return true;
     const name = (currentUser.full_name || "").trim().toLowerCase();
     const uname = (currentUser.username || "").trim().toLowerCase();
     const appraiser = (appraiserName || "").trim().toLowerCase();
@@ -1444,7 +1444,7 @@ export const UserKpiPerformancePanel: React.FC<
             </select>
 
             {/* Create Custom Period Button */}
-            {(currentUser?.role === "admin" ||
+            {(isAdminRole(currentUser) ||
               currentUser?.role === "supervisor") && (
               <button
                 type="button"
@@ -1640,7 +1640,7 @@ USING (auth.uid() = user_id OR EXISTS (
             <span className="w-32 font-semibold text-theme-text-muted shrink-0 print:text-black mb-1 sm:mb-0">
               Appraiser's Name
             </span>
-            {(!hasSupervisors && currentUser?.role === "admin") ||
+            {(!hasSupervisors && isAdminRole(currentUser)) ||
             (currentUser?.role === "supervisor" &&
               targetStaff.id === currentUser.id) ? (
               <div className="relative w-full sm:w-auto">
@@ -1769,7 +1769,7 @@ USING (auth.uid() = user_id OR EXISTS (
             </span>
 
             {/* Settings/Edit Icon next to dates */}
-            {(currentUser?.role === "admin" ||
+            {(isAdminRole(currentUser) ||
               currentUser?.role === "supervisor") && (
               <button
                 type="button"

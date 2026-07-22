@@ -53,6 +53,8 @@ interface AddLeaveFormFieldsProps {
   globalSettings?: any;
   adjustJummah?: boolean;
   setAdjustJummah?: (val: boolean) => void;
+  /** Feature flag: when false, the Jummah toggle is hidden entirely. Default true. */
+  jummahEnabled?: boolean;
   breakEligible?: boolean;
   breakEnabled?: boolean;
   setBreakEnabled?: (val: boolean) => void;
@@ -98,6 +100,7 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
   onDateErrorChange,
   adjustJummah = false,
   setAdjustJummah,
+  jummahEnabled = true,
   breakEligible = false,
   breakEnabled = false,
   setBreakEnabled,
@@ -697,7 +700,7 @@ export const AddLeaveFormFields: React.FC<AddLeaveFormFieldsProps> = ({
           </div>
 
           {/* Jummah Prayer Adjustment Toggle (Short Leave, Fridays only) */}
-          {leaveType === "Short Leave" && isFriday(date) && (
+          {leaveType === "Short Leave" && isFriday(date) && jummahEnabled && (
             <div className="flex items-center justify-between p-3 bg-theme-page-bg/60 rounded-lg border border-theme-border-input/80">
               <div>
                 <span className="block text-xs font-semibold text-theme-text-primary font-sans">

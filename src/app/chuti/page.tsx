@@ -23,6 +23,7 @@ import { useExportOperations } from '@/hooks/leave-tracker/useExportOperations';
 import { useModalHandlers } from '@/hooks/leave-tracker/useModalHandlers';
 import { supabase } from '@/utils/supabase';
 import { useRealtimeHandler } from '@/contexts/RealtimeContext';
+import { isAdminRole } from '@/utils/permissionService';
 
 
 interface DashboardProps {
@@ -599,7 +600,7 @@ export default function Dashboard({
     if (profile) {
       if (profile.role === 'supervisor') {
         count = groupedSupervisorRequests.length + unreadUserNotificationsCount;
-      } else if (profile.role === 'admin') {
+      } else if (isAdminRole(profile)) {
         count = unreadUserNotificationsCount;
       } else {
         count = unreadUserNotificationsCount;
@@ -631,7 +632,7 @@ export default function Dashboard({
   useEffect(() => {
     let count = 0;
     if (profile) {
-      if (profile.role === 'admin') {
+      if (isAdminRole(profile)) {
         count = groupedChutiRequests.length +
                 pendingReserveRequests.length +
                 pendingProfileRequests.length +
@@ -836,7 +837,7 @@ export default function Dashboard({
             <AddLeave
               profile={profile}
               profilesList={profilesList}
-              records={profile?.role === 'admin' ? adminRecords : userRecords}
+              records={isAdminRole(profile) ? adminRecords : userRecords}
               globalSettings={globalSettings}
               leaveSettlements={leaveSettlements}
               editingRecord={editingRecord}
@@ -853,7 +854,7 @@ export default function Dashboard({
         )}
 
         {/* ================= LEAVE SETTINGS INLINE VIEW ================= */}
-        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && profile?.role === 'admin' && activeChutiTab === 'leave_settings' && (
+        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && isAdminRole(profile) && activeChutiTab === 'leave_settings' && (
           <AdminLeaveSettings
             globalSettings={globalSettings}
             onSaveGlobalSettings={handleSaveGlobalSettings}
@@ -905,7 +906,7 @@ export default function Dashboard({
         )}
 
         {/* ================= ADMIN STAFF VIEW (Leave Dashboard) ================= */}
-        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && profile?.role === 'admin' &&
+        {profile?.has_changed_password !== false && !!profile?.is_setup_completed && isAdminRole(profile) &&
           (activeChutiTab === 'govt_responses' || activeChutiTab === 'settlement') && (
           <AdminDashboardView
             activeTab={activeChutiTab}

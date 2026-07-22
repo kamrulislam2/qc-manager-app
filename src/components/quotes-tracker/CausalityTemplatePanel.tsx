@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import { supabase } from "@/utils/supabase";
 import { Profile } from "@/types";
 import { AsitisCausalitySkeleton } from "@/components/common/skeleton/AsitisCausalitySkeleton";
+import { isAdminRole } from '@/utils/permissionService';
 
 export interface TitleItem {
   id: string;
@@ -69,7 +70,7 @@ export const CausalityTemplatePanel: React.FC<CausalityTemplatePanelProps> = ({ 
   const [isEditMode, setIsEditMode] = useState(false);
   const [previewContextMenu, setPreviewContextMenu] = useState<{ x: number; y: number } | null>(null);
 
-  const canManageTemplate = profile?.role === "admin" || profile?.role === "supervisor";
+  const canManageTemplate = isAdminRole(profile) || profile?.role === "supervisor";
   const previewContextMenuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 

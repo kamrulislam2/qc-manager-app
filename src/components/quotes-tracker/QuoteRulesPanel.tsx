@@ -13,6 +13,7 @@ import { Profile, ComplianceRule } from "@/types";
 
 import { INSURANCE_DATABASE } from "@/utils/initialRulesData";
 import { COMPLIANCE_RULE_COLUMNS } from "@/utils/dbColumns";
+import { isAdminRole } from '@/utils/permissionService';
 import {
   Search,
   X,
@@ -162,7 +163,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
 
   // Authorization check
   const canEdit = useMemo(() => {
-    return profile?.role === "admin" || !!profile?.can_manage_rules;
+    return isAdminRole(profile) || !!profile?.can_manage_rules;
   }, [profile]);
 
   // Context Menu State
@@ -238,7 +239,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
         // Background cleanup of duplicate rules for admins
         if (
           duplicateIdsToDelete.length > 0 &&
-          profile?.role === "admin" &&
+          isAdminRole(profile) &&
           isOnline
         ) {
           supabase

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Profile } from '@/types';
 import { ChutiRecord } from '@/utils/offlineSync';
+import { isAdminRole } from '@/utils/permissionService';
 
 interface UseModalHandlersParams {
   profile: Profile | null;
@@ -211,7 +212,7 @@ export function useModalHandlers({
   // Notification bell click (role-aware routing)
   const handleNotificationClick = useCallback(() => {
     if (!profile) return;
-    const isAdmin = profile.role === 'admin';
+    const isAdmin = isAdminRole(profile);
     if (isAdmin) {
       const mode = sessionStorage.getItem('adminNotificationMode') || 'user';
       if (mode === 'admin') {

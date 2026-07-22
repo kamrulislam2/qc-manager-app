@@ -6,6 +6,7 @@ import { Profile } from "@/types";
 import { ChutiRecord } from "@/utils/offlineSync";
 import { ChutiFormFields } from "@/components/leave-tracker/ChutiFormFields";
 import { Modal } from "@/components/common/Modal";
+import { isAdminRole } from '@/utils/permissionService';
 
 interface AdminEditRecordModalProps {
   showAdminEditModal: boolean;
@@ -60,7 +61,7 @@ export function AdminEditRecordModal({
 }: AdminEditRecordModalProps) {
   const [hasDateError, setHasDateError] = React.useState(false);
 
-  if (profile?.role !== "admin" || !adminEditRecord) return null;
+  if (!isAdminRole(profile) || !adminEditRecord) return null;
 
   const targetUserProfile = profilesList.find(
     (p) => p.id === adminEditRecord.user_id,

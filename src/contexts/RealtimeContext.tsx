@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useRef, useCallback } from
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
-import { canAccessModule } from '@/utils/permissionService';
+import { canAccessModule, isAdminRole } from '@/utils/permissionService';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -81,7 +81,7 @@ export function RealtimeProvider({ children, sessionUser, profile }: RealtimePro
   useEffect(() => {
     if (!sessionUser?.id || !profile) return;
 
-    const isApprover = profile.role === 'admin' || profile.role === 'supervisor';
+    const isApprover = isAdminRole(profile) || profile.role === 'supervisor';
     // Todos are superadmin-only — skip the listener entirely for everyone else
     // so the extra postgres_changes subscription adds zero cost fleet-wide.
     const hasTodoAccess = canAccessModule(profile, null, 'todo');

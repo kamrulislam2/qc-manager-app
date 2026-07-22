@@ -13,6 +13,7 @@ import { useRealtimeHandler, RealtimePayload } from '@/contexts/RealtimeContext'
 import { useProfiles } from '@/contexts/ProfilesContext';
 import { CHUTI_COLUMNS, GOVT_HOLIDAY_RESPONSE_COLUMNS, LEAVE_SETTLEMENT_COLUMNS } from '@/utils/dbColumns';
 import { fetchOwnProfileRow } from '@/utils/profileFetcher';
+import { isAdminRole } from '@/utils/permissionService';
 
 export const useDashboardData = () => {
 
@@ -142,7 +143,7 @@ export const useDashboardData = () => {
         const pendingInserts = unsyncedRecords.filter(r => r.action === 'insert' || !r.action);
         const finalChuti = [...pendingInserts, ...mergedChuti];
 
-        if (profile.role === 'admin' || profile.role === 'supervisor') {
+        if (isAdminRole(profile) || profile.role === 'supervisor') {
           setAdminRecords(finalChuti as ChutiRecordWithProfile[]);
         }
 
@@ -185,7 +186,7 @@ export const useDashboardData = () => {
       let settlementsData: LeaveSettlement[] = [];
 
       // 1. Fetch admin chuti list if admin/supervisor
-      if (profile.role === 'admin' || profile.role === 'supervisor') {
+      if (isAdminRole(profile) || profile.role === 'supervisor') {
         const lastChutiSync = await getSyncTimestamp('chuti');
         if (lastChutiSync) {
           const { data: deltaRaw, error } = await supabase
@@ -362,7 +363,7 @@ export const useDashboardData = () => {
       }
 
       // 3. Fetch Govt Holiday Responses and settlements
-      if (profile.role === 'admin' || profile.role === 'supervisor') {
+      if (isAdminRole(profile) || profile.role === 'supervisor') {
         const { data: responsesRaw, error: respError } = await supabase
           .from('govt_holiday_responses')
           .select(`${GOVT_HOLIDAY_RESPONSE_COLUMNS}, profiles (full_name, username)`)
@@ -411,14 +412,14 @@ export const useDashboardData = () => {
         // R1/R2: profiles_cache is maintained by ProfilesProvider
 
         // Cache chuti records (merge-based since we use delta sync)
-        const recordsToCache = (profile.role === 'admin' || profile.role === 'supervisor')
+        const recordsToCache = (isAdminRole(profile) || profile.role === 'supervisor')
           ? adminRecordsData
           : userRecordsData;
         if (recordsToCache.length > 0) {
           await mergeCacheData('chuti_cache', recordsToCache);
         }
 
-        if (profile.role === 'admin' || profile.role === 'supervisor') {
+        if (isAdminRole(profile) || profile.role === 'supervisor') {
           if (adminRecordsData.length > 0) {
             await setSyncTimestamp('chuti', syncStartedAt);
           }
@@ -437,7 +438,7 @@ export const useDashboardData = () => {
         }
 
         // Store current globalSettings to cache if they are derived
-        const currentGlobalSettings = (profile.role === 'admin' || profile.role === 'supervisor')
+        const currentGlobalSettings = (isAdminRole(profile) || profile.role === 'supervisor')
           ? getGlobalSettingsFromProfile(profilesData.find(p => p.role === 'admin') || profile)
           : getGlobalSettingsFromProfile(profile);
         await setGlobalSettingsCache(currentGlobalSettings);
@@ -547,7 +548,7 @@ export const useDashboardData = () => {
   }, [sessionUser, fetchRecords, setMessage]);
 
   const handleAdminUpdateHolidayResponse = useCallback(async (targetUserId: string, holidayDate: string, holidayName: string, response: 'paid' | 'reserve') => {
-    if (!profile || profile.role !== 'admin') return false;
+    if (!profile || !isAdminRole(profile)) return false;
 
     setLoading(true);
 
@@ -768,7 +769,7 @@ export const useDashboardData = () => {
       const adminProfile = profilesList.find(p => p.role === 'admin' && p.global_settings && JSON.stringify(p.global_settings) !== JSON.stringify(defaultGlobalSettings))
         || profilesList.find(p => p.role === 'admin');
 
-      if (adminProfile && (profile.role === 'admin' || profile.role === 'supervisor')) {
+      if (adminProfile && (isAdminRole(profile) || profile.role === 'supervisor')) {
         const derived = getGlobalSettingsFromProfile(adminProfile);
         setGlobalSettings(derived);
         // Keep the offline cache aligned — fetchRecords may have run before the
@@ -975,7 +976,7 @@ export const useDashboardData = () => {
         oldUser.break_time !== newRow.break_time ||
         oldUser.is_setup_completed !== newRow.is_setup_completed;
 
-      const isApprover = profile?.role === 'admin' || profile?.role === 'supervisor';
+      const isApprover = isAdminRole(profile) || profile?.role === 'supervisor';
       if (hasSubstantialChange && isApprover) {
         // Notify notification hook
         if (typeof window !== 'undefined') {
@@ -985,7 +986,7 @@ export const useDashboardData = () => {
     } else {
       // INSERT or DELETE — ProfilesProvider refetches the list; refresh chuti
       // records here since approver views join profile data
-      const isApprover = profile?.role === 'admin' || profile?.role === 'supervisor';
+      const isApprover = isAdminRole(profile) || profile?.role === 'supervisor';
       if (isApprover) {
         handleRealtimeChange();
       }

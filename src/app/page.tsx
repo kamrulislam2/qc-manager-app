@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { supabase } from "@/utils/supabase";
 import { Profile } from "@/types";
 import { mapProfilePasswordResetStatus } from "@/utils/profileHelpers";
-import { canAccessModule } from "@/utils/permissionService";
+import { canAccessModule, isAdminRole } from "@/utils/permissionService";
 import {
   Loader2,
   Clock,
@@ -1183,7 +1183,7 @@ function AppPortalInner({
         badges={topPerformerBadges}
         onMenuToggle={() => setIsMobileDrawerOpen(true)}
         onNotificationClick={() => {
-          if (profile?.role === "admin") {
+          if (isAdminRole(profile)) {
             const mode =
               sessionStorage.getItem("adminNotificationMode") || "user";
             if (mode === "admin") {
@@ -1333,7 +1333,7 @@ function AppPortalInner({
                 <button
                   onClick={() => {
                     setIsMobileDrawerOpen(false);
-                    if (profile.role === "admin") {
+                    if (isAdminRole(profile)) {
                       const mode =
                         sessionStorage.getItem("adminNotificationMode") ||
                         "user";

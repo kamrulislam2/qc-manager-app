@@ -3,6 +3,7 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Profile } from '@/types';
 import { Modal } from '@/components/common/Modal';
+import { isAdminRole } from '@/utils/permissionService';
 
 interface AdminDeleteUserModalProps {
   showDeleteUserModal: boolean;
@@ -23,7 +24,7 @@ export function AdminDeleteUserModal({
   handleDeleteUser,
   profile,
 }: AdminDeleteUserModalProps) {
-  if (profile?.role !== 'admin' || !deleteTargetUser) return null;
+  if (!isAdminRole(profile) || !deleteTargetUser) return null;
 
   const handleClose = () => {
     setShowDeleteUserModal(false);

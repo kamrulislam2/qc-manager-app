@@ -3,6 +3,7 @@ import { Bell, Edit, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { Profile, ChutiRecordWithProfile } from "@/types";
 import { ChutiRecord } from "@/utils/offlineSync";
 import { Modal } from "@/components/common/Modal";
+import { isAdminRole } from '@/utils/permissionService';
 
 interface UserNotificationsModalProps {
   showUserNotificationsModal: boolean;
@@ -81,7 +82,7 @@ export function UserNotificationsModal({
       icon={<Bell className="h-5 w-5 text-purple-400" />}
       maxWidthClass="max-w-lg"
       headerExtra={
-        profile?.role === "admin" && onSwitchToAdminPanel ? (
+        isAdminRole(profile) && onSwitchToAdminPanel ? (
           <button
             onClick={onSwitchToAdminPanel}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-theme-card-bg border border-theme-border-input hover:bg-theme-border-input text-theme-text-secondary hover:text-theme-text-primary rounded-lg text-xs font-semibold cursor-pointer transition-all font-sans"

@@ -13,6 +13,7 @@ import { useRealtimeHandler } from '@/contexts/RealtimeContext';
 import { useProfiles } from '@/contexts/ProfilesContext';
 import { fetchSubmittedAtRange, buildAvailableDates } from '@/utils/availableDatesHelper';
 import { PROFILE_COLUMNS, AUDIT_LOG_COLUMNS, RECORD_COLUMNS } from '@/utils/dbColumns';
+import { isAdminRole } from '@/utils/permissionService';
 import {
   syncOfflineData,
   setCacheData,
@@ -149,7 +150,7 @@ export const useQuotesDashboardData = () => {
           // "My Report") — leaderboard data comes from the RPC. So scope all
           // record sync queries to the logged-in user unless admin/supervisor.
           // If the scope changes (e.g. role promotion), force a full resync.
-          const isApproverScope = profile.role === 'admin' || profile.role === 'supervisor';
+          const isApproverScope = isAdminRole(profile) || profile.role === 'supervisor';
           const recordsScope = isApproverScope ? 'all' : 'self';
           const prevRecordsScope = await getSyncTimestamp('records_scope');
           if (prevRecordsScope && prevRecordsScope !== recordsScope) {
@@ -219,7 +220,7 @@ export const useQuotesDashboardData = () => {
             // Get cached records for the current user/admin matching selectedMonth & selectedYear for active pruning
             const localCachedForPrune = await getCacheData<RecordItem>('records_cache');
             const localMonthRecords = localCachedForPrune.filter(r => {
-              if (profile.role !== 'admin' && profile.role !== 'supervisor' && r.user_id !== sessionUser.id) return false;
+              if (!isAdminRole(profile) && profile.role !== 'supervisor' && r.user_id !== sessionUser.id) return false;
               if (!r.submitted_at) return false;
               const date = new Date(r.submitted_at);
               const y = date.getFullYear().toString();
@@ -365,7 +366,7 @@ export const useQuotesDashboardData = () => {
         if (!r.submitted_at) return false;
         
         // Check role permission
-        if (profile.role !== 'admin' && profile.role !== 'supervisor' && r.user_id !== sessionUser.id) return false;
+        if (!isAdminRole(profile) && profile.role !== 'supervisor' && r.user_id !== sessionUser.id) return false;
         
         // Check year-month matching
         const date = new Date(r.submitted_at);
@@ -407,14 +408,14 @@ export const useQuotesDashboardData = () => {
           // Optimized: fetch only the earliest and latest submitted_at to determine
           // the range of year-month pairs, instead of paginating through ALL records.
           const scopeUserId =
-            profile.role !== 'admin' && profile.role !== 'supervisor' ? sessionUser.id : undefined;
+            !isAdminRole(profile) && profile.role !== 'supervisor' ? sessionUser.id : undefined;
           ({ earliestDate, latestDate } = await fetchSubmittedAtRange(scopeUserId));
         } catch (netError: unknown) {
           const errMsg = netError instanceof Error ? netError.message : String(netError);
           console.error('Failed to fetch available dates online, falling back to cache:', errMsg, netError);
           // Offline: read min/max from IndexedDB cache
           const cached = await getCacheData<RecordItem>('records_cache');
-          const userRecords = cached.filter(r => (profile.role === 'admin' || profile.role === 'supervisor') || r.user_id === sessionUser.id);
+          const userRecords = cached.filter(r => (isAdminRole(profile) || profile.role === 'supervisor') || r.user_id === sessionUser.id);
           if (userRecords.length > 0) {
             const dates = userRecords
               .map(r => r.submitted_at ? new Date(r.submitted_at).getTime() : 0)
@@ -428,7 +429,7 @@ export const useQuotesDashboardData = () => {
       } else {
         // Offline: read min/max from IndexedDB cache
         const cached = await getCacheData<RecordItem>('records_cache');
-        const userRecords = cached.filter(r => (profile.role === 'admin' || profile.role === 'supervisor') || r.user_id === sessionUser.id);
+        const userRecords = cached.filter(r => (isAdminRole(profile) || profile.role === 'supervisor') || r.user_id === sessionUser.id);
         if (userRecords.length > 0) {
           const dates = userRecords
             .map(r => r.submitted_at ? new Date(r.submitted_at).getTime() : 0)
@@ -449,7 +450,7 @@ export const useQuotesDashboardData = () => {
 
   // Fetch System Audit Logs (Admins Only)
   const fetchAuditLogs = useCallback(async () => {
-    if (!sessionUser || !profile || profile.role !== 'admin') return;
+    if (!sessionUser || !profile || !isAdminRole(profile)) return;
     setAuditLogsLoading(true);
     try {
       const { data, error } = await supabase
@@ -485,7 +486,7 @@ export const useQuotesDashboardData = () => {
 
 
       // Automatically refresh logs if active
-      if (navigator.onLine && (profile.role === 'admin' || profile.role === 'supervisor')) {
+      if (navigator.onLine && (isAdminRole(profile) || profile.role === 'supervisor')) {
         fetchAuditLogs();
       }
     } catch (err) {

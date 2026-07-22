@@ -24,6 +24,7 @@ import {
 import { Modal } from "@/components/common/Modal";
 import { supabase } from "@/utils/supabase";
 import toast from "react-hot-toast";
+import { isAdminRole } from '@/utils/permissionService';
 
 interface TeamLeaveRecordsProps {
   profile: Profile;
@@ -74,7 +75,7 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
 
   // Filter profiles list to identify team member user IDs
   const teamUserIds = useMemo(() => {
-    if (profile.role === "admin") {
+    if (isAdminRole(profile)) {
       return null; // Admin sees everyone
     }
     // Supervisor sees members under their team, plus members of teams that delegated to them
@@ -114,7 +115,7 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
   // Group the dailyRecords by supervisor
   const groupedDailyRecords = useMemo(() => {
     // If the user is a supervisor (or not an admin), we group into own team + delegated teams
-    if (profile.role !== "admin") {
+    if (!isAdminRole(profile)) {
       const groups = [];
 
       // 1. Supervisor's own team records (including the supervisor themselves)
@@ -237,7 +238,7 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
     return [
       {
         title:
-          profile.role === "admin"
+          isAdminRole(profile)
             ? "Team daily leave records"
             : `${cleanName} Team Leave Records`,
         records: [],
@@ -342,7 +343,7 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
 
   const handleExportExcel = (filtered: ChutiRecord[], searchTerm: string) => {
     let targetRecords = filtered;
-    if (profile.role === "admin") {
+    if (isAdminRole(profile)) {
       // Export all daily records matching categories and date filters
       targetRecords = dailyRecords.filter((r) => {
         if (filterType !== "All" && r.leave_type !== filterType) return false;
@@ -386,7 +387,7 @@ export const TeamLeaveRecords: React.FC<TeamLeaveRecordsProps> = ({
 
   const handleExportPDF = (filtered: ChutiRecord[], searchTerm: string) => {
     let targetRecords = filtered;
-    if (profile.role === "admin") {
+    if (isAdminRole(profile)) {
       // Export all daily records matching categories and date filters
       targetRecords = dailyRecords.filter((r) => {
         if (filterType !== "All" && r.leave_type !== filterType) return false;

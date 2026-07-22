@@ -1,0 +1,44 @@
+// Central registry of controllable menu tabs/subtabs.
+//
+// Single source of truth for BOTH the per-user "Menu Visibility" list and the
+// superadmin per-role "Tab Access" matrix. To register a future tab, add one
+// entry here — it automatically appears in both UIs and is enforced by the
+// combined visibility helper (see permissionService.isTabVisibleForRole).
+
+export interface MenuTabDef {
+  key: string;
+  label: string;
+  category: 'Main Workspace Sections' | 'Quotes Tracker Subtabs' | 'Leave Tracker Subtabs';
+}
+
+export const MENU_TABS: MenuTabDef[] = [
+  // Main Workspace Sections
+  { key: 'kpi', label: 'KPI & Performance', category: 'Main Workspace Sections' },
+  { key: 'todo', label: 'Todos Panel', category: 'Main Workspace Sections' },
+  { key: 'leaderboard', label: 'Leaderboard (Workspace)', category: 'Main Workspace Sections' },
+  { key: 'audit_logs', label: 'Audit Logs (Workspace)', category: 'Main Workspace Sections' },
+  { key: 'user_management', label: 'User Management', category: 'Main Workspace Sections' },
+
+  // Quotes Tracker Subtabs
+  { key: 'copy_helper', label: 'Copy Helper Subtab', category: 'Quotes Tracker Subtabs' },
+  { key: 'save_file', label: 'Save File Subtab', category: 'Quotes Tracker Subtabs' },
+  { key: 'monthly', label: 'Monthly List Subtab', category: 'Quotes Tracker Subtabs' },
+  { key: 'rules', label: 'Quote Rules Subtab', category: 'Quotes Tracker Subtabs' },
+  { key: 'login_codes', label: 'Login Codes Subtab', category: 'Quotes Tracker Subtabs' },
+  { key: 'ip_checker', label: 'IP Checker Subtab', category: 'Quotes Tracker Subtabs' },
+  { key: 'causality', label: 'Causality Subtab', category: 'Quotes Tracker Subtabs' },
+
+  // Leave Tracker Subtabs
+  { key: 'leave_history', label: 'My History Subtab', category: 'Leave Tracker Subtabs' },
+  { key: 'govt_responses', label: 'Govt Responses Subtab', category: 'Leave Tracker Subtabs' },
+  { key: 'settlement', label: 'Settlement Subtab', category: 'Leave Tracker Subtabs' },
+  { key: 'leave_settings', label: 'Leave Settings Subtab', category: 'Leave Tracker Subtabs' },
+  { key: 'team_leaves', label: 'Staff Leaves Subtab', category: 'Leave Tracker Subtabs' },
+];
+
+/** Roles a superadmin can configure visibility for (never superadmin itself). */
+export const CONFIGURABLE_ROLES: Array<'user' | 'supervisor' | 'admin'> = [
+  'user',
+  'supervisor',
+  'admin',
+];

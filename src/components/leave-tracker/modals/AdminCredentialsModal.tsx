@@ -4,6 +4,7 @@ import { Edit, RefreshCw } from 'lucide-react';
 import { PasswordMatchIndicator } from '@/components/common/PasswordMatchIndicator';
 import { Profile } from '@/types';
 import { Modal } from '@/components/common/Modal';
+import { isAdminRole } from '@/utils/permissionService';
 
 interface AdminCredentialsModalProps {
   showCredentialsModal: boolean;
@@ -36,7 +37,7 @@ export function AdminCredentialsModal({
   updatingCredentials,
   handleUpdateCredentials,
 }: AdminCredentialsModalProps) {
-  if (profile?.role !== 'admin' || !credTargetUserId) return null;
+  if (!isAdminRole(profile) || !credTargetUserId) return null;
 
   const handleClose = () => {
     setShowCredentialsModal(false);

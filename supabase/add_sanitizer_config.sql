@@ -28,7 +28,8 @@ BEGIN
         '{sanitizer_words}',
         COALESCE(to_jsonb(p_words), '[]'::jsonb),
         true
-      );
+      )
+  WHERE true;  -- intentional: global_settings is replicated to every row
 END;
 $$;
 

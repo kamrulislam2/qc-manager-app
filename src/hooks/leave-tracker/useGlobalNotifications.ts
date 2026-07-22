@@ -10,6 +10,7 @@ import { parseHolidayItem, getGlobalSettingsFromProfile, defaultGlobalSettings }
 import { mapProfilePasswordResetStatus } from '@/utils/profileHelpers';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRealtimeHandler, RealtimePayload } from '@/contexts/RealtimeContext';
+import { isAdminRole } from '@/utils/permissionService';
 
 export function useGlobalNotifications(
   sessionUser: SupabaseUser | null,
@@ -121,7 +122,7 @@ export function useGlobalNotifications(
 
       // 2. Fetch holiday responses — SKIP if shared data from ChutiDashboard is available
       if (!hasSharedHolidayResponses || force) {
-        if (profile?.role === 'admin' || profile?.role === 'supervisor') {
+        if (isAdminRole(profile) || profile?.role === 'supervisor') {
           const { data: holidayData, error: holidayError } = await supabase
             .from('govt_holiday_responses')
             .select('id, user_id, holiday_date, holiday_name, response, created_at')
@@ -184,7 +185,7 @@ export function useGlobalNotifications(
       }
 
       // 4. Fetch admin/supervisor approvals
-      if (profile?.role === 'admin') {
+      if (isAdminRole(profile)) {
         // Only used for the approvals count below (status / leave_type / reserve_adjustment_status),
         // so select just those columns instead of every chuti field incl. heavy JSON.
         const { data: adminChutiData, error: adminChutiError } = await supabase
@@ -475,10 +476,10 @@ export function useGlobalNotifications(
   const globalSettings = useMemo(() => {
     if (!profile) return defaultGlobalSettings;
     const adminProfile = profilesList.find(
-      p => p.role === 'admin' && p.global_settings && JSON.stringify(p.global_settings) !== JSON.stringify(defaultGlobalSettings)
-    ) || profilesList.find(p => p.role === 'admin');
+      p => isAdminRole(p) && p.global_settings && JSON.stringify(p.global_settings) !== JSON.stringify(defaultGlobalSettings)
+    ) || profilesList.find(p => isAdminRole(p));
 
-    if (adminProfile && (profile.role === 'admin' || profile.role === 'supervisor')) {
+    if (adminProfile && (isAdminRole(profile) || profile.role === 'supervisor')) {
       return getGlobalSettingsFromProfile(adminProfile);
     } else {
       return getGlobalSettingsFromProfile(profile);
@@ -604,7 +605,7 @@ export function useGlobalNotifications(
     }
 
     let count = 0;
-    if (profile?.role === 'admin') {
+    if (isAdminRole(profile)) {
       const adminPendingChutiCount = adminPendingRecords.filter(
         r => r.status === 'approved_by_supervisor' && r.leave_type !== 'Overtime'
       ).length;

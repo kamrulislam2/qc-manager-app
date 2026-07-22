@@ -6,7 +6,7 @@ import { supabase } from '@/utils/supabase';
 import { Profile } from '@/types';
 import { mapProfilePasswordResetStatus } from '@/utils/profileHelpers';
 import { useAdminActions } from '@/hooks/leave-tracker/useAdminActions';
-import { canAccessModule } from '@/utils/permissionService';
+import { canAccessModule, isAdminRole, getDisplayRole, getRoleLabel } from '@/utils/permissionService';
 import { ConfirmModal } from '@/components/common/modals/ConfirmModal';
 import { Modal } from '@/components/common/Modal';
 import { UserManagementSkeleton } from '@/components/common/skeleton/UserManagementSkeleton';
@@ -179,7 +179,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
 
   const hasStaffAccess = useCallback((viewingStaffProfile: Profile) => {
     if (!profile) return false;
-    if (profile.role === 'admin') return true;
+    if (isAdminRole(profile)) return true;
     if (viewingStaffProfile.id === profile.id) return true;
     
     if (profile.role === 'supervisor') {
@@ -488,7 +488,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
 
   // Toggle adjustment handler for leaves in details view
   const handleToggleAdjustment = async (record: ChutiRecord) => {
-    const isAdmin = profile?.role === 'admin';
+    const isAdmin = isAdminRole(profile);
     const isSupervisor = profile?.role === 'supervisor';
 
     if (isAdmin) {
@@ -734,7 +734,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       toast.error('Please select at least one permitted file type for Quotes.');
       return;
     }
-    if (profile?.role === 'admin' && !editHasChutiAccess && !editHasQuotesAccess) {
+    if (isAdminRole(profile) && !editHasChutiAccess && !editHasQuotesAccess) {
       toast.error('Please select at least one workspace access.');
       return;
     }
@@ -816,7 +816,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
       );
     });
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = isAdminRole(profile);
 
   // Available Years for viewed user
   const availableYears = React.useMemo(() => {
@@ -1036,7 +1036,7 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
               )}
 
               {activeSubTab === 'leave' && viewingStaff && canAccessModule(profile, viewingStaff, 'leave', profiles) && (
-                (showAddLeaveForStaff || editingLeaveRecord) && (profile?.role === 'supervisor' || profile?.role === 'admin') && globalSettings ? (
+                (showAddLeaveForStaff || editingLeaveRecord) && (profile?.role === 'supervisor' || isAdminRole(profile)) && globalSettings ? (
                   // Full-page AddLeave view for supervisor/admin adding on behalf or editing
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 pb-3 border-b border-theme-border-input/60">
@@ -1093,8 +1093,8 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                       holidayResponses={viewingStaffHolidayResponses}
                       initialFetchDone={true}
                       targetUser={viewingStaff}
-                      addedBySupervisor={profile?.role === 'supervisor' || profile?.role === 'admin'}
-                      adminDirectEdit={profile?.role === 'admin' && viewingStaff?.id !== profile?.id}
+                      addedBySupervisor={profile?.role === 'supervisor' || isAdminRole(profile)}
+                      adminDirectEdit={isAdminRole(profile) && viewingStaff?.id !== profile?.id}
                     />
                   </div>
                 ) : (
@@ -1118,11 +1118,11 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                     setLeaveSearchQuery={setLeaveSearchQuery}
                     onToggleAdjustment={handleToggleAdjustment}
                     onDeleteRecord={handleDeleteRecord}
-                    isSupervisor={profile?.role === 'supervisor' || profile?.role === 'admin'}
+                    isSupervisor={profile?.role === 'supervisor' || isAdminRole(profile)}
                     onAddLeaveClick={() => setShowAddLeaveForStaff(true)}
                     onEditClick={(record) => setEditingLeaveRecord(record)}
                     hideDelete={profile?.role === 'supervisor'}
-                    showAddLeave={profile?.role === 'admin' || profile?.role === 'supervisor'}
+                    showAddLeave={isAdminRole(profile) || profile?.role === 'supervisor'}
                   />
                 )
               )}
@@ -1252,14 +1252,16 @@ export const UserManagementDashboard: React.FC<UserManagementDashboardProps> = (
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${
-                            u.role === 'admin'
+                            getDisplayRole(u.role, profile) === 'superadmin'
+                              ? 'bg-amber-950/40 border-amber-900/50 text-amber-400'
+                              : getDisplayRole(u.role, profile) === 'admin'
                               ? 'bg-red-950/40 border-red-900/50 text-red-400'
-                              : u.role === 'supervisor'
+                              : getDisplayRole(u.role, profile) === 'supervisor'
                               ? 'bg-purple-955/40 border-purple-800/50 text-purple-400'
                               : 'bg-theme-border-muted border-theme-border-active text-theme-text-muted'
                           }`}>
                             <Shield className="h-3 w-3 shrink-0" />
-                            {u.role === 'admin' ? 'Admin' : u.role === 'supervisor' ? 'Supervisor' : 'User'}
+                            {getRoleLabel(u.role, profile)}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">

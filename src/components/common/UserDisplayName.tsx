@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Profile } from "@/types";
 import { BadgeInfo } from "@/utils/leaderboardHelper";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
+import { isAdminRole } from '@/utils/permissionService';
 
 // Global cache for all-time ranks mapping: profileId -> rank number.
 // Single source of truth: fed exclusively by the get_leaderboard_data RPC
@@ -105,7 +106,7 @@ export const UserDisplayName: React.FC<UserDisplayNameProps> = ({
             <span className="text-blue-400 font-mono select-all">{profile.username ? profile.username.toUpperCase() : ''}</span>
             {profile.role && (
               <span className="text-[10px] text-theme-text-muted font-normal">
-                ({profile.role === 'admin' ? 'Admin' : profile.role === 'supervisor' ? 'Supervisor' : 'Staff'})
+                ({isAdminRole(profile) ? 'Admin' : profile.role === 'supervisor' ? 'Supervisor' : 'Staff'})
               </span>
             )}
           </div>

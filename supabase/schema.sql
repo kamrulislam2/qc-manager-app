@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict wKdNyAKj2JqtWVLPiz82crXBLbyqbZd2n3OMhJtyyWTzMSRwO8hGgLhHCkrHoPU
+\restrict ZAnWyAA2QFyMaPaPjsN4lZHGCQBVGuLToKhsKBHQ4EDu6g1QOKmHb7RHv4XMQpu
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.4
@@ -118,128 +118,6 @@ $$;
 
 
 --
--- Name: check_profile_role_change(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.check_profile_role_change() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-BEGIN
-  -- If the editor is the service_role (API routes / system), allow everything
-  IF auth.role() = 'service_role' THEN
-    RETURN NEW;
-  END IF;
-
-  IF OLD.role IS DISTINCT FROM NEW.role THEN
-    -- Must be admin OR superadmin to change any role at all.
-    IF NOT EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('admin', 'superadmin')
-    ) THEN
-      RAISE EXCEPTION 'You are not allowed to change your role.';
-    END IF;
-
-    -- Granting admin or superadmin requires superadmin.
-    IF NEW.role IN ('admin', 'superadmin') AND NOT EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'superadmin'
-    ) THEN
-      RAISE EXCEPTION 'Only a superadmin can assign the admin or superadmin role.';
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-
---
--- Name: check_profile_updates(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.check_profile_updates() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-BEGIN
-  -- If the session bypass variable is set, allow the update (system functions/syncs)
-  IF current_setting('app.bypass_profile_security', true) = 'true' THEN
-    RETURN NEW;
-  END IF;
-
-  -- If the editor is the service_role (API routes / system), allow everything
-  IF auth.role() = 'service_role' THEN
-    RETURN NEW;
-  END IF;
-
-  -- If the editor is an admin, allow everything
-  IF EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin'
-  ) THEN
-    RETURN NEW;
-  END IF;
-
-  -- If the editor is a supervisor
-  IF EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'supervisor'
-  ) THEN
-    -- If editing self, allow everything
-    IF auth.uid() = NEW.id THEN
-      RETURN NEW;
-    END IF;
-
-    -- If editing an employee they directly supervise, enforce key constraints (prevent privilege escalation/sensitive settings modification)
-    IF auth.uid() = ANY(NEW.supervisor_ids) OR auth.uid() = ANY(OLD.supervisor_ids) THEN
-      IF OLD.role IS DISTINCT FROM NEW.role OR
-         OLD.has_chuti_access IS DISTINCT FROM NEW.has_chuti_access OR
-         OLD.has_quotes_access IS DISTINCT FROM NEW.has_quotes_access OR
-         OLD.can_manage_rules IS DISTINCT FROM NEW.can_manage_rules OR
-         OLD.supervisor_ids IS DISTINCT FROM NEW.supervisor_ids OR
-         (NEW.global_settings->>'office_leave_default') IS DISTINCT FROM (OLD.global_settings->>'office_leave_default') OR
-         (NEW.global_settings->>'eid_fitr_leave') IS DISTINCT FROM (OLD.global_settings->>'eid_fitr_leave') OR
-         (NEW.global_settings->>'eid_adha_leave') IS DISTINCT FROM (OLD.global_settings->>'eid_adha_leave') OR
-         (NEW.global_settings->>'govt_holidays') IS DISTINCT FROM (OLD.global_settings->>'govt_holidays') OR
-         (NEW.global_settings->>'password_reset_status') IS DISTINCT FROM (OLD.global_settings->>'password_reset_status')
-      THEN
-        RAISE EXCEPTION 'Supervisors cannot modify roles, supervisor assignments, access permissions, or sensitive global leave settings for their team members.';
-      END IF;
-      RETURN NEW;
-    END IF;
-
-    -- If editing an employee they do NOT supervise, enforce column constraints
-    IF OLD.role IS DISTINCT FROM NEW.role OR
-       OLD.has_chuti_access IS DISTINCT FROM NEW.has_chuti_access OR
-       OLD.has_quotes_access IS DISTINCT FROM NEW.has_quotes_access OR
-       OLD.supervisor_ids IS DISTINCT FROM NEW.supervisor_ids OR
-       OLD.delegated_supervisor_id IS DISTINCT FROM NEW.delegated_supervisor_id OR
-       OLD.delegated_leave_supervisor_id IS DISTINCT FROM NEW.delegated_leave_supervisor_id OR
-       OLD.delegated_kpi_supervisor_id IS DISTINCT FROM NEW.delegated_kpi_supervisor_id OR
-       OLD.eligible_govt_holiday IS DISTINCT FROM NEW.eligible_govt_holiday OR
-       OLD.eligible_office_leave IS DISTINCT FROM NEW.eligible_office_leave OR
-       OLD.allow_overtime IS DISTINCT FROM NEW.allow_overtime OR
-       OLD.allow_reserve IS DISTINCT FROM NEW.allow_reserve OR
-       OLD.needs_supervisor_approval IS DISTINCT FROM NEW.needs_supervisor_approval OR
-       OLD.global_settings IS DISTINCT FROM NEW.global_settings
-    THEN
-      RAISE EXCEPTION 'Supervisors can only modify basic settings (working hours, break time, default sign in/out, quotes allowed types) for users outside their team.';
-    END IF;
-
-    RETURN NEW;
-  END IF;
-
-  -- Default fallback: only allow users to edit self (non-supervisors)
-  IF auth.uid() = NEW.id THEN
-    RETURN NEW;
-  END IF;
-
-  RAISE EXCEPTION 'Unauthorized profile modification.';
-END;
-$$;
-
-
---
 -- Name: archive_and_prune_old_records(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -262,6 +140,9 @@ BEGIN
     WHERE EXTRACT(YEAR FROM timezone(p_tz, r.submitted_at))::INT < v_current_year - 2
     ORDER BY 1
   LOOP
+    -- Snapshot the year's leaderboard (only users who actually submitted).
+    -- Re-runs refresh the row — safe because the year's records are always
+    -- complete at this point (deletion happens below in the same transaction).
     INSERT INTO public.leaderboard_archive
       (user_id, username, full_name, job_role, branch, year,
        quotes_count, requotes_count, reviews_count, sales_count,
@@ -327,6 +208,7 @@ BEGIN
 
     GET DIAGNOSTICS v_archived_users = ROW_COUNT;
 
+    -- Delete the archived year's records (all guaranteed older than 2 years)
     DELETE FROM public.records r
     WHERE EXTRACT(YEAR FROM timezone(p_tz, r.submitted_at))::INT = v_year;
     GET DIAGNOSTICS v_deleted = ROW_COUNT;
@@ -338,6 +220,7 @@ BEGIN
       v_year, v_archived_users, v_deleted;
   END LOOP;
 
+  -- Purge archive snapshots once the data year is older than 5 years
   DELETE FROM public.leaderboard_archive WHERE year < v_current_year - 5;
   GET DIAGNOSTICS v_purged = ROW_COUNT;
 
@@ -347,6 +230,129 @@ BEGIN
     'archive_rows_purged', v_purged,
     'run_at', timezone('utc'::text, now())
   );
+END;
+$$;
+
+
+--
+-- Name: check_profile_role_change(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.check_profile_role_change() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  -- service_role (API routes / system / migrations) bypasses.
+  IF auth.role() = 'service_role' THEN
+    RETURN NEW;
+  END IF;
+
+  IF OLD.role IS DISTINCT FROM NEW.role THEN
+    -- Must be admin OR superadmin to change any role at all.
+    IF NOT EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'superadmin')
+    ) THEN
+      RAISE EXCEPTION 'You are not allowed to change your role.';
+    END IF;
+
+    -- Touching an admin/superadmin role in EITHER direction requires superadmin.
+    IF (NEW.role IN ('admin', 'superadmin') OR OLD.role IN ('admin', 'superadmin'))
+       AND NOT EXISTS (
+         SELECT 1 FROM public.profiles
+         WHERE id = auth.uid() AND role = 'superadmin'
+       ) THEN
+      RAISE EXCEPTION 'Only a superadmin can create, promote, or demote admin/superadmin accounts.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: check_profile_updates(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.check_profile_updates() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  -- If the session bypass variable is set, allow the update (system functions/syncs)
+  IF current_setting('app.bypass_profile_security', true) = 'true' THEN
+    RETURN NEW;
+  END IF;
+
+  -- If the editor is the service_role (API routes / system), allow everything
+  IF auth.role() = 'service_role' THEN
+    RETURN NEW;
+  END IF;
+
+  -- If the editor is an admin or superadmin, allow everything
+  IF EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role IN ('admin', 'superadmin')
+  ) THEN
+    RETURN NEW;
+  END IF;
+
+  -- If the editor is a supervisor
+  IF EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'supervisor'
+  ) THEN
+    -- If editing self, allow everything
+    IF auth.uid() = NEW.id THEN
+      RETURN NEW;
+    END IF;
+
+    -- If editing an employee they directly supervise, enforce key constraints (prevent privilege escalation/sensitive settings modification)
+    IF auth.uid() = ANY(NEW.supervisor_ids) OR auth.uid() = ANY(OLD.supervisor_ids) THEN
+      IF OLD.role IS DISTINCT FROM NEW.role OR
+         OLD.has_chuti_access IS DISTINCT FROM NEW.has_chuti_access OR
+         OLD.has_quotes_access IS DISTINCT FROM NEW.has_quotes_access OR
+         OLD.can_manage_rules IS DISTINCT FROM NEW.can_manage_rules OR
+         OLD.supervisor_ids IS DISTINCT FROM NEW.supervisor_ids OR
+         (NEW.global_settings->>'office_leave_default') IS DISTINCT FROM (OLD.global_settings->>'office_leave_default') OR
+         (NEW.global_settings->>'eid_fitr_leave') IS DISTINCT FROM (OLD.global_settings->>'eid_fitr_leave') OR
+         (NEW.global_settings->>'eid_adha_leave') IS DISTINCT FROM (OLD.global_settings->>'eid_adha_leave') OR
+         (NEW.global_settings->>'govt_holidays') IS DISTINCT FROM (OLD.global_settings->>'govt_holidays') OR
+         (NEW.global_settings->>'password_reset_status') IS DISTINCT FROM (OLD.global_settings->>'password_reset_status')
+      THEN
+        RAISE EXCEPTION 'Supervisors cannot modify roles, supervisor assignments, access permissions, or sensitive global leave settings for their team members.';
+      END IF;
+      RETURN NEW;
+    END IF;
+
+    -- If editing an employee they do NOT supervise, enforce column constraints
+    IF OLD.role IS DISTINCT FROM NEW.role OR
+       OLD.has_chuti_access IS DISTINCT FROM NEW.has_chuti_access OR
+       OLD.has_quotes_access IS DISTINCT FROM NEW.has_quotes_access OR
+       OLD.supervisor_ids IS DISTINCT FROM NEW.supervisor_ids OR
+       OLD.delegated_supervisor_id IS DISTINCT FROM NEW.delegated_supervisor_id OR
+       OLD.delegated_leave_supervisor_id IS DISTINCT FROM NEW.delegated_leave_supervisor_id OR
+       OLD.delegated_kpi_supervisor_id IS DISTINCT FROM NEW.delegated_kpi_supervisor_id OR
+       OLD.eligible_govt_holiday IS DISTINCT FROM NEW.eligible_govt_holiday OR
+       OLD.eligible_office_leave IS DISTINCT FROM NEW.eligible_office_leave OR
+       OLD.allow_overtime IS DISTINCT FROM NEW.allow_overtime OR
+       OLD.allow_reserve IS DISTINCT FROM NEW.allow_reserve OR
+       OLD.needs_supervisor_approval IS DISTINCT FROM NEW.needs_supervisor_approval OR
+       OLD.global_settings IS DISTINCT FROM NEW.global_settings
+    THEN
+      RAISE EXCEPTION 'Supervisors can only modify basic settings (working hours, break time, default sign in/out, quotes allowed types) for users outside their team.';
+    END IF;
+
+    RETURN NEW;
+  END IF;
+
+  -- Default fallback: only allow users to edit self (non-supervisors)
+  IF auth.uid() = NEW.id THEN
+    RETURN NEW;
+  END IF;
+
+  RAISE EXCEPTION 'Unauthorized profile modification.';
 END;
 $$;
 
@@ -505,14 +511,14 @@ BEGIN
   v_sql := v_sql || ')';
 
   -- Execute dynamic insert
-  EXECUTE v_sql USING 
-    v_user_id, 
-    p_email, 
-    p_password, 
+  EXECUTE v_sql USING
+    v_user_id,
+    p_email,
+    p_password,
     jsonb_build_object(
-      'username', UPPER(p_username), 
-      'role', p_role, 
-      'full_name', p_full_name, 
+      'username', UPPER(p_username),
+      'role', p_role,
+      'full_name', p_full_name,
       'needs_supervisor_approval', p_needs_supervisor_approval,
       'allow_reserve', p_allow_reserve,
       'allow_overtime', p_allow_overtime
@@ -550,6 +556,46 @@ BEGIN
   DELETE FROM auth.users WHERE id = p_user_id;
 END;
 $$;
+
+
+--
+-- Name: get_admin_sales_summary(text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_admin_sales_summary(p_today text, p_tz text DEFAULT 'UTC'::text) RETURNS TABLE(total_sold integer, total_unsold integer, total_attempts integer)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $_$
+  WITH todays_sales AS (
+    SELECT
+      -- Group key: file name without its sold-status suffix, case/space-insensitive
+      upper(btrim(regexp_replace(r.file_name, ' \[(SOLD|UNSOLD)\]$', ''))) AS file_key,
+      (r.file_name LIKE '% [SOLD]') AS is_sold,
+      r.submitted_at
+    FROM public.records r
+    WHERE r.file_type = 'Sale'
+      -- Sargable range on submitted_at: [local midnight, next local midnight) in UTC
+      AND r.submitted_at >= ((p_today::date)::timestamp AT TIME ZONE p_tz)
+      AND r.submitted_at <  ((p_today::date + 1)::timestamp AT TIME ZONE p_tz)
+  ),
+  per_file AS (
+    SELECT
+      file_key,
+      -- Every SOLD entry is its own closed sale
+      COUNT(*) FILTER (WHERE is_sold)::INT AS sold_count,
+      -- Latest entry unsold -> one still-open attempt
+      -- (tie on submitted_at prefers SOLD via is_sold DESC)
+      CASE WHEN NOT (array_agg(is_sold ORDER BY submitted_at DESC, is_sold DESC))[1]
+           THEN 1 ELSE 0 END AS unsold_count
+    FROM todays_sales
+    GROUP BY file_key
+  )
+  SELECT
+    COALESCE(SUM(sold_count), 0)::INT                 AS total_sold,
+    COALESCE(SUM(unsold_count), 0)::INT               AS total_unsold,
+    COALESCE(SUM(sold_count + unsold_count), 0)::INT  AS total_attempts
+  FROM per_file;
+$_$;
 
 
 --
@@ -687,13 +733,12 @@ DECLARE
   suffix INTEGER := 1;
   v_global_settings JSONB;
 BEGIN
-  -- Get the current global settings from an existing admin profile to keep settings synchronized
+  -- Get current global settings from an existing admin/superadmin profile
   SELECT global_settings INTO v_global_settings
   FROM public.profiles
-  WHERE role = 'admin'
+  WHERE role IN ('admin', 'superadmin')
   LIMIT 1;
 
-  -- Fallback if no admin profile exists (e.g. first registration)
   IF v_global_settings IS NULL THEN
     v_global_settings := '{"office_leave_default": 14, "eid_fitr_leave": 0, "eid_adha_leave": 0, "govt_holidays": []}'::jsonb;
   END IF;
@@ -701,50 +746,32 @@ BEGIN
   base_username := UPPER(COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1)));
   final_username := base_username;
   
-  -- Loop to find a unique username if it already exists
   WHILE EXISTS (SELECT 1 FROM public.profiles WHERE username = final_username) LOOP
-    final_username := base_username || suffix::TEXT;
+    final_username := base_username || suffix;
     suffix := suffix + 1;
   END LOOP;
 
-  -- Insert into public.profiles
   INSERT INTO public.profiles (
-    id, username, role, needs_supervisor_approval, allow_reserve, allow_overtime, 
-    eligible_office_leave, eligible_govt_holiday, global_settings,
-    has_chuti_access, has_quotes_access, can_manage_rules, allowed_types
+    id,
+    username,
+    full_name,
+    role,
+    has_chuti_access,
+    has_quotes_access,
+    can_manage_rules,
+    global_settings
   )
   VALUES (
     NEW.id,
     final_username,
-    COALESCE(
-      NEW.raw_user_meta_data->>'role',
-      CASE 
-        WHEN NEW.email LIKE '%@admin.chuti' OR NEW.email LIKE '%@admin.local' OR NEW.email = 'admin@office.local' THEN 'admin'
-        WHEN NEW.email LIKE '%@supervisor.chuti' OR NEW.email LIKE '%@supervisor.local' OR NEW.email = 'supervisor@office.local' THEN 'supervisor'
-        ELSE 'user'
-      END
-    ),
-    COALESCE(
-      (NEW.raw_user_meta_data->>'needs_supervisor_approval')::BOOLEAN,
-      CASE 
-        WHEN NEW.email LIKE '%@admin.chuti' OR NEW.email LIKE '%@admin.local' OR NEW.email = 'admin@office.local' THEN FALSE
-        WHEN NEW.email LIKE '%@supervisor.chuti' OR NEW.email LIKE '%@supervisor.local' OR NEW.email = 'supervisor@office.local' THEN FALSE
-        ELSE TRUE
-      END
-    ),
-    COALESCE((NEW.raw_user_meta_data->>'allow_reserve')::BOOLEAN, FALSE),
-    COALESCE((NEW.raw_user_meta_data->>'allow_overtime')::BOOLEAN, FALSE),
-    COALESCE((NEW.raw_user_meta_data->>'eligible_office_leave')::BOOLEAN, TRUE),
-    COALESCE((NEW.raw_user_meta_data->>'eligible_govt_holiday')::BOOLEAN, TRUE),
-    v_global_settings,
-    COALESCE((NEW.raw_user_meta_data->>'has_chuti_access')::BOOLEAN, TRUE),
-    COALESCE((NEW.raw_user_meta_data->>'has_quotes_access')::BOOLEAN, TRUE),
-    COALESCE((NEW.raw_user_meta_data->>'can_manage_rules')::BOOLEAN, FALSE),
-    COALESCE(
-      (SELECT ARRAY(SELECT jsonb_array_elements_text(NEW.raw_user_meta_data->'allowed_types')) WHERE NEW.raw_user_meta_data ? 'allowed_types'),
-      ARRAY['Quote', 'Requote', 'Requote Van', 'Requote Bike', 'Review', 'Review Van', 'Review Bike', 'Individual Review', 'Other Site', 'Van', 'Bike', 'Sale']::TEXT[]
-    )
+    COALESCE(NEW.raw_user_meta_data->>'full_name', final_username),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'user'),
+    COALESCE((NEW.raw_user_meta_data->>'has_chuti_access')::boolean, true),
+    COALESCE((NEW.raw_user_meta_data->>'has_quotes_access')::boolean, true),
+    COALESCE((NEW.raw_user_meta_data->>'can_manage_rules')::boolean, false),
+    v_global_settings
   );
+
   RETURN NEW;
 END;
 $$;
@@ -818,21 +845,6 @@ $$;
 
 
 --
--- Name: is_superadmin(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.is_superadmin() RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'superadmin'
-  );
-$$;
-
-
---
 -- Name: is_admin_or_supervisor(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -848,26 +860,17 @@ $$;
 
 
 --
--- Name: set_sanitizer_words(text[]); Type: FUNCTION; Schema: public; Owner: -
+-- Name: is_superadmin(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.set_sanitizer_words(p_words text[]) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
+CREATE FUNCTION public.is_superadmin() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
-BEGIN
-  IF NOT public.is_superadmin() THEN
-    RAISE EXCEPTION 'Only a superadmin can configure the filename sanitizer.';
-  END IF;
-
-  UPDATE public.profiles
-  SET global_settings = jsonb_set(
-        COALESCE(global_settings, '{}'::jsonb),
-        '{sanitizer_words}',
-        COALESCE(to_jsonb(p_words), '[]'::jsonb),
-        true
-      );
-END;
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'superadmin'
+  );
 $$;
 
 
@@ -943,6 +946,131 @@ BEGIN
   WHERE user_id = p_user_id;
 
   RETURN (v_rank IS NOT NULL AND v_rank <= 5);
+END;
+$$;
+
+
+--
+-- Name: set_feature_flags(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_feature_flags(p_flags jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NOT public.is_superadmin() THEN
+    RAISE EXCEPTION 'Only a superadmin can configure feature flags.';
+  END IF;
+
+  UPDATE public.profiles
+  SET global_settings = jsonb_set(
+        COALESCE(global_settings, '{}'::jsonb),
+        '{feature_flags}',
+        COALESCE(p_flags, '{}'::jsonb),
+        true
+      )
+  WHERE true;  -- intentional: global_settings is replicated to every row
+END;
+$$;
+
+
+--
+-- Name: set_role_visibility(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_role_visibility(p_visibility jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NOT public.is_superadmin() THEN
+    RAISE EXCEPTION 'Only a superadmin can configure role visibility.';
+  END IF;
+
+  UPDATE public.profiles
+  SET global_settings = jsonb_set(
+        COALESCE(global_settings, '{}'::jsonb),
+        '{role_visibility}',
+        COALESCE(p_visibility, '{}'::jsonb),
+        true
+      )
+  WHERE true;  -- intentional: global_settings is replicated to every row
+END;
+$$;
+
+
+--
+-- Name: set_sanitizer_rules(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_sanitizer_rules(p_rules jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NOT public.is_superadmin() THEN
+    RAISE EXCEPTION 'Only a superadmin can configure the filename sanitizer.';
+  END IF;
+
+  UPDATE public.profiles
+  SET global_settings = jsonb_set(
+        COALESCE(global_settings, '{}'::jsonb),
+        '{sanitizer_rules}',
+        COALESCE(p_rules, '[]'::jsonb),
+        true
+      )
+  WHERE true;  -- intentional: global_settings is replicated to every row
+END;
+$$;
+
+
+--
+-- Name: set_sanitizer_words(text[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_sanitizer_words(p_words text[]) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NOT public.is_superadmin() THEN
+    RAISE EXCEPTION 'Only a superadmin can configure the filename sanitizer.';
+  END IF;
+
+  UPDATE public.profiles
+  SET global_settings = jsonb_set(
+        COALESCE(global_settings, '{}'::jsonb),
+        '{sanitizer_words}',
+        COALESCE(to_jsonb(p_words), '[]'::jsonb),
+        true
+      )
+  WHERE true;  -- intentional: global_settings is replicated to every row
+END;
+$$;
+
+
+--
+-- Name: set_temp_access(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_temp_access(p_entries jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NOT public.is_superadmin() THEN
+    RAISE EXCEPTION 'Only a superadmin can configure temporary access.';
+  END IF;
+
+  UPDATE public.profiles
+  SET global_settings = jsonb_set(
+        COALESCE(global_settings, '{}'::jsonb),
+        '{temp_access}',
+        COALESCE(p_entries, '[]'::jsonb),
+        true
+      )
+  WHERE true;  -- intentional: global_settings is replicated to every row
 END;
 $$;
 
@@ -1254,8 +1382,7 @@ CREATE TABLE public.leaderboard_archive (
     sales_count integer DEFAULT 0 NOT NULL,
     total_submitted integer DEFAULT 0 NOT NULL,
     rank integer NOT NULL,
-    archived_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-    CONSTRAINT leaderboard_archive_username_year_unique UNIQUE (username, year)
+    archived_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 
@@ -1650,6 +1777,13 @@ CREATE INDEX idx_leave_settlements_user_year ON public.leave_settlements USING b
 
 
 --
+-- Name: idx_records_sale_submitted; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_records_sale_submitted ON public.records USING btree (submitted_at) WHERE (file_type = 'Sale'::text);
+
+
+--
 -- Name: idx_records_updated_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1696,6 +1830,13 @@ CREATE INDEX idx_todos_user_id ON public.todos USING btree (user_id);
 --
 
 CREATE UNIQUE INDEX unique_user_date ON public.chuti USING btree (user_id, date) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: uq_records_user_file_submitted; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_records_user_file_submitted ON public.records USING btree (user_id, file_name, submitted_at);
 
 
 --
@@ -1789,6 +1930,14 @@ ALTER TABLE ONLY public.kpi_assessments
 
 
 --
+-- Name: leaderboard_archive leaderboard_archive_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.leaderboard_archive
+    ADD CONSTRAINT leaderboard_archive_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: leave_settlements leave_settlements_action_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1802,14 +1951,6 @@ ALTER TABLE ONLY public.leave_settlements
 
 ALTER TABLE ONLY public.leave_settlements
     ADD CONSTRAINT leave_settlements_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
-
-
---
--- Name: leaderboard_archive leaderboard_archive_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.leaderboard_archive
-    ADD CONSTRAINT leaderboard_archive_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
 
 
 --
@@ -1887,13 +2028,6 @@ CREATE POLICY "Admins can read all holiday responses" ON public.govt_holiday_res
 --
 
 CREATE POLICY "Admins can update/delete responses" ON public.govt_holiday_responses USING (public.is_admin());
-
-
---
--- Name: leaderboard_archive Authenticated users can read leaderboard archive; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Authenticated users can read leaderboard archive" ON public.leaderboard_archive FOR SELECT TO authenticated USING (true);
 
 
 --
@@ -1979,7 +2113,7 @@ CREATE POLICY "Allow admins to update all profiles" ON public.profiles FOR UPDAT
 
 CREATE POLICY "Allow admins, supervisors or authorized editors to delete rules" ON public.compliance_rules FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles
-  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = 'admin'::text) OR (profiles.role = 'supervisor'::text) OR (profiles.can_manage_rules = true))))));
+  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = ANY (ARRAY['admin'::text, 'superadmin'::text, 'supervisor'::text])) OR (profiles.can_manage_rules = true))))));
 
 
 --
@@ -1988,7 +2122,7 @@ CREATE POLICY "Allow admins, supervisors or authorized editors to delete rules" 
 
 CREATE POLICY "Allow admins, supervisors or authorized editors to insert rules" ON public.compliance_rules FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
-  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = 'admin'::text) OR (profiles.role = 'supervisor'::text) OR (profiles.can_manage_rules = true))))));
+  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = ANY (ARRAY['admin'::text, 'superadmin'::text, 'supervisor'::text])) OR (profiles.can_manage_rules = true))))));
 
 
 --
@@ -1997,9 +2131,9 @@ CREATE POLICY "Allow admins, supervisors or authorized editors to insert rules" 
 
 CREATE POLICY "Allow admins, supervisors or authorized editors to update rules" ON public.compliance_rules FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles
-  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = 'admin'::text) OR (profiles.role = 'supervisor'::text) OR (profiles.can_manage_rules = true)))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = ANY (ARRAY['admin'::text, 'superadmin'::text, 'supervisor'::text])) OR (profiles.can_manage_rules = true)))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
-  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = 'admin'::text) OR (profiles.role = 'supervisor'::text) OR (profiles.can_manage_rules = true))))));
+  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = ANY (ARRAY['admin'::text, 'superadmin'::text, 'supervisor'::text])) OR (profiles.can_manage_rules = true))))));
 
 
 --
@@ -2008,7 +2142,7 @@ CREATE POLICY "Allow admins, supervisors or authorized editors to update rules" 
 
 CREATE POLICY "Allow authenticated to read compliance rules" ON public.compliance_rules FOR SELECT TO authenticated USING (((NOT is_deleted) OR (EXISTS ( SELECT 1
    FROM public.profiles
-  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = 'admin'::text) OR (profiles.role = 'supervisor'::text) OR (profiles.can_manage_rules = true)))))));
+  WHERE ((profiles.id = auth.uid()) AND ((profiles.role = ANY (ARRAY['admin'::text, 'superadmin'::text, 'supervisor'::text])) OR (profiles.can_manage_rules = true)))))));
 
 
 --
@@ -2194,6 +2328,13 @@ CREATE POLICY "Allow users to update their own profile" ON public.profiles FOR U
 
 
 --
+-- Name: leaderboard_archive Authenticated users can read leaderboard archive; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Authenticated users can read leaderboard archive" ON public.leaderboard_archive FOR SELECT TO authenticated USING (true);
+
+
+--
 -- Name: dismissed_notifications Users can delete own dismissed notifications; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -2293,16 +2434,16 @@ ALTER TABLE public.govt_holiday_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kpi_assessments ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: leave_settlements; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.leave_settlements ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: leaderboard_archive; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.leaderboard_archive ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: leave_settlements; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.leave_settlements ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: login_codes; Type: ROW SECURITY; Schema: public; Owner: -
@@ -2338,5 +2479,5 @@ ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wKdNyAKj2JqtWVLPiz82crXBLbyqbZd2n3OMhJtyyWTzMSRwO8hGgLhHCkrHoPU
+\unrestrict ZAnWyAA2QFyMaPaPjsN4lZHGCQBVGuLToKhsKBHQ4EDu6g1QOKmHb7RHv4XMQpu
 

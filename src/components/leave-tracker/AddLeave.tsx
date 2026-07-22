@@ -27,6 +27,7 @@ import { toast } from 'react-hot-toast';
 import { AddLeaveFormFields } from '@/components/leave-tracker/AddLeaveFormFields';
 import { LeaveUsageSummary } from '@/components/leave-tracker/LeaveUsageSummary';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { isAdminRole, isFeatureEnabled } from '@/utils/permissionService';
 
 interface AddLeaveProps {
   profile: Profile | null;
@@ -108,8 +109,12 @@ export function AddLeave({
   const defaultSignOut = targetProfile?.default_sign_out;
   const targetWorkingHours = targetProfile?.working_hours;
 
+  // Feature flags (superadmin-controlled; default ON)
+  const breakFeatureOn = isFeatureEnabled('break_time', globalSettings, profile);
+  const jummahFeatureOn = isFeatureEnabled('jummah_adjustment', globalSettings, profile);
+
   // Break time is only offered for Short Leave when signed in more than 1 hour late.
-  const breakEligible = isBreakEligible(leaveType, signInTime, defaultSignIn || '13:00');
+  const breakEligible = breakFeatureOn && isBreakEligible(leaveType, signInTime, defaultSignIn || '13:00');
 
   // Initialize today's date and default times
   useEffect(() => {
@@ -154,7 +159,7 @@ export function AddLeave({
     const workingHours = targetWorkingHours ?? 9.5;
     const isHoliday = checkIfHolidayOrWeekend(date, globalSettings);
     const calc = calculateLeaveOrOvertime(leaveType, signInTime, signOutTime, shiftStart, shiftEnd, workingHours, isHoliday);
-    const jummahApplied = (leaveType === 'Short Leave' && isFriday(date))
+    const jummahApplied = (leaveType === 'Short Leave' && isFriday(date) && jummahFeatureOn)
       ? adjustShortLeaveForJummah(calc, adjustJummah)
       : calc;
     // Break time counts as short leave, added on top of the (Jummah-adjusted) hours.
@@ -613,12 +618,12 @@ export function AddLeave({
     const insertData: Partial<ChutiRecord>[] = [];
     const bypassSupervisor =
       addedBySupervisor ||
-      profile?.role === 'admin' ||
+      isAdminRole(profile) ||
       targetProfile.needs_supervisor_approval === false ||
       !targetProfile.supervisor_ids ||
       targetProfile.supervisor_ids.length === 0;
     let finalStatus = 'pending_supervisor';
-    if (profile?.role === 'admin') {
+    if (profile && isAdminRole(profile)) {
       if (targetProfile.id === profile.id) {
         finalStatus = 'approved_by_supervisor';
       } else {
@@ -696,7 +701,7 @@ export function AddLeave({
       }
 
       // Prepend admin/supervisor signature
-      if (profile?.role === 'admin' && targetProfile.id !== profile.id) {
+      if (profile && isAdminRole(profile) && targetProfile.id !== profile.id) {
         const adminUsername = profile?.username || 'Admin';
         const updatedCommentPrefix = `${adminUsername} Approved`;
         commentWithCategory = commentWithCategory
@@ -711,7 +716,7 @@ export function AddLeave({
       }
 
       let adminEditRequest: AdminEditRequest | null = null;
-      if (profile?.role === 'admin' && targetProfile.id !== profile.id) {
+      if (profile && isAdminRole(profile) && targetProfile.id !== profile.id) {
         adminEditRequest = {
           notifications: [
             {
@@ -749,7 +754,7 @@ export function AddLeave({
     try {
       let data: ChutiRecord[] | null = null;
       const isAddingOnBehalf = profile && targetProfile && targetProfile.id !== profile.id;
-      const isPrivilegedRole = profile?.role === 'supervisor' || profile?.role === 'admin';
+      const isPrivilegedRole = profile?.role === 'supervisor' || isAdminRole(profile);
 
       // 1. Try direct Supabase insertion first (works on both Web and Desktop App directly)
       const { data: directData, error: directError } = await supabase
@@ -918,6 +923,7 @@ export function AddLeave({
                 allowOvertime={targetProfile?.allow_overtime || false}
                 adjustJummah={adjustJummah}
                 setAdjustJummah={setAdjustJummah}
+                jummahEnabled={jummahFeatureOn}
                 breakEligible={breakEligible}
                 breakEnabled={breakEnabled}
                 setBreakEnabled={setBreakEnabled}

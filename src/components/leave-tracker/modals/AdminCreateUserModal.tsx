@@ -4,6 +4,7 @@ import { Plus, RefreshCw } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { CustomSelect } from '@/components/common/CustomSelect';
 import { Profile } from '@/types';
+import { isAdminRole } from '@/utils/permissionService';
 
 interface AdminCreateUserModalProps {
   showCreateUserModal: boolean;
@@ -77,7 +78,7 @@ export function AdminCreateUserModal({
 
   return (
     <Modal
-      isOpen={showCreateUserModal && profile?.role === 'admin'}
+      isOpen={showCreateUserModal && isAdminRole(profile)}
       onClose={handleClose}
       title="Add New Staff"
       icon={<Plus className="h-5 w-5 text-blue-500" />}

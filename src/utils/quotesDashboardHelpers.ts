@@ -156,8 +156,8 @@ export const downloadCSVRows = (
 
 // Sanitizes pasted/typed quote file names by stripping comments, file types,
 // branch names, dots, etc. The implementation now lives in a reusable module
-// (src/utils/fileNameSanitizer.ts). This re-export preserves all existing
-// imports and behavior; use buildCleanFileName(config) for the
-// superadmin-configurable word list.
+// (src/utils/fileNameSanitizer.ts) — the single source of truth. This re-export
+// preserves existing imports; pass the settings-derived word list from
+// getSanitizerWords() to buildCleanFileName() for the configurable list.
 export { cleanFileName, buildCleanFileName } from "@/utils/fileNameSanitizer";
-export type { SanitizerConfig } from "@/utils/fileNameSanitizer";
+export type { SanitizerRule } from "@/utils/fileNameSanitizer";

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Profile } from '@/types';
-import { canAccessModule, isSuperadmin } from '@/utils/permissionService';
+import { canAccessModule, isSuperadmin, isAdminRole, isTabVisibleForRole } from '@/utils/permissionService';
 import {
   PanelLeftOpen,
   PanelLeftClose,
@@ -68,7 +68,11 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
   if (!profile) return null;
 
   const isSuperAdmin = isSuperadmin(profile);
-  const hiddenTabs = profile.global_settings?.hidden_tabs || [];
+  const userHiddenTabs = profile.global_settings?.hidden_tabs || [];
+  // A tab is hidden when the user hid it (per-user) OR a superadmin disabled it
+  // for this role (per-role role_visibility). Superadmins bypass both.
+  const tabHidden = (key: string): boolean =>
+    userHiddenTabs.includes(key) || !isTabVisibleForRole(profile, key, profile.global_settings);
 
   // Navigation handlers
   const handleChutiNav = () => {
@@ -209,7 +213,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
 
 
                 {/* 3. Leave History (All Users) */}
-                {!hiddenTabs.includes('leave_history') && (
+                {!tabHidden('leave_history') && (
                   <button
                     onClick={() => { onChutiTabChange('leave_history'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Leave History' : undefined}
@@ -227,7 +231,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* Team Leave Records (Admin and Supervisor Only) */}
-                {(profile?.role === 'admin' || profile?.role === 'supervisor') && !hiddenTabs.includes('team_leaves') && (
+                {(isAdminRole(profile) || profile?.role === 'supervisor') && !tabHidden('team_leaves') && (
                   <button
                     onClick={() => { onChutiTabChange('team_leaves'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Team Leave Records' : undefined}
@@ -245,7 +249,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* 3. Govt Holiday Response (Admin Only) */}
-                {profile?.role === 'admin' && !hiddenTabs.includes('govt_responses') && (
+                {isAdminRole(profile) && !tabHidden('govt_responses') && (
                   <button
                     onClick={() => { onChutiTabChange('govt_responses'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Govt Holiday Response' : undefined}
@@ -263,7 +267,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* 4. Review & Settlements (Admin Only) */}
-                {profile?.role === 'admin' && !hiddenTabs.includes('settlement') && (
+                {isAdminRole(profile) && !tabHidden('settlement') && (
                   <button
                     onClick={() => { onChutiTabChange('settlement'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Review & Settlements' : undefined}
@@ -281,7 +285,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* 5. Leave Settings (Admin Only) */}
-                {profile?.role === 'admin' && !hiddenTabs.includes('leave_settings') && (
+                {isAdminRole(profile) && !tabHidden('leave_settings') && (
                   <button
                     onClick={() => { onChutiTabChange('leave_settings'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Leave Settings' : undefined}
@@ -340,7 +344,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 </button>
 
                 {/* Copy Helper (all authenticated users) */}
-                {!hiddenTabs.includes('copy_helper') && (
+                {!tabHidden('copy_helper') && (
                   <button
                     onClick={() => { onQuotesTabChange?.('copy_helper'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Copy Helper' : undefined}
@@ -358,7 +362,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* Save File (Superadmin only) */}
-                {isSuperAdmin && !hiddenTabs.includes('save_file') && (
+                {isSuperAdmin && !tabHidden('save_file') && (
                   <button
                     onClick={() => { onQuotesTabChange?.('save_file'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Save File' : undefined}
@@ -376,7 +380,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* 2. Monthly List */}
-                {!hiddenTabs.includes('monthly') && (
+                {!tabHidden('monthly') && (
                   <button
                     onClick={() => { onQuotesTabChange('monthly'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Monthly List' : undefined}
@@ -396,7 +400,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
 
 
                 {/* 4. Quote Rules */}
-                {!hiddenTabs.includes('rules') && (
+                {!tabHidden('rules') && (
                   <button
                     onClick={() => { onQuotesTabChange('rules'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Quote Rules' : undefined}
@@ -414,7 +418,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* 5. IP Checker */}
-                {!hiddenTabs.includes('ip_checker') && (
+                {!tabHidden('ip_checker') && (
                   <button
                     onClick={() => { onQuotesTabChange('ip_checker'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'IP Checker' : undefined}
@@ -432,7 +436,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* 6. Login Codes */}
-                {!hiddenTabs.includes('login_codes') && (
+                {!tabHidden('login_codes') && (
                   <button
                     onClick={() => { onQuotesTabChange('login_codes'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Login Codes' : undefined}
@@ -450,7 +454,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 )}
 
                 {/* 7. Causality (Asitis + EUI) */}
-                {!hiddenTabs.includes('causality') && (
+                {!tabHidden('causality') && (
                   <button
                     onClick={() => { onQuotesTabChange('causality'); onNavItemClick?.(); }}
                     title={isSidebarCollapsed ? 'Causality' : undefined}
@@ -472,7 +476,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: KPI & Performance */}
-        {canAccessModule(profile, null, 'kpi') && !hiddenTabs.includes('kpi') && (
+        {canAccessModule(profile, null, 'kpi') && !tabHidden('kpi') && (
           <div className="space-y-1">
             <button
               onClick={handleKpiNav}
@@ -492,7 +496,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: Todos (Only for superadmin Kamrul) */}
-        {canAccessModule(profile, null, 'todo') && !hiddenTabs.includes('todo') && (
+        {canAccessModule(profile, null, 'todo') && !tabHidden('todo') && (
           <div className="space-y-1">
             <button
               onClick={handleTodoNav}
@@ -512,7 +516,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: Leaderboard (Everyone) */}
-        {canAccessModule(profile, null, 'leaderboard') && !hiddenTabs.includes('leaderboard') && (
+        {canAccessModule(profile, null, 'leaderboard') && !tabHidden('leaderboard') && (
           <div className="space-y-1">
             <button
               onClick={handleLeaderboardNav}
@@ -532,7 +536,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: Audit Logs (Admin Only) */}
-        {canAccessModule(profile, null, 'audit_logs') && !hiddenTabs.includes('audit_logs') && (
+        {canAccessModule(profile, null, 'audit_logs') && !tabHidden('audit_logs') && (
           <div className="space-y-1">
             <button
               onClick={handleAuditLogsNav}
@@ -552,7 +556,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace: Profile Settings (All Users) */}
-        {canAccessModule(profile, null, 'profile_settings') && !hiddenTabs.includes('profile_settings') && (
+        {canAccessModule(profile, null, 'profile_settings') && !tabHidden('profile_settings') && (
           <div className="space-y-1">
             <button
               onClick={handleProfileSettingsNav}
@@ -572,7 +576,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
         )}
 
         {/* Workspace 3: User Management (Admin & Supervisor Only) */}
-        {canAccessModule(profile, null, 'user_management') && !hiddenTabs.includes('user_management') && (
+        {canAccessModule(profile, null, 'user_management') && !tabHidden('user_management') && (
           <div className="space-y-1">
             <button
               onClick={handleUserManagementNav}

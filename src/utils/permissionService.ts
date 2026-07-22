@@ -16,6 +16,82 @@ export const isAdminRole = (user: Profile | null): boolean =>
 
 /** Alias for clarity — Superadmin inherits all Admin capabilities. */
 export const hasAdminAccess = isAdminRole;
+/** Alias — reads naturally at call sites gating admin-or-above capabilities. */
+export const isAdminOrHigher = isAdminRole;
+
+/**
+ * Numeric role rank for hierarchy comparisons.
+ * Superadmin > Admin > Supervisor > User.
+ */
+export const ROLE_RANK: Record<string, number> = {
+  user: 1,
+  supervisor: 2,
+  admin: 3,
+  superadmin: 4,
+};
+
+/**
+ * Superadmin feature flag check. Gates functionality (not nav). Absent or
+ * true = enabled (default ON); only an explicit false disables. Reading an
+ * unset flag never disables a feature, so wiring gaps can't cause lockouts.
+ */
+export const isFeatureEnabled = (
+  flagKey: string,
+  globalSettings?: { feature_flags?: Record<string, boolean> } | null,
+  user?: Profile | null
+): boolean => {
+  if (user && isSuperadmin(user)) return true;
+  return globalSettings?.feature_flags?.[flagKey] !== false;
+};
+
+interface VisibilitySettings {
+  role_visibility?: Record<string, Record<string, boolean>>;
+  temp_access?: Array<{ role: string; tabKey: string; action: 'grant' | 'revoke'; expires_at: string }>;
+}
+
+/**
+ * Superadmin-configurable per-role tab visibility, with time-boxed overrides.
+ *
+ * Base: a tab is hidden for a role only when role_visibility[role][tabKey] ===
+ * false (absent = visible). An active (non-expired) temp_access entry for the
+ * (role, tabKey) overrides the base: 'revoke' forces hidden, 'grant' forces
+ * visible. Expired entries are ignored (client-side, compared to now).
+ * Superadmins always bypass everything. Composes with per-user hidden_tabs.
+ */
+export const isTabVisibleForRole = (
+  user: Profile | null,
+  tabKey: string,
+  globalSettings?: VisibilitySettings | null
+): boolean => {
+  if (!user) return false;
+  if (isSuperadmin(user)) return true; // superadmin always sees everything
+
+  const base = globalSettings?.role_visibility?.[user.role]?.[tabKey] !== false;
+
+  const now = Date.now();
+  const override = (globalSettings?.temp_access ?? []).find(
+    (t) =>
+      t.role === user.role &&
+      t.tabKey === tabKey &&
+      t.expires_at &&
+      new Date(t.expires_at).getTime() > now
+  );
+  if (override) return override.action === 'grant';
+
+  return base;
+};
+
+/** True if `user`'s role is at least `minRole` in the hierarchy. */
+export const hasRoleLevel = (
+  user: Profile | null,
+  minRole: 'user' | 'supervisor' | 'admin' | 'superadmin'
+): boolean => {
+  if (!user) return false;
+  return (ROLE_RANK[user.role] ?? 0) >= (ROLE_RANK[minRole] ?? 0);
+};
+
+// Role assignment options live in getAllowedRoleOptions() below — single source
+// of truth for the role-management dropdown, mirrored by backend RPC/trigger.
 
 /**
  * Returns the role string to display based on viewer permissions.

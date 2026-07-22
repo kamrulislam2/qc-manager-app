@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (callerError || callerProfile?.role !== 'admin') {
+    // Superadmin inherits all admin capability.
+    if (callerError || !['admin', 'superadmin'].includes(callerProfile?.role ?? '')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: getCorsHeaders(request) });
     }
 
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
     if (currentEmail.includes('@')) {
       suffix = currentEmail.split('@')[1];
     } else {
-      suffix = role === 'admin' ? 'admin.local' : role === 'supervisor' ? 'supervisor.local' : 'user.local';
+      suffix = (role === 'admin' || role === 'superadmin') ? 'admin.local' : role === 'supervisor' ? 'supervisor.local' : 'user.local';
     }
 
     const newEmail = `${cleanUsername.toLowerCase()}@${suffix}`;

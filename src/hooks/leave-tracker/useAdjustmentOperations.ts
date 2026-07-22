@@ -5,6 +5,7 @@ import { supabase } from '@/utils/supabase';
 import { Profile, ChutiRecordWithProfile } from '@/types';
 import { ChutiRecord, saveOfflineUpdate } from '@/utils/offlineSync';
 import { formatDate, formatTimeToAMPM, getDetailedLeaveLabel, getExistingNotifications, createNotification } from '@/utils/dashboardHelpers';
+import { isAdminRole } from '@/utils/permissionService';
 
 interface useAdjustmentOperationsParams {
   profile: Profile | null;
@@ -73,7 +74,7 @@ export const useAdjustmentOperations = ({
       const leaveLabel = getDetailedLeaveLabel(record);
 
       const existingNotifications = getExistingNotifications(record);
-      const isAdmin = profile?.role === 'admin' && adminActiveTab === 'admin';
+      const isAdmin = isAdminRole(profile) && adminActiveTab === 'admin';
 
       let updates: Record<string, unknown> = {};
 
@@ -141,7 +142,7 @@ export const useAdjustmentOperations = ({
     const record = adjustmentRecord;
     try {
       const isShortLeave = record.leave_type === 'Short Leave';
-      const isAdmin = profile?.role === 'admin' && adminActiveTab === 'admin';
+      const isAdmin = isAdminRole(profile) && adminActiveTab === 'admin';
       let requestedUpdates: Record<string, unknown> = {};
 
       if (isShortLeave) {
