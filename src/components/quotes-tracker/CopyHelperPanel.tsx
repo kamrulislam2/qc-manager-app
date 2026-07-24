@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { ScrollText, ArrowLeft, Copy, Check, Pencil } from "lucide-react";
+import { ScrollText, ArrowLeft, Copy, Check, Pencil, Globe } from "lucide-react";
 import { RecordItem, Profile } from "@/types";
 import { AdminSalesSummary } from "@/utils/adminSalesSummary";
 import { isFeatureEnabled } from "@/utils/permissionService";
 import { DEFAULT_VPN_LIST } from "@/utils/dashboardHelpers";
+import { Modal } from "@/components/common/Modal";
 
 // ─── Reusable card chrome ────────────────────────────────────────────
 
@@ -179,6 +180,8 @@ export const CopyHelperPanel: React.FC<CopyHelperPanelProps> = ({
   const [isVpnConnected, setIsVpnConnected] = useState<boolean>(false);
   const [editingNetworkField, setEditingNetworkField] = useState<'vpnName' | 'ipAddress' | null>(null);
   const [isDetectingIp, setIsDetectingIp] = useState<boolean>(true);
+  const [showCustomVpnModal, setShowCustomVpnModal] = useState<boolean>(false);
+  const [customVpnInput, setCustomVpnInput] = useState<string>("");
 
   // Managed VPN list from profile settings
   const availableVpns = useMemo(() => {
@@ -414,16 +417,13 @@ export const CopyHelperPanel: React.FC<CopyHelperPanelProps> = ({
                 onChange={(e) => {
                   const val = e.target.value;
                   if (val === "__custom__") {
-                    const custom = prompt("Enter custom VPN name:", vpnName);
-                    if (custom) {
-                      setVpnName(custom);
-                      setIsVpnConnected(true);
-                    }
+                    setCustomVpnInput("");
+                    setShowCustomVpnModal(true);
                   } else {
                     setVpnName(val);
                     setIsVpnConnected(val !== "None");
+                    setEditingNetworkField(null);
                   }
-                  setEditingNetworkField(null);
                 }}
                 onBlur={() => setEditingNetworkField(null)}
                 autoFocus
@@ -732,6 +732,76 @@ export const CopyHelperPanel: React.FC<CopyHelperPanelProps> = ({
           className="w-full h-20 bg-theme-page-bg border border-theme-border-input rounded-lg text-rose-400 placeholder-theme-text-muted/60 focus:outline-none focus:ring-1 focus:ring-rose-500/30 text-xs p-3 font-semibold resize-none"
         />
       </div>
+
+      {/* Custom VPN Name Modal */}
+      <Modal
+        isOpen={showCustomVpnModal}
+        onClose={() => {
+          setShowCustomVpnModal(false);
+          setEditingNetworkField(null);
+        }}
+        title="Add Custom VPN Name"
+        icon={<Globe className="h-5 w-5 text-blue-400" />}
+      >
+        <div className="space-y-4 pt-1 font-sans">
+          <p className="text-xs text-theme-text-muted">
+            Enter the name of the custom VPN provider to use for this session.
+          </p>
+
+          <div>
+            <label className="block text-xs font-semibold text-theme-text-muted mb-1 uppercase tracking-wider">
+              VPN Provider Name
+            </label>
+            <input
+              type="text"
+              value={customVpnInput}
+              onChange={(e) => setCustomVpnInput(e.target.value)}
+              placeholder="e.g. ProtonVPN, Windscribe"
+              autoFocus
+              className="w-full bg-theme-page-bg border border-theme-border-input rounded-xl px-3.5 py-2.5 text-xs text-theme-text-primary placeholder-theme-text-muted/60 focus:outline-none focus:border-blue-500 font-sans"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (customVpnInput.trim()) {
+                    setVpnName(customVpnInput.trim());
+                    setIsVpnConnected(true);
+                    setShowCustomVpnModal(false);
+                    setEditingNetworkField(null);
+                  }
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-2 border-t border-theme-border-muted">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCustomVpnModal(false);
+                setEditingNetworkField(null);
+              }}
+              className="px-4 py-2 border border-theme-border-input bg-theme-card-bg hover:bg-theme-border-input text-theme-text-secondary rounded-xl text-xs font-semibold transition-all cursor-pointer font-sans"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!customVpnInput.trim()}
+              onClick={() => {
+                if (customVpnInput.trim()) {
+                  setVpnName(customVpnInput.trim());
+                  setIsVpnConnected(true);
+                  setShowCustomVpnModal(false);
+                  setEditingNetworkField(null);
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all cursor-pointer font-sans shadow-md"
+            >
+              Set VPN Name
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
