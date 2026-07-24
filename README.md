@@ -1,6 +1,6 @@
 # 🌟 QC Manager — Unified Office Leave Tracker & Quotes Manager
 
-**Version 6.3.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
+**Version 6.4.0** | A premium, modern, and high-performance desktop and web utility built with **Next.js (TypeScript)**, **Supabase (PostgreSQL)**, and **Tauri v2**. It integrates two comprehensive corporate workspaces under a single secure, role-based role management structure.
 
 ---
 
@@ -115,7 +115,18 @@ npm run tauri build
 ```
 
 ## 📜 Version History / Changelog
-### 🚀 v6.2.0 — Multi-Device & Copy Helper Release (Current)
+### 🚀 v6.4.0 — Granular Access, Feature Flags & Session Egress Optimization (Current)
+
+- **Settings Subtabs Restructuring & Per-Role Access:** Renamed and reorganized Profile Settings subtabs into 6 distinct views: **Profile**, **Menu**, **Sanitizer**, **Access**, **Feature Flags**, and **VPN**. Configured granular access control so administrators can toggle visibility for every individual Settings subtab independently per role.
+- **Dynamic Feature Flags Engine:** Built a full feature flag system (`featureFlagsRegistry.ts`) supporting 14 feature flags (Break Time, Jummah Adjustment, Custom Entry, Bulk Add Leave, Reserve Holiday, Overtime, Short Leave, Split/Merged Office Leave, etc.) with role defaults and per-user override matrix.
+- **Office Allocated Leave Split / Merged Mode:** Introduced `office_leave_mode` ('split' | 'merged') in global settings. Admins can seamlessly switch between Split allocation (H1 6 days + H2 6 days) and Merged allocation (Full Year 12 days) with dynamic UI updates across User Stats and Leave Usage summary cards.
+- **Credential Auto-Fill & Save Password Option:** Added a "Save Password" checkbox to the login panel with continuous syncing to `localStorage` and native browser autocomplete attributes (`username`, `current-password`).
+- **Multi-User Logout & State Cleanup:** Injected state cleanup on logout (clearing `cached_profile_`, `qc_session_id`), invalidating module-level initial state, and adding fetching concurrency guards to fix loading screen hangs during rapid user switches.
+- **Session Heartbeat Egress Elimination:** Completely removed repetitive `profiles.global_settings` heartbeat updates for existing user sessions, eliminating unnecessary Supabase DB writes and Realtime broadcast messages while preserving 1-week inactivity logout.
+- **Forgot Password API & Timeout Fix:** Optimized the forgot password endpoint to fire admin notification lookups asynchronously (non-blocking), increased native app (Capacitor/Tauri) fetch timeouts to 15 seconds, and added duplicate tap guards to fix false "network error" popups on desktop and Android apps.
+- **Security Audit Remediation:** Resolved 3 critical audit findings: PII protection on email resolution, atomic `jsonb_set` settings updates, and username enumeration prevention.
+
+### 🚀 v6.2.0 — Multi-Device & Copy Helper Release
 
 - **Multi-Device Login:** A user can now stay logged in simultaneously on Web, Desktop, and Android (up to 10 devices/browsers). Every per-device logout path (manual logout, inactivity expiry, stale-session cleanup, session eviction) now uses `signOut({ scope: 'local' })` — previously the global default revoked every device's refresh token, forcing all other devices out. Account deletion and the first-time-password timeout intentionally remain global sign-outs.
 - **Copy Helper for All Users:** The Copy Helper dashboard is now available to every authenticated user (previously hardcoded to the superadmin). Box visibility is driven by the **Sale** file-type permission (User Management → Profile Settings → File Type Permissions) with fully dynamic box numbering: with Sale permission users see Session Info, Sales Summary, Quick Copy Actions, Detailed Report, and the new Admin Sales Summary; without it, only the Detailed Report (as Box 1). Save File remains superadmin-only.

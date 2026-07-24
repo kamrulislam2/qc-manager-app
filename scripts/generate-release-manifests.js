@@ -12,6 +12,22 @@ function computeSha256(filePath) {
   return hashSum.digest('hex');
 }
 
+function getReleaseNotesForVersion(version) {
+  try {
+    const readmePath = path.join(process.cwd(), 'README.md');
+    if (!fs.existsSync(readmePath)) return `### QC Manager v${version} Release`;
+    const readmeText = fs.readFileSync(readmePath, 'utf8');
+    const regex = new RegExp(`###\\s*🚀\\s*v${version.replace(/\./g, '\\.')}[\\s\\S]*?(?=(###\\s*🚀\\s*v|##\\s+|$))`, 'i');
+    const match = readmeText.match(regex);
+    if (match && match[0]) {
+      return match[0].trim();
+    }
+  } catch (e) {
+    console.warn('Could not extract release notes from README.md:', e.message);
+  }
+  return `### QC Manager v${version} Release`;
+}
+
 async function main() {
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.GITHUB_REPOSITORY; // "owner/repo"
@@ -23,14 +39,14 @@ async function main() {
     process.exit(1);
   }
 
-
-
   const packageJsonPath = path.join(process.cwd(), 'package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   const version = packageJson.version;
   const tag = `v${version}`;
+  const releaseNotes = getReleaseNotesForVersion(version);
 
   console.log(`Starting Release Manifest Generation for tag ${tag}...`);
+  console.log(`Release Notes extracted from README.md:\n${releaseNotes}\n---`);
 
   const headers = {
     'Authorization': `token ${token}`,
@@ -54,7 +70,8 @@ async function main() {
       },
       body: JSON.stringify({
         tag_name: tag,
-        body: `### QC Manager v${version} (Superadmin Role, Configurable Sanitizer & Access Controls Release)\n\nThis release introduces formal superadmin security tiers, per-role tab access controls, per-user feature flag overrides, and a superadmin-configurable filename sanitizer:\n\n- **Dedicated superadmin Role:** Migrated identity checks away from hardcoded name strings ('KAMRUL' / 'Kamrul Islam') to a first-class superadmin role tier in PostgreSQL and frontend permission services, enforced by database triggers.\n- **Per-Role Tab Access Control:** Superadmins can globally enable or disable any workspace section or subtab for user, supervisor, and admin roles directly from Settings. Superadmin accounts remain immune to role-level restrictions.\n- **Per-User Feature Flag Overrides:** Superadmins can set individual per-user feature flag overrides (Inherit Global, Always ON, or Always OFF) for specific user profiles inside User Management > Profile Settings.\n- **Superadmin-Configurable Filename Sanitizer:** Extracted quote filename stripping lists into a database-backed, real-time sanitizer engine stored in global_settings.sanitizer_rules. Superadmins can add, toggle (enable/disable), or delete sanitizer word chips dynamically.\n- **Settings Subtabs Reorganization:** Split Superadmin settings into two dedicated subtabs: Filename Sanitizer (word chip management) and Access Controls (Tab Access matrix, Feature Flags, and Temporary Access Controls).\n- **UI & Performance Fixes:** Fixed Menu Visibility settings saving directly without requiring admin approval, and isolated toggle button loading states so clicking a feature or tab access toggle only pulses the clicked button instead of flashing the entire section grid.`,
+        name: `QC Manager ${tag}`,
+        body: releaseNotes,
         draft: false,
         prerelease: false
       })
@@ -69,6 +86,22 @@ async function main() {
     process.exit(1);
   } else {
     release = await releaseRes.json();
+    // Keep release body synced with README.md changelog
+    if (releaseNotes && releaseNotes !== release.body) {
+      console.log(`Updating release body for ${tag} on GitHub...`);
+      const patchUrl = `https://api.github.com/repos/${repo}/releases/${release.id}`;
+      const patchRes = await fetch(patchUrl, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ body: releaseNotes })
+      });
+      if (patchRes.ok) {
+        release = await patchRes.json();
+      }
+    }
   }
 
   let assets = release.assets || [];
