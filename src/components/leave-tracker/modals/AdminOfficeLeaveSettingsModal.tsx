@@ -70,7 +70,7 @@ export function AdminOfficeLeaveSettingsModal({
       maxWidthClass="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium">
-        {/* Split / Merge Toggle */}
+        {/* Split / Merge Pill Toggle */}
         <div className="flex items-center justify-between gap-2 p-2 bg-theme-page-bg border border-theme-border-input rounded-xl">
           <span className="text-xs font-semibold text-theme-text-secondary">Allocation Setup:</span>
           <div className="flex bg-theme-card-bg border border-theme-border-muted p-0.5 rounded-lg text-xs font-semibold">

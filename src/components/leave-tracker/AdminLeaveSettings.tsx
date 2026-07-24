@@ -252,7 +252,7 @@ export function AdminLeaveSettings({
                 <button
                   type="button"
                   onClick={() => setOfficeLeaveMode('split')}
-                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                     officeLeaveMode === 'split'
                       ? 'bg-blue-600 text-white shadow-xs font-bold'
                       : 'text-theme-text-muted hover:text-theme-text-primary'
@@ -263,7 +263,7 @@ export function AdminLeaveSettings({
                 <button
                   type="button"
                   onClick={() => setOfficeLeaveMode('merged')}
-                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                     officeLeaveMode === 'merged'
                       ? 'bg-blue-600 text-white shadow-xs font-bold'
                       : 'text-theme-text-muted hover:text-theme-text-primary'
