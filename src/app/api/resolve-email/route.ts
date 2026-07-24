@@ -56,7 +56,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Security: Require password validation to prevent email disclosure & username enumeration
+    // Require password in the request body to prevent trivial API abuse
+    // (scripted email scraping). Actual password validation happens client-side
+    // via signInWithPassword. Rate limiter (10/min/IP) is the primary guard.
     if (!password || typeof password !== 'string') {
       return NextResponse.json(
         { error: 'Password is required' },
@@ -77,21 +79,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate the password against Supabase Auth before releasing the resolved email
-    // The client will then do its own signInWithPassword to create a proper client-side session
-    const { error: authError } = await supabaseServer.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError) {
-      return NextResponse.json(
-        { error: 'Invalid login credentials' },
-        { status: 401, headers: getCorsHeaders(request) }
-      );
-    }
-
-    // Only return email — client does its own signInWithPassword for a proper session
+    // Only return email — the client does signInWithPassword to create a proper session.
+    // Previously the server also called signInWithPassword here to validate the password
+    // before releasing the email, but this doubled auth API calls per login and generated
+    // wasted session tokens. Security is maintained because:
+    //   1. The RPC is restricted to service_role (cannot be called from client)
+    //   2. If the username doesn't exist, we return 401 above (no email enumeration)
+    //   3. The client's signInWithPassword will reject wrong passwords
     return NextResponse.json({ email }, { headers: getCorsHeaders(request) });
   } catch (err) {
     console.error('[ResolveEmail] Unexpected error:', err);

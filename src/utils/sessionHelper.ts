@@ -88,28 +88,11 @@ export async function registerAndCheckSession(
       // Update cache too
       localStorage.setItem('profiles_cache_' + userId, JSON.stringify(userProfile));
     }
-  } else {
-    // Session exists, check if lastActive is old (> 30s) and update
-    const currentSession = activeSessions.find((s: ActiveSession) => s.sessionId === currentSessionId);
-    if (currentSession && now - (currentSession.lastActive || 0) > 30000) {
-      activeSessions = activeSessions.map((s: ActiveSession) => {
-        if (s.sessionId === currentSessionId) {
-          return { ...s, lastActive: now };
-        }
-        return s;
-      });
-
-      const updatedSettings = {
-        ...settings,
-        active_sessions: activeSessions
-      };
-
-      await supabase
-        .from('profiles')
-        .update({ global_settings: updatedSettings })
-        .eq('id', userId);
-    }
   }
+  // No heartbeat needed for existing sessions. The lastActive timestamp
+  // set during registration is only consumed by the 1-week stale filter
+  // above (line 54), and checkInactivity() already handles the 1-week
+  // logout entirely via localStorage — zero DB writes required.
 
   // Check if currentSessionId is still in the activeSessions list
   const isStillValid = activeSessions.some((s: ActiveSession) => s.sessionId === currentSessionId);
