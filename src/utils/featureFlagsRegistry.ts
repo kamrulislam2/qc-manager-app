@@ -90,3 +90,16 @@ export const FEATURE_FLAGS: FeatureFlagDef[] = [
     description: 'Inspecting system security, user activity, and admin audit log entries.',
   },
 ];
+
+/** Default state for a feature flag when no explicit superadmin toggle exists. */
+export const getDefaultFeatureFlagState = (flagKey: string): boolean => {
+  switch (flagKey) {
+    case 'todo_management':
+    case 'audit_logs_inspection':
+    case 'copy_helper_save_file':
+    case 'copy_helper_admin_summary':
+      return false;
+    default:
+      return true;
+  }
+};

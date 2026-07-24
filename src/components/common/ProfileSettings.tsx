@@ -9,8 +9,8 @@ import { supabase } from '@/utils/supabase';
 import toast from 'react-hot-toast';
 import { SanitizerRule, resolveSanitizerRules } from '@/utils/fileNameSanitizer';
 import { TempAccessEntry } from '@/utils/dashboardHelpers';
-import { MENU_TABS, CONFIGURABLE_ROLES } from '@/utils/menuTabsRegistry';
-import { FEATURE_FLAGS } from '@/utils/featureFlagsRegistry';
+import { MENU_TABS, CONFIGURABLE_ROLES, getDefaultRoleVisibility } from '@/utils/menuTabsRegistry';
+import { FEATURE_FLAGS, getDefaultFeatureFlagState } from '@/utils/featureFlagsRegistry';
 
 interface ProfileSettingsProps {
   profile: Profile | null;
@@ -960,7 +960,10 @@ export function ProfileSettings({
                             {tab.label}
                           </span>
                           {CONFIGURABLE_ROLES.map((role) => {
-                            const visible = roleVisibility[role]?.[tab.key] !== false;
+                            const configured = roleVisibility[role]?.[tab.key];
+                            const visible = typeof configured === 'boolean'
+                              ? configured
+                              : getDefaultRoleVisibility(role, tab.key);
                             const itemKey = `${role}:${tab.key}`;
                             const isPending = activeRoleVisKey === itemKey;
                             return (
@@ -1114,7 +1117,10 @@ export function ProfileSettings({
             </div>
             <div className="flex flex-col gap-2">
               {FEATURE_FLAGS.map((flag) => {
-                const enabled = featureFlags[flag.key] !== false;
+                const configured = featureFlags[flag.key];
+                const enabled = typeof configured === 'boolean'
+                  ? configured
+                  : getDefaultFeatureFlagState(flag.key);
                 const isPending = activeFlagKey === flag.key;
                 return (
                   <div

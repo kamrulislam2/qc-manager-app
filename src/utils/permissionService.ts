@@ -1,4 +1,6 @@
 import { Profile } from "@/types";
+import { getDefaultRoleVisibility } from '@/utils/menuTabsRegistry';
+import { getDefaultFeatureFlagState } from '@/utils/featureFlagsRegistry';
 
 /**
  * True only for the superadmin role. Use for superadmin-exclusive capabilities
@@ -31,9 +33,8 @@ export const ROLE_RANK: Record<string, number> = {
 };
 
 /**
- * Superadmin feature flag check. Gates functionality (not nav). Absent or
- * true = enabled (default ON); only an explicit false disables. Reading an
- * unset flag never disables a feature, so wiring gaps can't cause lockouts.
+ * Superadmin feature flag check. Gates functionality (not nav). Reading an
+ * unset flag falls back to default feature state (getDefaultFeatureFlagState).
  */
 export const isFeatureEnabled = (
   flagKey: string,
@@ -48,7 +49,12 @@ export const isFeatureEnabled = (
     return userOverride;
   }
 
-  return globalSettings?.feature_flags?.[flagKey] !== false;
+  const configuredFlag = globalSettings?.feature_flags?.[flagKey];
+  if (typeof configuredFlag === 'boolean') {
+    return configuredFlag;
+  }
+
+  return getDefaultFeatureFlagState(flagKey);
 };
 
 interface VisibilitySettings {
@@ -59,11 +65,10 @@ interface VisibilitySettings {
 /**
  * Superadmin-configurable per-role tab visibility, with time-boxed overrides.
  *
- * Base: a tab is hidden for a role only when role_visibility[role][tabKey] ===
- * false (absent = visible). An active (non-expired) temp_access entry for the
- * (role, tabKey) overrides the base: 'revoke' forces hidden, 'grant' forces
- * visible. Expired entries are ignored (client-side, compared to now).
- * Superadmins always bypass everything. Composes with per-user hidden_tabs.
+ * Base: a tab is hidden for a role when role_visibility[role][tabKey] === false,
+ * or when unset and default role permission is false (getDefaultRoleVisibility).
+ * An active (non-expired) temp_access entry for the (role, tabKey) overrides the base:
+ * 'revoke' forces hidden, 'grant' forces visible.
  */
 export const isTabVisibleForRole = (
   user: Profile | null,
@@ -73,7 +78,13 @@ export const isTabVisibleForRole = (
   if (!user) return false;
   if (isSuperadmin(user)) return true; // superadmin always sees everything
 
-  const base = globalSettings?.role_visibility?.[user.role]?.[tabKey] !== false;
+  const roleVis = globalSettings?.role_visibility?.[user.role];
+  let base: boolean;
+  if (roleVis && typeof roleVis[tabKey] === 'boolean') {
+    base = roleVis[tabKey];
+  } else {
+    base = getDefaultRoleVisibility(user.role, tabKey);
+  }
 
   const now = Date.now();
   const override = (globalSettings?.temp_access ?? []).find(

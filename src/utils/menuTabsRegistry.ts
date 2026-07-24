@@ -42,3 +42,42 @@ export const CONFIGURABLE_ROLES: Array<'user' | 'supervisor' | 'admin'> = [
   'supervisor',
   'admin',
 ];
+
+/**
+ * Default visibility for a tab/subtab per role when no explicit superadmin override exists.
+ * Accurately reflects built-in app permission boundaries.
+ */
+export const getDefaultRoleVisibility = (
+  role: 'user' | 'supervisor' | 'admin' | string,
+  tabKey: string
+): boolean => {
+  switch (tabKey) {
+    case 'todo':
+    case 'save_file':
+      return false;
+
+    case 'audit_logs':
+    case 'govt_responses':
+    case 'settlement':
+    case 'leave_settings':
+      return role === 'admin';
+
+    case 'user_management':
+    case 'team_leaves':
+      return role === 'supervisor' || role === 'admin';
+
+    case 'kpi':
+    case 'leaderboard':
+    case 'copy_helper':
+    case 'monthly':
+    case 'rules':
+    case 'login_codes':
+    case 'ip_checker':
+    case 'causality':
+    case 'leave_history':
+      return true;
+
+    default:
+      return true;
+  }
+};
