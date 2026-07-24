@@ -675,7 +675,7 @@ export function ProfileSettings({
       </div>
 
       {profile?.profile_change_status === 'pending' && (
-        <div className="p-3 bg-purple-955/50 border border-purple-800/50 text-purple-300 text-xs rounded-xl flex items-start gap-2.5 max-w-3xl animate-pulse">
+        <div className="p-3 bg-purple-955/50 border border-purple-800/50 text-purple-300 text-xs rounded-xl flex items-start gap-2.5 w-full animate-pulse">
           <AlertTriangle className="h-4.5 w-4.5 text-purple-400 shrink-0 mt-0.5" />
           <div>
             <strong className="block font-semibold">Change Request Pending</strong>
@@ -809,7 +809,7 @@ export function ProfileSettings({
 
       {/* Menu Visibility Configuration */}
       {activeSubTab === 'menu_visibility' && profile && (
-        <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4 max-w-4xl">
+        <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4 w-full">
           <div>
             <h3 className="text-sm font-bold text-theme-text-secondary uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-theme-border-input/40">
               <Layout className="h-4 w-4 text-blue-400" />
@@ -871,7 +871,7 @@ export function ProfileSettings({
 
       {/* File Name Sanitizer (Superadmin only) */}
       {activeSubTab === 'sanitizer' && isSuperAdmin && (
-        <div className="space-y-6 max-w-4xl">
+        <div className="space-y-6 w-full">
           <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4">
             <div>
               <h3 className="text-sm font-bold text-theme-text-secondary uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-theme-border-input/40">
@@ -952,7 +952,7 @@ export function ProfileSettings({
 
       {/* Access & Feature Controls (Superadmin only) */}
       {activeSubTab === 'access_controls' && isSuperAdmin && (
-        <div className="space-y-6 max-w-4xl">
+        <div className="space-y-6 w-full">
           {/* Tab Access — per-role visibility matrix */}
           <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4">
             <div>
@@ -1004,8 +1004,8 @@ export function ProfileSettings({
                                 title={visible ? `Visible to ${role}` : `Hidden from ${role}`}
                                 className={`mx-auto w-16 h-6 rounded-lg border text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
                                   visible
-                                    ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-400 hover:bg-emerald-950/50'
-                                    : 'bg-rose-950/30 border-rose-500/30 text-rose-400 hover:bg-rose-950/50'
+                                    ? 'bg-emerald-955/30 border-emerald-500/30 text-emerald-400 hover:bg-emerald-955/50'
+                                    : 'bg-rose-955/30 border-rose-500/30 text-rose-400 hover:bg-rose-955/50'
                                 } ${isPending ? 'animate-pulse opacity-50 cursor-wait' : ''}`}
                               >
                                 {visible ? 'On' : 'Off'}
@@ -1057,8 +1057,8 @@ export function ProfileSettings({
                       title={enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}
                       className={`shrink-0 w-16 h-6 rounded-lg border text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
                         enabled
-                          ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-400 hover:bg-emerald-950/50'
-                          : 'bg-rose-950/30 border-rose-500/30 text-rose-400 hover:bg-rose-950/50'
+                          ? 'bg-emerald-955/30 border-emerald-500/30 text-emerald-400 hover:bg-emerald-955/50'
+                          : 'bg-rose-955/30 border-rose-500/30 text-rose-400 hover:bg-rose-955/50'
                       } ${isPending ? 'animate-pulse opacity-50 cursor-wait' : ''}`}
                     >
                       {enabled ? 'On' : 'Off'}
@@ -1180,7 +1180,7 @@ export function ProfileSettings({
 
       {/* Bottom Save Changes Bar (Profile & Menu Visibility subtabs) */}
       {activeSubTab !== 'sanitizer' && activeSubTab !== 'access_controls' && profile?.profile_change_status !== 'pending' && (
-        <div className="flex justify-end pt-4 border-t border-theme-border-input/60 max-w-4xl">
+        <div className="flex justify-end pt-4 border-t border-theme-border-input/60 w-full">
           <button
             type={activeSubTab === 'profile' ? 'submit' : 'button'}
             form={activeSubTab === 'profile' ? 'profile-settings-form' : undefined}
