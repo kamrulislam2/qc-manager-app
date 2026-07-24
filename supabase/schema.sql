@@ -2476,8 +2476,39 @@ ALTER TABLE public.records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: set_admin_delegated_flags(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE OR REPLACE FUNCTION public.set_admin_delegated_flags(p_flags jsonb)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $$
+BEGIN
+  IF NOT public.is_superadmin() THEN
+    RAISE EXCEPTION 'Only a superadmin can configure admin delegated feature flags.';
+  END IF;
+
+  UPDATE public.profiles
+  SET global_settings = jsonb_set(
+        COALESCE(global_settings, '{}'::jsonb),
+        '{admin_delegated_flags}',
+        COALESCE(p_flags, '{}'::jsonb),
+        true
+      )
+  WHERE true;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.set_admin_delegated_flags(jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.set_admin_delegated_flags(jsonb) FROM anon;
+GRANT EXECUTE ON FUNCTION public.set_admin_delegated_flags(jsonb) TO authenticated;
+
+--
 -- PostgreSQL database dump complete
 --
 
 \unrestrict ZAnWyAA2QFyMaPaPjsN4lZHGCQBVGuLToKhsKBHQ4EDu6g1QOKmHb7RHv4XMQpu
+
 

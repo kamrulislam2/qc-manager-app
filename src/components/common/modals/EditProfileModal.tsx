@@ -450,40 +450,74 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </div>
           )}
 
-          {/* User Feature Flags Overrides */}
+          {/* Per-User Feature Flags Overrides */}
           {setUserFeatureFlags && (isSuperAdmin || Object.values(adminDelegatedFlags || {}).some(Boolean)) && (
-            <div className="border-t border-theme-border-input/80 pt-3 space-y-2">
+            <div className="border-t border-theme-border-input/80 pt-3 space-y-2 font-sans">
               <label className="block text-[11px] font-semibold text-theme-text-secondary">
-                Per-User Feature Flag Overrides
+                Individual Feature Flags Overrides
               </label>
               <p className="text-[10px] text-theme-text-muted">
-                Override operational feature flags specifically for this user.
+                Override global feature flags specifically for <strong>{fullName || username || 'this user'}</strong>.
               </p>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                 {FEATURE_FLAGS.filter(f => isSuperAdmin || adminDelegatedFlags?.[f.key] === true).map(flag => {
-                  const val = userFeatureFlags?.[flag.key];
+                  const currentOverride = userFeatureFlags?.[flag.key];
                   return (
-                    <div key={flag.key} className="flex items-center justify-between p-2 rounded-lg bg-theme-page-bg/40 border border-theme-border-input/60 gap-2">
-                      <span className="text-xs font-medium text-theme-text-secondary truncate" title={flag.description}>
-                        {flag.label}
-                      </span>
-                      <select
-                        value={typeof val === 'boolean' ? (val ? 'on' : 'off') : 'default'}
-                        onChange={(e) => {
-                          const nxt = { ...(userFeatureFlags || {}) };
-                          if (e.target.value === 'default') {
-                            delete nxt[flag.key];
-                          } else {
-                            nxt[flag.key] = e.target.value === 'on';
-                          }
-                          setUserFeatureFlags(nxt);
-                        }}
-                        className="text-[10px] font-semibold rounded bg-theme-card-bg border border-theme-border-input px-2 py-1 text-theme-text-primary shrink-0"
-                      >
-                        <option value="default">Default</option>
-                        <option value="on">Enable (ON)</option>
-                        <option value="off">Disable (OFF)</option>
-                      </select>
+                    <div key={flag.key} className="flex items-center justify-between p-2.5 rounded-xl bg-theme-page-bg/40 border border-theme-border-input/60 gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="block text-xs font-semibold text-theme-text-primary truncate" title={flag.description}>
+                          {flag.label}
+                        </span>
+                        <span className="block text-[9px] text-theme-text-muted truncate">
+                          {flag.description}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1 bg-theme-card-bg/60 p-1 rounded-lg border border-theme-border-muted/40 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = { ...userFeatureFlags };
+                            delete next[flag.key];
+                            setUserFeatureFlags(next);
+                          }}
+                          className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                            currentOverride === undefined
+                              ? 'bg-blue-600/25 text-blue-400 border border-blue-500/40 shadow-xs'
+                              : 'text-theme-text-muted hover:text-theme-text-secondary'
+                          }`}
+                        >
+                          Inherit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserFeatureFlags({ ...userFeatureFlags, [flag.key]: true });
+                          }}
+                          className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                            currentOverride === true
+                              ? 'bg-emerald-955/40 text-emerald-400 border border-emerald-500/40 shadow-xs'
+                              : 'text-theme-text-muted hover:text-theme-text-secondary'
+                          }`}
+                        >
+                          Always ON
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserFeatureFlags({ ...userFeatureFlags, [flag.key]: false });
+                          }}
+                          className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                            currentOverride === false
+                              ? 'bg-rose-955/40 text-rose-400 border border-rose-500/40 shadow-xs'
+                              : 'text-theme-text-muted hover:text-theme-text-secondary'
+                          }`}
+                        >
+                          Always OFF
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

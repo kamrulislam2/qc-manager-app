@@ -8,6 +8,7 @@ import { supabase } from "@/utils/supabase";
 import {
   canAccessProfileSection,
   isSuperadmin,
+  isAdminRole,
   getAllowedRoleOptions,
   getRoleLabel,
   canManageUserRole,
@@ -164,6 +165,12 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
   setUserFeatureFlags,
   adminDelegatedFlags = {},
 }) => {
+  const effectiveAdminDelegatedFlags = React.useMemo(() => {
+    const userFlags = currentUser?.global_settings?.admin_delegated_flags;
+    const targetFlags = viewingStaff?.global_settings?.admin_delegated_flags;
+    return { ...(targetFlags || {}), ...(userFlags || {}), ...(adminDelegatedFlags || {}) };
+  }, [currentUser, viewingStaff, adminDelegatedFlags]);
+
   const showLeaveSettings = isNewUser ? (isAdmin || isSupervisor) : canAccessProfileSection(currentUser || null, viewingStaff, 'leave_settings');
   const showQuotesSettings = isNewUser ? (isAdmin || isSupervisor) : canAccessProfileSection(currentUser || null, viewingStaff, 'quotes_settings');
   const showKpiSettings = isNewUser ? (isAdmin || isSupervisor) : (canAccessProfileSection(currentUser || null, viewingStaff, 'kpi_settings') && !!setKpiSkills);
@@ -814,13 +821,15 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
         )}
       </div>
 
-      {/* Superadmin-Only Per-User Feature Flags Overrides */}
-      {currentUser && isSuperadmin(currentUser) && setUserFeatureFlags && (
+      {/* Per-User Feature Flags Overrides (Superadmin & Delegated Admin) */}
+      {currentUser && (isSuperadmin(currentUser) || isAdminRole(currentUser)) && setUserFeatureFlags && (
         <div className="bg-theme-card-bg/40 border border-theme-border-input/60 p-5 rounded-2xl shadow-xl space-y-4 font-sans">
           <div className="border-b border-theme-border-input/60 pb-3">
             <h3 className="text-sm font-bold text-theme-text-primary flex items-center gap-2">
               <Settings className="h-4 w-4 text-purple-400" />
-              Individual Feature Flags Overrides (Superadmin Only)
+              {isSuperadmin(currentUser)
+                ? 'Individual Feature Flags Overrides (Superadmin Only)'
+                : 'Individual Feature Flags Overrides'}
             </h3>
             <p className="text-[11px] text-theme-text-muted mt-1">
               Override global feature flags specifically for <strong>{fullName || codename || 'this user'}</strong>.
@@ -829,7 +838,7 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
           </div>
 
           <div className="flex flex-col gap-2.5">
-            {FEATURE_FLAGS.map((flag) => {
+            {FEATURE_FLAGS.filter(f => isSuperadmin(currentUser) || effectiveAdminDelegatedFlags[f.key] === true).map((flag) => {
               const currentOverride = userFeatureFlags[flag.key];
               return (
                 <div
@@ -1436,47 +1445,6 @@ export const StaffSettingsForm: React.FC<StaffSettingsFormProps> = ({
                       </option>
                     ))}
                 </select>
-              </div>
-            )}
-
-            {/* User Feature Flags Overrides */}
-            {setUserFeatureFlags && (isSuperadmin(currentUser || null) || Object.values(adminDelegatedFlags || {}).some(Boolean)) && (
-              <div className="mt-4 pt-4 border-t border-theme-border-input/40">
-                <label className="block text-[10px] font-semibold text-theme-text-muted uppercase tracking-wider mb-1.5">
-                  Per-User Feature Flag Overrides
-                </label>
-                <p className="text-[10px] text-theme-text-muted mb-2">
-                  Override operational feature flags specifically for this staff member.
-                </p>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {FEATURE_FLAGS.filter(f => isSuperadmin(currentUser || null) || adminDelegatedFlags?.[f.key] === true).map(flag => {
-                    const val = userFeatureFlags?.[flag.key];
-                    return (
-                      <div key={flag.key} className="flex items-center justify-between p-2 rounded-lg bg-theme-page-bg/40 border border-theme-border-input/60 gap-2">
-                        <span className="text-xs font-medium text-theme-text-secondary truncate" title={flag.description}>
-                          {flag.label}
-                        </span>
-                        <select
-                          value={typeof val === 'boolean' ? (val ? 'on' : 'off') : 'default'}
-                          onChange={(e) => {
-                            const nxt = { ...(userFeatureFlags || {}) };
-                            if (e.target.value === 'default') {
-                              delete nxt[flag.key];
-                            } else {
-                              nxt[flag.key] = e.target.value === 'on';
-                            }
-                            setUserFeatureFlags(nxt);
-                          }}
-                          className="text-[10px] font-semibold rounded bg-theme-card-bg border border-theme-border-input px-2 py-1 text-theme-text-primary shrink-0 cursor-pointer"
-                        >
-                          <option value="default">Default</option>
-                          <option value="on">Enable (ON)</option>
-                          <option value="off">Disable (OFF)</option>
-                        </select>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             )}
           </div>
