@@ -24,14 +24,14 @@ export function ProfileSettings({
   setProfile,
   sessionUser,
 }: ProfileSettingsProps) {
-  // Input fields state
-  const [editUsername, setEditUsername] = useState('');
-  const [editFullName, setEditFullName] = useState('');
-  const [editJobRole, setEditJobRole] = useState('');
-  const [editWorkingHours, setEditWorkingHours] = useState('9.5');
-  const [editBreakTime, setEditBreakTime] = useState('0');
-  const [profileSignInTime, setProfileSignInTime] = useState('');
-  const [profileSignOutTime, setProfileSignOutTime] = useState('');
+  // Input fields state (seeded synchronously from profile to prevent initial render flicker)
+  const [editUsername, setEditUsername] = useState(() => profile?.username || '');
+  const [editFullName, setEditFullName] = useState(() => profile?.full_name || '');
+  const [editJobRole, setEditJobRole] = useState(() => profile?.job_role || '');
+  const [editWorkingHours, setEditWorkingHours] = useState(() => (profile?.working_hours ?? 9.5).toString());
+  const [editBreakTime, setEditBreakTime] = useState(() => (profile?.break_time ?? 0).toString());
+  const [profileSignInTime, setProfileSignInTime] = useState(() => profile?.default_sign_in || '');
+  const [profileSignOutTime, setProfileSignOutTime] = useState(() => profile?.default_sign_out || '');
 
   // Password fields state
   const [newPassword, setNewPassword] = useState('');
@@ -39,10 +39,11 @@ export function ProfileSettings({
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [showPasswordFields, setShowPasswordFields] = useState(false);
 
-
-
   // Hidden tabs (for admin menu visibility)
-  const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
+  const [hiddenTabs, setHiddenTabs] = useState<string[]>(() => profile?.global_settings?.hidden_tabs || []);
+
+  // Tracking profile synchronization state to prevent brief hasChanges flicker on reload
+  const [syncedProfileId, setSyncedProfileId] = useState<string | null>(() => profile?.id || null);
 
   // Sanitizer rules (superadmin-only filename cleaner config; word + enabled).
   // Seeded from the built-in defaults so the list is never empty.
@@ -178,12 +179,14 @@ export function ProfileSettings({
           ? profile.global_settings.temp_access
           : []
       );
+      setSyncedProfileId(profile.id);
     }
   }, [profile, sessionUser]);
 
   // Determine if there are changes
   const hasChanges = useMemo(() => {
-    if (!profile) return false;
+    if (!profile || syncedProfileId !== profile.id) return false;
+
     const isUsernameChanged = editUsername.toUpperCase().trim() !== (profile.username || '').toUpperCase().trim();
     const isFullNameChanged = editFullName.trim() !== (profile.full_name || '').trim();
     const isWorkingHoursChanged = (parseFloat(editWorkingHours) || 9.5) !== (profile.working_hours ?? 9.5);
@@ -201,7 +204,7 @@ export function ProfileSettings({
       return isFullNameChanged || isWorkingHoursChanged || isBreakTimeChanged ||
              isJobRoleChanged || isSignInChanged || isSignOutChanged || isHiddenTabsChanged;
     }
-  }, [profile, editUsername, editFullName, editWorkingHours, editBreakTime, editJobRole, profileSignInTime, profileSignOutTime, hiddenTabs]);
+  }, [profile, syncedProfileId, editUsername, editFullName, editWorkingHours, editBreakTime, editJobRole, profileSignInTime, profileSignOutTime, hiddenTabs]);
 
 
 
