@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { User, AlertTriangle, RefreshCw, Settings, Key, Layout, Shield, FileText, Globe, Trash2 } from 'lucide-react';
 import { Profile } from '@/types';
-import { isSuperadmin, isAdminRole, canAdminManageFeatureFlag, isAdminDelegatedFeature } from '@/utils/permissionService';
+import { isSuperadmin, isAdminRole, isTabVisibleForRole, canAdminManageFeatureFlag, isAdminDelegatedFeature } from '@/utils/permissionService';
 import { ProfileFields } from '@/components/leave-tracker/ProfileFields';
 import { supabase } from '@/utils/supabase';
 import toast from 'react-hot-toast';
@@ -65,6 +65,14 @@ export function ProfileSettings({
   const { profilesList } = useProfiles();
   const superadminProfile = useMemo(() => profilesList.find((p) => p.role === 'superadmin'), [profilesList]);
 
+  // Dynamic access check for each Settings subtab (superadmin always sees everything, otherwise role_visibility / isTabVisibleForRole)
+  const canSeeProfile = useMemo(() => isSuperadmin(profile) || isTabVisibleForRole(profile, 'settings_profile', profile?.global_settings), [profile]);
+  const canSeeMenu = useMemo(() => isSuperadmin(profile) || isTabVisibleForRole(profile, 'settings_menu', profile?.global_settings), [profile]);
+  const canSeeSanitizer = useMemo(() => isSuperadmin(profile) || isTabVisibleForRole(profile, 'settings_sanitizer', profile?.global_settings), [profile]);
+  const canSeeAccess = useMemo(() => isSuperadmin(profile) || isTabVisibleForRole(profile, 'settings_access', profile?.global_settings), [profile]);
+  const canSeeFeatureFlags = useMemo(() => isSuperadmin(profile) || isTabVisibleForRole(profile, 'settings_feature_flags', profile?.global_settings), [profile]);
+  const canSeeVpn = useMemo(() => isSuperadmin(profile) || isTabVisibleForRole(profile, 'settings_vpn', profile?.global_settings), [profile]);
+
   // Derived effective admin delegated flags (combines superadmin profile settings with local state and current profile)
   const effectiveAdminDelegatedFlags = useMemo(() => {
     const saFlags = superadminProfile?.global_settings?.admin_delegated_flags;
@@ -88,7 +96,7 @@ export function ProfileSettings({
   const [newVpnInput, setNewVpnInput] = useState('');
   const [vpnSubmitting, setVpnSubmitting] = useState(false);
 
-  // Subtabs state (Profile / Menu Visibility / superadmin-only Sanitizer, Access Controls, Feature Flags & VPN List)
+  // Subtabs state (Profile / Menu / Sanitizer / Access / Feature Flags / VPN)
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'menu_visibility' | 'sanitizer' | 'access_controls' | 'feature_flags' | 'vpn_list'>(() => {
     try {
       const saved = localStorage.getItem('settings_active_subtab');
@@ -99,20 +107,26 @@ export function ProfileSettings({
     return 'profile';
   });
 
-  // Fallback check: if user is not superadmin/admin/supervisor and saved subtab is restricted, revert to profile
+  // Fallback check: if saved subtab is restricted for current role, revert to profile
   useEffect(() => {
     if (!profile) return;
-    if ((activeSubTab === 'sanitizer' || activeSubTab === 'access_controls') && !isSuperadmin(profile)) {
+    if (activeSubTab === 'sanitizer' && !canSeeSanitizer) {
       setActiveSubTab('profile');
       localStorage.setItem('settings_active_subtab', 'profile');
-    } else if (activeSubTab === 'feature_flags' && !isAdminRole(profile)) {
+    } else if (activeSubTab === 'access_controls' && !canSeeAccess) {
       setActiveSubTab('profile');
       localStorage.setItem('settings_active_subtab', 'profile');
-    } else if (activeSubTab === 'vpn_list' && (!isAdminRole(profile) && profile.role !== 'supervisor')) {
+    } else if (activeSubTab === 'feature_flags' && !canSeeFeatureFlags) {
+      setActiveSubTab('profile');
+      localStorage.setItem('settings_active_subtab', 'profile');
+    } else if (activeSubTab === 'vpn_list' && !canSeeVpn) {
+      setActiveSubTab('profile');
+      localStorage.setItem('settings_active_subtab', 'profile');
+    } else if (activeSubTab === 'menu_visibility' && !canSeeMenu) {
       setActiveSubTab('profile');
       localStorage.setItem('settings_active_subtab', 'profile');
     }
-  }, [profile, activeSubTab]);
+  }, [profile, activeSubTab, canSeeSanitizer, canSeeAccess, canSeeFeatureFlags, canSeeVpn, canSeeMenu]);
 
   const handleSubTabChange = (tab: 'profile' | 'menu_visibility' | 'sanitizer' | 'access_controls' | 'feature_flags' | 'vpn_list') => {
     setActiveSubTab(tab);
@@ -746,63 +760,67 @@ export function ProfileSettings({
 
       {/* Subtab Navigation */}
       <div className="flex items-center gap-2 border-b border-theme-border-input/60 pb-3 overflow-x-auto max-w-full scrollbar-thin whitespace-nowrap pt-0.5">
-        <button
-          type="button"
-          onClick={() => handleSubTabChange('profile')}
-          className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeSubTab === 'profile'
-              ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-sm'
-              : 'text-theme-text-secondary hover:bg-theme-card-bg/60 border border-transparent'
-          }`}
-        >
-          <User className="h-4 w-4" />
-          <span>Profile & Shift</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSubTabChange('menu_visibility')}
-          className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeSubTab === 'menu_visibility'
-              ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-sm'
-              : 'text-theme-text-secondary hover:bg-theme-card-bg/60 border border-transparent'
-          }`}
-        >
-          <Layout className="h-4 w-4" />
-          <span>Menu Visibility</span>
-        </button>
-
-        {isSuperAdmin && (
-          <>
-            <button
-              type="button"
-              onClick={() => handleSubTabChange('sanitizer')}
-              className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeSubTab === 'sanitizer'
-                  ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-sm'
-                  : 'text-theme-text-secondary hover:bg-theme-card-bg/60 border border-transparent'
-              }`}
-            >
-              <FileText className="h-4 w-4" />
-              <span>Filename Sanitizer</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleSubTabChange('access_controls')}
-              className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeSubTab === 'access_controls'
-                  ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-sm'
-                  : 'text-theme-text-secondary hover:bg-theme-card-bg/60 border border-transparent'
-              }`}
-            >
-              <Shield className="h-4 w-4" />
-              <span>Access Controls</span>
-            </button>
-          </>
+        {canSeeProfile && (
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('profile')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeSubTab === 'profile'
+                ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-sm'
+                : 'text-theme-text-secondary hover:bg-theme-card-bg/60 border border-transparent'
+            }`}
+          >
+            <User className="h-4 w-4" />
+            <span>Profile</span>
+          </button>
         )}
 
-        {isAdminRole(profile) && (
+        {canSeeMenu && (
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('menu_visibility')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeSubTab === 'menu_visibility'
+                ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-sm'
+                : 'text-theme-text-secondary hover:bg-theme-card-bg/60 border border-transparent'
+            }`}
+          >
+            <Layout className="h-4 w-4" />
+            <span>Menu</span>
+          </button>
+        )}
+
+        {canSeeSanitizer && (
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('sanitizer')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeSubTab === 'sanitizer'
+                ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-sm'
+                : 'text-theme-text-secondary hover:bg-theme-card-bg/60 border border-transparent'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            <span>Sanitizer</span>
+          </button>
+        )}
+
+        {canSeeAccess && (
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('access_controls')}
+            className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeSubTab === 'access_controls'
+                ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-sm'
+                : 'text-theme-text-secondary hover:bg-theme-card-bg/60 border border-transparent'
+            }`}
+          >
+            <Shield className="h-4 w-4" />
+            <span>Access</span>
+          </button>
+        )}
+
+        {canSeeFeatureFlags && (
           <button
             type="button"
             onClick={() => handleSubTabChange('feature_flags')}
@@ -817,7 +835,7 @@ export function ProfileSettings({
           </button>
         )}
 
-        {(isSuperAdmin || isAdminRole(profile) || profile?.role === 'supervisor') && (
+        {canSeeVpn && (
           <button
             type="button"
             onClick={() => handleSubTabChange('vpn_list')}
@@ -828,7 +846,7 @@ export function ProfileSettings({
             }`}
           >
             <Globe className="h-4 w-4" />
-            <span>VPN List</span>
+            <span>VPN</span>
           </button>
         )}
       </div>
@@ -1028,8 +1046,8 @@ export function ProfileSettings({
         </div>
       )}
 
-      {/* File Name Sanitizer (Superadmin only) */}
-      {activeSubTab === 'sanitizer' && isSuperAdmin && (
+      {/* File Name Sanitizer */}
+      {activeSubTab === 'sanitizer' && (isSuperAdmin || canSeeSanitizer) && (
         <div className="space-y-6 w-full">
           <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4">
             <div>
@@ -1109,8 +1127,8 @@ export function ProfileSettings({
         </div>
       )}
 
-      {/* Access & Feature Controls (Superadmin only) */}
-      {activeSubTab === 'access_controls' && isSuperAdmin && (
+      {/* Access & Feature Controls */}
+      {activeSubTab === 'access_controls' && (isSuperAdmin || canSeeAccess) && (
         <div className="space-y-6 w-full">
           {/* Tab Access — per-role visibility matrix */}
           <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4">
@@ -1127,7 +1145,7 @@ export function ProfileSettings({
               </p>
             </div>
 
-            {['Main Workspace Sections', 'Quotes Tracker Subtabs', 'Leave Tracker Subtabs'].map(
+            {['Main Workspace Sections', 'Quotes Tracker Subtabs', 'Leave Tracker Subtabs', 'Settings Subtabs'].map(
               (category) => {
                 const tabs = MENU_TABS.filter((t) => t.category === category);
                 if (tabs.length === 0) return null;
@@ -1418,7 +1436,7 @@ export function ProfileSettings({
       )}
 
       {/* VPN List Subtab */}
-      {activeSubTab === 'vpn_list' && (isSuperAdmin || isAdminRole(profile) || profile?.role === 'supervisor') && (
+      {activeSubTab === 'vpn_list' && (isSuperAdmin || canSeeVpn) && (
         <div className="space-y-6 w-full font-sans">
           <div className="bg-theme-card-bg/40 rounded-2xl border border-theme-border-input/60 p-6 space-y-4">
             <div>

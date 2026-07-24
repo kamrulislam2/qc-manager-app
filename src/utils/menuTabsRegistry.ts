@@ -8,7 +8,7 @@
 export interface MenuTabDef {
   key: string;
   label: string;
-  category: 'Main Workspace Sections' | 'Quotes Tracker Subtabs' | 'Leave Tracker Subtabs';
+  category: 'Main Workspace Sections' | 'Quotes Tracker Subtabs' | 'Leave Tracker Subtabs' | 'Settings Subtabs';
 }
 
 export const MENU_TABS: MenuTabDef[] = [
@@ -34,6 +34,14 @@ export const MENU_TABS: MenuTabDef[] = [
   { key: 'settlement', label: 'Settlement Subtab', category: 'Leave Tracker Subtabs' },
   { key: 'leave_settings', label: 'Leave Settings Subtab', category: 'Leave Tracker Subtabs' },
   { key: 'team_leaves', label: 'Staff Leaves Subtab', category: 'Leave Tracker Subtabs' },
+
+  // Settings Subtabs
+  { key: 'settings_profile', label: 'Settings > Profile', category: 'Settings Subtabs' },
+  { key: 'settings_menu', label: 'Settings > Menu', category: 'Settings Subtabs' },
+  { key: 'settings_sanitizer', label: 'Settings > Sanitizer', category: 'Settings Subtabs' },
+  { key: 'settings_access', label: 'Settings > Access', category: 'Settings Subtabs' },
+  { key: 'settings_feature_flags', label: 'Settings > Feature Flags', category: 'Settings Subtabs' },
+  { key: 'settings_vpn', label: 'Settings > VPN', category: 'Settings Subtabs' },
 ];
 
 /** Roles a superadmin can configure visibility for (never superadmin itself). */
@@ -60,12 +68,18 @@ export const getDefaultRoleVisibility = (
     case 'govt_responses':
     case 'settlement':
     case 'leave_settings':
+    case 'settings_menu':
+    case 'settings_sanitizer':
+    case 'settings_access':
+    case 'settings_feature_flags':
       return role === 'admin';
 
     case 'user_management':
     case 'team_leaves':
+    case 'settings_vpn':
       return role === 'supervisor' || role === 'admin';
 
+    case 'settings_profile':
     case 'kpi':
     case 'leaderboard':
     case 'copy_helper':
