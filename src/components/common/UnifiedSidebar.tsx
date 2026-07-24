@@ -52,16 +52,37 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
 }) => {
   const router = useRouter();
 
-  // Subtabs expanded/collapsed state
-  const [isChutiExpanded, setIsChutiExpanded] = useState(true);
-  const [isQuotesExpanded, setIsQuotesExpanded] = useState(true);
+  // Subtabs expanded/collapsed state persisted in localStorage
+  const [isChutiExpanded, setIsChutiExpanded] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar_subtab_chuti_expanded');
+      if (saved !== null) return saved === 'true';
+    }
+    return true;
+  });
 
-  // Auto-expand active workspace tabs
+  const [isQuotesExpanded, setIsQuotesExpanded] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar_subtab_quotes_expanded');
+      if (saved !== null) return saved === 'true';
+    }
+    return true;
+  });
+
+  // Auto-expand active workspace tabs ONLY if user has not explicitly saved a preference
   useEffect(() => {
-    if (activeSection === 'chuti') {
-      setIsChutiExpanded(true);
-    } else if (activeSection === 'quotes') {
-      setIsQuotesExpanded(true);
+    if (typeof window !== 'undefined') {
+      if (activeSection === 'chuti') {
+        const saved = localStorage.getItem('sidebar_subtab_chuti_expanded');
+        if (saved === null) {
+          setIsChutiExpanded(true);
+        }
+      } else if (activeSection === 'quotes') {
+        const saved = localStorage.getItem('sidebar_subtab_quotes_expanded');
+        if (saved === null) {
+          setIsQuotesExpanded(true);
+        }
+      }
     }
   }, [activeSection]);
 
@@ -84,7 +105,13 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
 
   const handleChutiClick = () => {
     if (activeSection === 'chuti') {
-      setIsChutiExpanded(prev => !prev);
+      setIsChutiExpanded(prev => {
+        const next = !prev;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('sidebar_subtab_chuti_expanded', String(next));
+        }
+        return next;
+      });
     } else {
       handleChutiNav();
     }
@@ -99,7 +126,13 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
 
   const handleQuotesClick = () => {
     if (activeSection === 'quotes') {
-      setIsQuotesExpanded(prev => !prev);
+      setIsQuotesExpanded(prev => {
+        const next = !prev;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('sidebar_subtab_quotes_expanded', String(next));
+        }
+        return next;
+      });
     } else {
       handleQuotesNav();
     }
